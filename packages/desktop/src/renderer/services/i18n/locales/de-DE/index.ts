@@ -22,7 +22,9 @@ import guid from './guid.json';
 import agent from './agent.json';
 import team from './team.json';
 import pet from './pet.json';
-
+import workbench from './workbench.json';
+import kbChat from './kb-chat.json';
+import taskCenter from './taskCenter.json';
 export default {
   common,
   agentMode,
@@ -43,4 +45,7 @@ export default {
   agent,
   team,
   pet,
+  workbench,
+  'kb-chat': kbChat,
+  taskCenter,
 };

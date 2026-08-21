@@ -6,6 +6,7 @@
 
 import type { BrowserWindow } from 'electron';
 import { ipcBridge } from '@/common';
+import { handleExternalLoginDeepLink, isExternalLoginAction } from '@/process/auth';
 
 export const PROTOCOL_SCHEME = 'aionui';
 
@@ -71,6 +72,18 @@ export const handleDeepLinkUrl = (url: string): void => {
 
   if (!mainWindowRef || mainWindowRef.isDestroyed()) {
     pendingDeepLinkUrl = url;
+    return;
+  }
+
+  // Auth callback is consumed by the main process and forwarded to the
+  // renderer via the dedicated auth emitter. Route it here so the
+  // contract is explicit and `useDeepLink` in the renderer doesn't see
+  // it.
+  if (isExternalLoginAction(parsed.action)) {
+    const result = handleExternalLoginDeepLink(parsed.params);
+    if (!result.ok) {
+      console.warn('[DeepLink] auth/callback rejected:', result.reason);
+    }
     return;
   }
 

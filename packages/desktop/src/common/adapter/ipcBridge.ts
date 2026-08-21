@@ -183,6 +183,107 @@ export const assistants = {
 };
 
 // ---------------------------------------------------------------------------
+// Auth — Electron-native (hidden BrowserWindow + preload bridge)
+// ---------------------------------------------------------------------------
+
+export const auth = {
+  /** Kick off the external login flow: opens the system browser at the
+   *  external login URL. Resolves immediately on launch success/failure —
+   *  the token itself arrives asynchronously via `externalLoginCompleted`. */
+  startExternalLogin: bridge.buildProvider<{ success: boolean; message?: string }, void>('auth:start-external-login'),
+  /** Main → renderer: aipaas-front redirected back with a validated token
+   *  via the `aionui://auth/callback` deep link. */
+  externalLoginCompleted: bridge.buildEmitter<{ token: string; user: { id: string; username: string } }>(
+    'auth:external-login-completed'
+  ),
+};
+
+// ---------------------------------------------------------------------------
+// KB Chat — Electron-native (main-process SSE proxy)
+// ---------------------------------------------------------------------------
+
+export const kbChat = {
+  /** Renderer → main: start an SSE streaming request for the given KB + question. */
+  send: bridge.buildProvider<
+    { requestId: string; ok: true } | { ok: false; message: string },
+    { requestId: string; kbId: string; question: string; threadId: string; token: string }
+  >('kbChat.send'),
+  /** Renderer → main: cancel an in-flight SSE request by requestId. */
+  abort: bridge.buildProvider<{ ok: true }, { requestId: string }>('kbChat.abort'),
+  /** Main → renderer: a chunk of incremental assistant text. */
+  streamChunk: bridge.buildEmitter<{ requestId: string; content: string }>('kbChat.streamChunk'),
+  /** Main → renderer: the stream has ended (done / aborted / error). */
+  streamEnd: bridge.buildEmitter<{ requestId: string; reason: 'done' | 'aborted' | 'error' }>('kbChat.streamEnd'),
+  /** Main → renderer: an error event surfaced from the upstream SSE. */
+  streamError: bridge.buildEmitter<{ requestId: string; code: string; message: string }>('kbChat.streamError'),
+};
+
+// ---------------------------------------------------------------------------
+// Task Center — list the current user's PM-center tasks (Electron-native HTTP)
+// ---------------------------------------------------------------------------
+
+export interface ITaskCenterFilters {
+  keyword?: string;
+  urgency?: number | 'all';
+  projectId?: string | 'all';
+  type?: number | 'all';
+}
+
+export interface ITaskCenterRow {
+  id: string;
+  name: string;
+  mark: string;
+  projectName: string;
+  projectId: string;
+  partName: string;
+  milestoneName: string;
+  type: number;
+  typeDesc: string;
+  urgency: number;
+  urgencyDesc: string;
+  status: number;
+  statusDesc: string;
+  deadlineTime: string | null;
+  startTime: string | null;
+  endTime: string | null;
+  closeTime: string | null;
+  creator: string;
+  creatorName: string;
+  currentUserId: string;
+  currentUserName: string;
+  updator: string;
+  updatorName: string;
+  createTime: string;
+  updateTime: string;
+  content: string | null;
+  remark: string | null;
+  raw: Record<string, unknown>;
+}
+
+export interface ITaskCenterListParams {
+  token: string;
+  filters: ITaskCenterFilters;
+  pageNo: number;
+  perPageSize: number;
+}
+
+export interface ITaskCenterListOk {
+  ok: true;
+  data: { total: number; items: ITaskCenterRow[] };
+}
+
+export interface ITaskCenterListErr {
+  ok: false;
+  message: string;
+}
+
+export type ITaskCenterListResult = ITaskCenterListOk | ITaskCenterListErr;
+
+export const taskCenter = {
+  list: bridge.buildProvider<ITaskCenterListResult, ITaskCenterListParams>('taskCenter.list'),
+};
+
+// ---------------------------------------------------------------------------
 // Conversation — REST + WS
 // ---------------------------------------------------------------------------
 

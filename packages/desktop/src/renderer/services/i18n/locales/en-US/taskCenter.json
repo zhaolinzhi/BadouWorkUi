@@ -1,0 +1,44 @@
+{
+  "title": "Task Center",
+  "subtitle": "Tasks assigned to the current user",
+  "searchPlaceholder": "Search by task name or marker",
+  "detail": {
+    "title": "Task Details",
+    "basicInfo": "Basic Information",
+    "progressInfo": "Progress",
+    "content": "Content",
+    "remark": "Remark",
+    "showRawFields": "Show raw fields",
+    "hideRawFields": "Hide raw fields",
+    "fields": {
+      "name": "Task Name",
+      "mark": "Marker",
+      "projectName": "Project",
+      "partName": "Module",
+      "milestoneName": "Milestone",
+      "typeDesc": "Task Type",
+      "urgencyDesc": "Priority",
+      "statusDesc": "Status",
+      "deadlineTime": "Deadline",
+      "startTime": "Start Time",
+      "endTime": "End Time",
+      "closeTime": "Close Time",
+      "creatorName": "Created By",
+      "createTime": "Created At",
+      "updatorName": "Updated By",
+      "updateTime": "Updated At"
+    },
+    "startTask": "",
+    "startTaskTip": ""
+  },
+  "empty": "No tasks",
+  "loading": "Loading tasks...",
+  "loadFailed": "Failed to load tasks",
+  "retry": "Retry",
+  "list": {
+    "overdue": "Overdue",
+    "loadMore": "Load more",
+    "totalCount": "{{total}} in total",
+    "loadMoreHint": "Loaded {{loaded}} / {{total}}"
+  }
+}

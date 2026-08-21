@@ -23,7 +23,11 @@ const ScheduledTasksPage = React.lazy(() => import('@renderer/pages/cron/Schedul
 const TaskDetailPage = React.lazy(() => import('@renderer/pages/cron/ScheduledTasksPage/TaskDetailPage'));
 const TeamIndex = React.lazy(() => import('@renderer/pages/team'));
 const KnowledgeBasePage = React.lazy(() => import('@renderer/pages/knowledge-base'));
+const KbChatPage = React.lazy(() => import('@renderer/pages/kb-chat/KbChatPage'));
 const NotesPage = React.lazy(() => import('@renderer/pages/notes'));
+const WorkbenchPage = React.lazy(() => import('@renderer/pages/workbench/WorkbenchPage'));
+const TaskCenterPage = React.lazy(() => import('@renderer/pages/task-center'));
+const InAppBrowserDemo = React.lazy(() => import('@renderer/pages/_dev/InAppBrowserDemo'));
 
 const withRouteFallback = (Component: React.LazyExoticComponent<React.ComponentType>) => (
   <Suspense fallback={<AppLoader />}>
@@ -104,7 +108,11 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
           <Route path='/scheduled' element={withRouteFallback(ScheduledTasksPage)} />
           <Route path='/scheduled/:job_id' element={withRouteFallback(TaskDetailPage)} />
           <Route path='/knowledge-base' element={withRouteFallback(KnowledgeBasePage)} />
+          <Route path='/kb-chat/:kbId' element={withRouteFallback(KbChatPage)} />
           <Route path='/notes' element={withRouteFallback(NotesPage)} />
+          <Route path='/workbench' element={withRouteFallback(WorkbenchPage)} />
+          <Route path='/task-center' element={withRouteFallback(TaskCenterPage)} />
+          <Route path='/test/browser-demo' element={withRouteFallback(InAppBrowserDemo)} />
         </Route>
         <Route path='*' element={<Navigate to={status === 'authenticated' ? '/guid' : '/login'} replace />} />
       </Routes>

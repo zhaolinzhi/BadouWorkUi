@@ -16,10 +16,14 @@ import { useTranslation } from 'react-i18next';
 
 type KnowledgeBaseHomeTabsProps = {
   personalItems: KnowledgeBaseItem[];
+  personalLoading?: boolean;
+  personalError?: string | null;
   sharedItems: KnowledgeBaseItem[];
   sharedLoading?: boolean;
   sharedError?: string | null;
+  onRetryLoadPersonal?: () => void;
   onRetryLoadShared?: () => void;
+  onRefresh?: (tab: KnowledgeBaseTab) => void;
   onEdit: (item: KnowledgeBaseItem) => void;
   onDelete: (item: KnowledgeBaseItem) => void;
   onOpen: (item: KnowledgeBaseItem) => void;
@@ -31,10 +35,14 @@ type KnowledgeBaseHomeTabsProps = {
 
 const KnowledgeBaseHomeTabs: React.FC<KnowledgeBaseHomeTabsProps> = ({
   personalItems,
+  personalLoading = false,
+  personalError = null,
   sharedItems,
   sharedLoading = false,
   sharedError = null,
+  onRetryLoadPersonal,
   onRetryLoadShared,
+  onRefresh,
   onEdit,
   onDelete,
   onOpen,
@@ -49,8 +57,10 @@ const KnowledgeBaseHomeTabs: React.FC<KnowledgeBaseHomeTabsProps> = ({
   const [tab, setTab] = useState<KnowledgeBaseTab>(initialTab);
 
   const selectTab = (next: KnowledgeBaseTab) => {
+    if (next === tab) return;
     setTab(next);
     onTabChange?.(next);
+    onRefresh?.(next);
   };
 
   const counts = {
@@ -135,6 +145,9 @@ const KnowledgeBaseHomeTabs: React.FC<KnowledgeBaseHomeTabsProps> = ({
           {tab === 'personal' ? (
             <PersonalKnowledgeBaseList
               items={personalItems}
+              loading={personalLoading}
+              error={personalError}
+              onRetry={onRetryLoadPersonal}
               onEdit={onEdit}
               onDelete={onDelete}
               onOpen={onOpen}

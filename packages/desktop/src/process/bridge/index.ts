@@ -12,6 +12,8 @@ import { initWindowControlsBridge } from './windowControlsBridge';
 import { initNotificationBridge } from './notificationBridge';
 import { initWebuiBridge } from './webuiBridge';
 import { initThemeBridge } from './themeBridge';
+import { registerKbChatBridge } from './kbChatBridge';
+import { registerTaskCenterBridge } from './taskCenterBridge';
 
 export type BridgeDependencies = Record<string, never>;
 
@@ -24,6 +26,8 @@ export function initAllBridges(_deps: BridgeDependencies = {}): void {
   initNotificationBridge();
   initWebuiBridge();
   initThemeBridge();
+  registerKbChatBridge();
+  registerTaskCenterBridge();
 }
 
 export {

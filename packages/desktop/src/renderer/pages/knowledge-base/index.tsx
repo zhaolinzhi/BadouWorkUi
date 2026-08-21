@@ -6,32 +6,60 @@
 
 import { Message } from '@arco-design/web-react';
 import { useKnowledgeBaseEditor, useKnowledgeBaseList } from '@/renderer/hooks/knowledge-base';
+import { useAuth } from '@/renderer/hooks/context/AuthContext';
 import { useManagedAgentRuntimeCatalog } from '@/renderer/hooks/agent/useManagedAgents';
 import { buildAssistantEditorBackends } from '@/renderer/pages/settings/AssistantSettings/assistantUtils';
+import { getKnowledgeBaseCreateUrl, getKnowledgeBaseEditUrl } from '@/renderer/api';
+import { openExternalUrl } from '@/renderer/utils/platform';
 import { resolveIconImageSrc } from './knowledgeBaseUtils';
 import KnowledgeBaseEditorPage from './KnowledgeBaseEditorPage';
 import KnowledgeBaseHomeTabs from './KnowledgeBaseHomeTabs';
 import DeleteKnowledgeBaseModal from './DeleteKnowledgeBaseModal';
-import type { KnowledgeBaseEditorViewModel, KnowledgeBaseItem } from './types';
-import React, { useCallback, useMemo } from 'react';
+import type { KnowledgeBaseEditorViewModel, KnowledgeBaseItem, KnowledgeBaseTab } from './types';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const KnowledgeBasePage: React.FC = () => {
   const [message, messageContext] = Message.useMessage({ maxCount: 10 });
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const tokenRef = useRef<string | null>(null);
+  useEffect(() => {
+    tokenRef.current = user?.token ?? null;
+  }, [user?.token]);
 
   const {
     personalItems,
     setPersonalItems,
     sharedItems,
     setSharedItems,
+    personalLoading,
+    personalError,
     sharedLoading,
     sharedError,
     activeKnowledgeBaseId,
     setActiveKnowledgeBaseId,
     activeKnowledgeBase,
     loadKnowledgeBases,
+    loadPersonalKnowledgeBases,
+    loadSharedKnowledgeBases,
   } = useKnowledgeBaseList();
+
+  const handleTabRefresh = useCallback(
+    (next: KnowledgeBaseTab) => {
+      const token = tokenRef.current;
+      if (!token) return;
+      if (next === 'personal') void loadPersonalKnowledgeBases(token);
+      else void loadSharedKnowledgeBases(token);
+    },
+    [loadPersonalKnowledgeBases, loadSharedKnowledgeBases]
+  );
+
+  const handleRetryLoadPersonal = useCallback(() => {
+    const token = tokenRef.current;
+    if (!token) return;
+    void loadPersonalKnowledgeBases(token);
+  }, [loadPersonalKnowledgeBases]);
 
   const editor = useKnowledgeBaseEditor({
     activeKnowledgeBase,
@@ -94,24 +122,35 @@ const KnowledgeBasePage: React.FC = () => {
     },
   };
 
-  const handleOpen = useCallback(
-    (item: KnowledgeBaseItem) => {
-      // TODO: API - 打开知识库详情页面（暂时仅打开编辑）
-      void editor.handleEdit(item);
-    },
-    [editor]
-  );
+  const handleOpen = useCallback(async (item: KnowledgeBaseItem) => {
+    try {
+      await openExternalUrl(getKnowledgeBaseEditUrl(item.id));
+    } catch (error) {
+      console.error('Failed to open knowledge base edit page:', error);
+    }
+  }, []);
 
   // TODO: API - 知识库直接打开对话：根据 KB 的 agentId 跳转到 /guid
   const handleStartChat = useCallback(
     (item: KnowledgeBaseItem) => {
-      const agentId = item.agentId;
-      navigate('/guid', {
-        state: agentId ? { selectedAssistantId: agentId } : undefined,
+      navigate(`/kb-chat/${encodeURIComponent(item.id)}`, {
+        state: { kbName: item.name },
       });
     },
     [navigate]
   );
+
+  // "New knowledge base" jumps to the vendor's web create page instead of
+  // the in-app editor — knowledge bases live in an admin system we don't
+  // mirror. Reload the list when the user returns to the page so newly
+  // created bases appear without a manual refresh.
+  const handleCreate = useCallback(async () => {
+    try {
+      await openExternalUrl(getKnowledgeBaseCreateUrl());
+    } catch (error) {
+      console.error('Failed to open knowledge base create page:', error);
+    }
+  }, []);
 
   return (
     <div className='h-full w-full overflow-hidden bg-bg-0'>
@@ -128,13 +167,17 @@ const KnowledgeBasePage: React.FC = () => {
             <KnowledgeBaseHomeTabs
               personalItems={personalItems}
               sharedItems={sharedItems}
+              personalLoading={personalLoading}
+              personalError={personalError}
               sharedLoading={sharedLoading}
               sharedError={sharedError}
+              onRetryLoadPersonal={handleRetryLoadPersonal}
               onRetryLoadShared={() => void loadKnowledgeBases()}
+              onRefresh={handleTabRefresh}
               onEdit={(item) => void editor.handleEdit(item)}
               onDelete={(item) => editor.handleDeleteRequest(item)}
               onOpen={handleOpen}
-              onCreate={() => void editor.handleCreate()}
+              onCreate={() => void handleCreate()}
               onStartChat={handleStartChat}
             />
           )}
