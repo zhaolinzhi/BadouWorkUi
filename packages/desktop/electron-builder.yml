@@ -1,12 +1,12 @@
-appId: com.aionui.app
-productName: AionUi
-executableName: AionUi
-copyright: Copyright © 2024 AionUi
+appId: com.badouwork.app
+productName: BadouWork
+executableName: BadouWork
+copyright: Copyright © 2024 BadouWork
 
 protocols:
-  - name: AionUi Protocol
+  - name: BadouWork Protocol
     schemes:
-      - aionui
+      - badouwork
 
 asar:
   smartUnpack: true
@@ -169,17 +169,17 @@ linux:
   icon: resources/app.png
   artifactName: ${productName}-${version}-${os}-${arch}.${ext}
   category: Utility
-  maintainer: aionui
-  vendor: aionui
+  maintainer: badouwork
+  vendor: badouwork
   synopsis: ${description}
   description: ${description}
   desktop:
     entry:
-      Name: AionUi
+      Name: ${productName}
       Comment: ${description}
-      Icon: AionUi
+      Icon: ${executableName}
       Categories: Office;Utility;
-      MimeType: x-scheme-handler/aionui;
+      MimeType: x-scheme-handler/badouwork;
 
 npmRebuild: false
 buildDependenciesFromSource: false
