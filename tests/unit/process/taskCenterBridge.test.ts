@@ -27,9 +27,6 @@ beforeEach(() => {
 
 afterEach(() => {
   _resetForTest();
-  // The bridge reads this once at module load, so per-test toggling has no effect.
-  // Reset to default so subsequent test files start from the documented state.
-  delete process.env.TASK_CENTER_USE_REMOTE;
 });
 
 type HttpResponse = {
@@ -103,7 +100,7 @@ vi.mock('node:http', () => ({
 }));
 
 describe('listTaskCenter', () => {
-  it('serves the static fixture by default without calling the backend', async () => {
+  it('always calls the backend (no env gate, no fixture fallback)', async () => {
     const httpModule = await import('node:http');
     const spy = vi.spyOn(httpModule.default, 'request');
 
@@ -114,17 +111,11 @@ describe('listTaskCenter', () => {
       perPageSize: 30,
     });
 
-    expect(spy).not.toHaveBeenCalled();
+    expect(spy).toHaveBeenCalled();
     expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.data.items.length).toBeGreaterThan(0);
-    }
   });
 
   it('returns total + rows on 200 JSON response', async () => {
-    // Force the live HTTP path so this test exercises the backend client.
-    process.env.TASK_CENTER_USE_REMOTE = 'true';
-    // Override the http mock for this test by re-mocking
     const httpModule = await import('node:http');
     vi.spyOn(httpModule.default, 'request').mockImplementation(((opts: unknown, cb: (res: HttpResponse) => void) => {
       const emitter = new EventEmitter() as FakeReq;
@@ -166,7 +157,6 @@ describe('listTaskCenter', () => {
   });
 
   it('returns error on non-2xx status', async () => {
-    process.env.TASK_CENTER_USE_REMOTE = 'true';
     const httpModule = await import('node:http');
     vi.spyOn(httpModule.default, 'request').mockImplementation(((opts: unknown, cb: (res: HttpResponse) => void) => {
       const emitter = new EventEmitter() as FakeReq;
@@ -198,7 +188,6 @@ describe('listTaskCenter', () => {
   });
 
   it('returns error on network error', async () => {
-    process.env.TASK_CENTER_USE_REMOTE = 'true';
     const httpModule = await import('node:http');
     vi.spyOn(httpModule.default, 'request').mockImplementation((() => {
       const emitter = new EventEmitter() as FakeReq;
@@ -221,7 +210,6 @@ describe('listTaskCenter', () => {
   });
 
   it('builds the URL with mdCode + filters and the form-encoded body', async () => {
-    process.env.TASK_CENTER_USE_REMOTE = 'true';
     let capturedOpts: Record<string, unknown> | undefined;
     const httpModule = await import('node:http');
     vi.spyOn(httpModule.default, 'request').mockImplementation(((opts: unknown, cb: (res: HttpResponse) => void) => {

@@ -14,25 +14,11 @@ import {
   buildTaskCenterListUrl,
 } from '@/common/config/taskCenter.config';
 import type { ITaskCenterListParams, ITaskCenterListResult, ITaskCenterRow } from '@/common/adapter/ipcBridge';
-import { mockTaskCenterList } from './taskCenterMock';
 
-/**
- * Task center serves the local fixture by default so the page is usable
- * before the PM center backend is wired up. Set
- * `TASK_CENTER_USE_REMOTE=true` in the main process env to hit the live
- * endpoint instead. Read on every call so tests can toggle the flag
- * without re-importing the module.
- */
 const inFlight = new Set<http.ClientRequest>();
 
 export const listTaskCenter = async (params: ITaskCenterListParams): Promise<ITaskCenterListResult> => {
   if (!params.token) return { ok: false, message: 'Missing token' };
-
-  if (process.env.TASK_CENTER_USE_REMOTE !== 'true') {
-    // Simulate a small network delay so loading state is visible.
-    await new Promise((r) => setTimeout(r, 200));
-    return mockTaskCenterList(params.pageNo, params.perPageSize || TASK_CENTER_DEFAULT_PER_PAGE_SIZE);
-  }
 
   const urgency = params.filters.urgency ?? 'all';
   const projectId = params.filters.projectId ?? 'all';
