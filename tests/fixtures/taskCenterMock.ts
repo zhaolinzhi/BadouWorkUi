@@ -7,9 +7,9 @@ import type { ITaskCenterListOk, ITaskCenterRow } from '@/common/adapter/ipcBrid
 
 /**
  * Static fixture mirroring the PM center `listJSON.do?mdCode=y_project_task_mine`
- * response shape. Served by default; set `TASK_CENTER_USE_REMOTE=true` to hit
- * the real backend instead. The renderer previews the task center layout
- * without the live PM center being reachable.
+ * response shape. Available for tests that want to exercise the bridge's
+ * fixture path without depending on the live backend. The production bridge
+ * no longer imports this file.
  *
  * Field names follow the PM center's Pascal-ish casing seen in the user's
  * sample response — we normalize to `ITaskCenterRow` here so the renderer
