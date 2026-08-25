@@ -4,7 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import classNames from 'classnames';
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/renderer/hooks/context/AuthContext';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { AionSearchInput } from '@/renderer/components/base';
@@ -13,7 +14,7 @@ import type { TaskCenterRow } from './useTaskCenterList';
 import { useTaskCenterList } from './useTaskCenterList';
 import { useTaskCenterT } from './useTaskCenterT';
 import TaskCenterList from './TaskCenterList';
-import TaskCenterDetailModal from './TaskCenterDetailModal';
+import TaskCenterDetailModal, { buildStartTaskPrefillPrompt } from './TaskCenterDetailModal';
 
 const TaskCenterPage: React.FC = () => {
   const t = useTaskCenterT();
@@ -23,6 +24,14 @@ const TaskCenterPage: React.FC = () => {
   const token = user?.token ?? '';
   const list = useTaskCenterList(token);
   const [detailItem, setDetailItem] = useState<TaskCenterRow | null>(null);
+  const navigate = useNavigate();
+  const handleStartTask = useCallback(
+    (item: TaskCenterRow) => {
+      setDetailItem(null);
+      navigate('/guid', { state: { prefillPrompt: buildStartTaskPrefillPrompt(item) } });
+    },
+    [navigate]
+  );
 
   if (status === 'checking') {
     return <div className='flex size-full items-center justify-center' />;
@@ -78,7 +87,12 @@ const TaskCenterPage: React.FC = () => {
         </div>
       </div>
 
-      <TaskCenterDetailModal visible={detailItem !== null} item={detailItem} onClose={() => setDetailItem(null)} />
+      <TaskCenterDetailModal
+        visible={detailItem !== null}
+        item={detailItem}
+        onClose={() => setDetailItem(null)}
+        onStartTask={handleStartTask}
+      />
     </div>
   );
 };
