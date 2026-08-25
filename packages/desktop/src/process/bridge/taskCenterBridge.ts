@@ -23,7 +23,7 @@ export const listTaskCenter = async (params: ITaskCenterListParams): Promise<ITa
   const urgency = params.filters.urgency ?? 'all';
   const projectId = params.filters.projectId ?? 'all';
   const type = params.filters.type ?? 'all';
-  const keyword = params.filters.keyword ?? '';
+  const keyword = (params.filters.keyword ?? '').trim();
 
   const fullUrl = buildTaskCenterListUrl({ urgency, projectId, type, keyword });
   let parsed: URL;
@@ -33,13 +33,28 @@ export const listTaskCenter = async (params: ITaskCenterListParams): Promise<ITa
     return { ok: false, message: 'Invalid task center URL' };
   }
 
+  const searchParam: Array<Record<string, string>> = [
+    { name: 'status', value: '0;1', type: 'other-query', tagName: '' },
+  ];
+  if (keyword) searchParam.push({ name: 'name', value: keyword, type: 'text-query', tagName: '' });
+
   const body = new URLSearchParams({
-    searchParam: '[]',
+    searchParam: JSON.stringify(searchParam),
     pageNo: String(params.pageNo),
     perPageSize: String(params.perPageSize ?? TASK_CENTER_DEFAULT_PER_PAGE_SIZE),
   }).toString();
 
   const lib = parsed.protocol === 'https:' ? https : http;
+  // TEMP: trace the outgoing task-center request so we can verify the token + URL from the dev terminal.
+  console.log('[task-center] → request', {
+    url: fullUrl,
+    method: 'POST',
+    headers: {
+      Token: params.token, // FULL token printed for diagnostic purposes; revert after verifying.
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body,
+  });
 
   return new Promise((resolve) => {
     const req = lib.request(
@@ -56,24 +71,37 @@ export const listTaskCenter = async (params: ITaskCenterListParams): Promise<ITa
       },
       (res) => {
         const status = res.statusCode ?? 0;
+        // TEMP: log response status + headers + first 200 chars so we can see the body shape.
+        const captureChunks: Buffer[] = [];
+        res.on('data', (chunk: Buffer) => captureChunks.push(chunk));
         if (status < 200 || status >= 300) {
           res.resume();
           inFlight.delete(req);
+          console.log('[task-center] ← non-2xx', { status, headers: res.headers });
           resolve({ ok: false, message: `HTTP ${status}` });
           return;
         }
-        const chunks: Buffer[] = [];
-        res.on('data', (chunk: Buffer) => chunks.push(chunk));
         res.on('end', () => {
           inFlight.delete(req);
+          const text = Buffer.concat(captureChunks).toString('utf8');
+          console.log('[task-center] ← response', {
+            status,
+            headers: res.headers,
+            preview: text.slice(0, 200),
+            bytes: text.length,
+          });
+          if (text.length === 0 && status >= 200 && status < 300) {
+            resolve({ ok: false, code: 'token_expired', message: 'Empty response from PM center (token may be expired)' });
+            return;
+          }
           try {
-            const text = Buffer.concat(chunks).toString('utf8');
             const parsedBody = JSON.parse(text) as { Total?: number; Rows?: Array<Record<string, unknown>> };
             const total = Number(parsedBody.Total ?? 0);
             const items = (parsedBody.Rows ?? []).map((row) => normalizeRow(row));
             resolve({ ok: true, data: { total, items } });
           } catch (err) {
-            resolve({ ok: false, message: err instanceof Error ? err.message : String(err) });
+            console.log('[task-center] ← parse error', { message: err instanceof Error ? err.message : String(err) });
+            resolve({ ok: false, code: 'parse_error', message: err instanceof Error ? err.message : String(err) });
           }
         });
         res.on('error', (err) => {
@@ -86,6 +114,8 @@ export const listTaskCenter = async (params: ITaskCenterListParams): Promise<ITa
     const timer = setTimeout(() => {
       req.destroy();
       inFlight.delete(req);
+      // TEMP: trace timeout
+      console.log('[task-center] ← timeout', { url: fullUrl, timeoutMs: TASK_CENTER_TIMEOUT_MS });
       resolve({ ok: false, message: 'Request timeout' });
     }, TASK_CENTER_TIMEOUT_MS);
 
@@ -94,6 +124,8 @@ export const listTaskCenter = async (params: ITaskCenterListParams): Promise<ITa
     req.on('error', (err) => {
       clearTimeout(timer);
       inFlight.delete(req);
+      // TEMP: trace transport-level errors (ECONNREFUSED, DNS, etc.)
+      console.log('[task-center] ← transport error', { url: fullUrl, message: err.message });
       resolve({ ok: false, message: err.message });
     });
 
