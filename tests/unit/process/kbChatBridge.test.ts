@@ -150,6 +150,27 @@ describe('sendKbChat', () => {
     await server.close();
   });
 
+  it('emits token_expired when 2xx SSE stream ends with no bytes received', async () => {
+    const server = await startMockServer((_req, res) => {
+      res.writeHead(200, { 'Content-Type': 'text/event-stream' });
+      res.end();
+    });
+    mockChatStreamUrl.value = server.url;
+
+    await sendKbChat({ requestId: 'r-empty', kbId: 'k1', question: 'q', threadId: 't1', token: 't' });
+
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(
+      emitted.some((e) => e.name === 'streamError' && (e.payload as { code: string }).code === 'token_expired')
+    ).toBe(true);
+    expect(emitted.some((e) => e.name === 'streamEnd' && (e.payload as { reason: string }).reason === 'error')).toBe(
+      true
+    );
+
+    await server.close();
+  });
+
   it('rejects send when required fields are missing', async () => {
     const result = await sendKbChat({ requestId: '', kbId: 'k1', question: 'q', threadId: 't1', token: 't' });
     expect(result.ok).toBe(false);
