@@ -100,6 +100,7 @@ const performRequest = (params: KbChatSendParams): Promise<KbChatSendResult> => 
         }, KB_CHAT_TOTAL_TIMEOUT_MS);
 
         let sawDone = false;
+        let bytesReceived = 0;
 
         const parser = createSseParser((event: SseEvent) => {
           console.log('[kbChat] parser event=', JSON.stringify(event));
@@ -122,17 +123,20 @@ const performRequest = (params: KbChatSendParams): Promise<KbChatSendResult> => 
         });
 
         res.on('data', (chunk: Buffer) => {
+          bytesReceived += chunk.length;
           clearTimeout(firstByteTimer);
           parser.feed(chunk.toString('utf8'));
         });
 
         res.on('end', () => {
-          console.log('[kbChat] SSE end, sawDone=', sawDone);
+          console.log('[kbChat] SSE end, sawDone=', sawDone, 'bytesReceived=', bytesReceived);
           clearTimeout(firstByteTimer);
           clearTimeout(totalTimer);
           inFlight.delete(requestId);
           if (sawDone) return;
-          emitError(requestId, 'incomplete', 'Stream ended without done event');
+          const code = bytesReceived === 0 && status >= 200 && status < 300 ? 'token_expired' : 'incomplete';
+          const message = code === 'token_expired' ? 'Empty SSE stream (token may be expired)' : 'Stream ended without done event';
+          emitError(requestId, code, message);
           emitEnd(requestId, 'error');
         });
 
