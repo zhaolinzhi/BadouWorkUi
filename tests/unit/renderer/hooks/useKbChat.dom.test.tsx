@@ -47,6 +47,12 @@ vi.mock('@/common', () => ({
   },
 }));
 
+vi.mock('@/renderer/hooks/context/AuthContext', () => ({
+  useAuth: () => ({
+    notifyTokenExpired: vi.fn(),
+  }),
+}));
+
 const emit = (set: Set<(p: unknown) => void>, payload: unknown): void => {
   for (const cb of set) cb(payload);
 };
