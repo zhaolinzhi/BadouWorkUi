@@ -42,6 +42,7 @@
   "saveSuccess": "Saved successfully",
   "saveFailed": "Failed to save",
   "unknownError": "Unknown error",
+  "sessionExpired": "Your session has expired. Please sign in again.",
   "confirmDelete": "Confirm Delete",
   "deleteSuccess": "Deleted successfully",
   "deleteFailed": "Failed to delete",

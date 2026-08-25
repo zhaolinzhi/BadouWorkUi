@@ -41,6 +41,7 @@
   "saveSuccess": "Guardado correctamente",
   "saveFailed": "Error al guardar",
   "unknownError": "Error desconocido",
+  "sessionExpired": "Su sesión ha expirado. Inicie sesión de nuevo.",
   "confirmDelete": "Confirmar eliminación",
   "deleteSuccess": "Eliminado correctamente",
   "deleteFailed": "Error al eliminar",

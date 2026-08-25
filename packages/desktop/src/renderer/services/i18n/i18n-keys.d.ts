@@ -300,6 +300,7 @@ export type I18nKey =
   | 'common.selectedCount'
   | 'common.selectedSkills'
   | 'common.send'
+  | 'common.sessionExpired'
   | 'common.settings'
   | 'common.show'
   | 'common.skills'

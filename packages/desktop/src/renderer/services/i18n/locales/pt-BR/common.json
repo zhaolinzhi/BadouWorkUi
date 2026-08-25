@@ -42,6 +42,7 @@
   "saveSuccess": "Salvo com sucesso",
   "saveFailed": "Falha ao salvar",
   "unknownError": "Erro desconhecido",
+  "sessionExpired": "Sua sessão expirou. Entre novamente.",
   "confirmDelete": "Confirmar Exclusão",
   "deleteSuccess": "Excluído com sucesso",
   "deleteFailed": "Falha ao excluir",

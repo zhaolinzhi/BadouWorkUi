@@ -42,6 +42,7 @@
   "saveSuccess": "Başarıyla kaydedildi",
   "saveFailed": "Kaydetme başarısız",
   "unknownError": "Bilinmeyen hata",
+  "sessionExpired": "Oturumunuzun süresi doldu. Lütfen tekrar giriş yapın.",
   "confirmDelete": "Silmeyi Onayla",
   "deleteSuccess": "Başarıyla silindi",
   "deleteFailed": "Silme başarısız",

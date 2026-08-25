@@ -42,6 +42,7 @@
   "saveSuccess": "Enregistré avec succès",
   "saveFailed": "Échec de l'enregistrement",
   "unknownError": "Erreur inconnue",
+  "sessionExpired": "Votre session a expiré. Veuillez vous reconnecter.",
   "confirmDelete": "Confirmer la suppression",
   "deleteSuccess": "Supprimé avec succès",
   "deleteFailed": "Échec de la suppression",

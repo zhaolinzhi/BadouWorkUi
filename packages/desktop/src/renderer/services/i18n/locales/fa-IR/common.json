@@ -42,6 +42,7 @@
   "saveSuccess": "با موفقیت ذخیره شد",
   "saveFailed": "ذخیره ناموفق بود",
   "unknownError": "خطای ناشناخته",
+  "sessionExpired": "نشست شما منقضی شده است. لطفاً دوباره وارد شوید.",
   "confirmDelete": "تأیید حذف",
   "deleteSuccess": "با موفقیت حذف شد",
   "deleteFailed": "حذف ناموفق بود",

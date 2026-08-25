@@ -42,6 +42,7 @@
   "saveSuccess": "Збережено успішно",
   "saveFailed": "Не вдалося зберегти",
   "unknownError": "Невідома помилка",
+  "sessionExpired": "Сеанс завершився. Увійдіть ще раз.",
   "confirmDelete": "Підтвердити видалення",
   "deleteSuccess": "Видалено успішно",
   "deleteFailed": "Не вдалося видалити",
