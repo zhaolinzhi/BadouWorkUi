@@ -274,6 +274,7 @@ export interface ITaskCenterListOk {
 
 export interface ITaskCenterListErr {
   ok: false;
+  code?: 'token_expired' | 'http_error' | 'parse_error' | 'network_error' | 'timeout' | 'invalid_url' | 'missing_token' | 'unknown';
   message: string;
 }
 
