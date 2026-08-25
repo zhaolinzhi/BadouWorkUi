@@ -5,9 +5,15 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@/renderer/hooks/context/AuthContext';
-import { ipcBridge } from '@/common';
+import {
+  PM_CENTER_BASE_URL,
+  TASK_CENTER_DEFAULT_PER_PAGE_SIZE,
+  TASK_CENTER_LIST_PATH,
+  TASK_CENTER_MD_CODE,
+  TASK_CENTER_TIMEOUT_MS,
+  buildTaskCenterListUrl,
+} from '@/renderer/api';
 import type { ITaskCenterRow } from '@/common/adapter/ipcBridge';
-import { TASK_CENTER_DEFAULT_PER_PAGE_SIZE } from '@/common/config/taskCenter.config';
 
 export interface UseTaskCenterListResult {
   items: ITaskCenterRow[];
@@ -26,6 +32,58 @@ export interface UseTaskCenterListResult {
 }
 
 const DEBOUNCE_MS = 300;
+
+const pickString = (row: Record<string, unknown>, key: string): string => {
+  const v = row[key];
+  return v === null || v === undefined ? '' : String(v);
+};
+
+const pickNullableString = (row: Record<string, unknown>, key: string): string | null => {
+  const v = row[key];
+  if (v === null || v === undefined || v === '') return null;
+  return String(v);
+};
+
+const pickNumber = (row: Record<string, unknown>, key: string): number => {
+  const v = row[key];
+  if (typeof v === 'number') return v;
+  if (typeof v === 'string') {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+  }
+  return 0;
+};
+
+const normalizeRow = (row: Record<string, unknown>): ITaskCenterRow => ({
+  id: pickString(row, 'id'),
+  name: pickString(row, 'name'),
+  mark: pickString(row, 'mark'),
+  projectName: pickString(row, 'projectName'),
+  projectId: pickString(row, 'projectId'),
+  partName: pickString(row, 'partName'),
+  milestoneName: pickString(row, 'milestoneName'),
+  type: pickNumber(row, 'type'),
+  typeDesc: pickString(row, 'typeDesc'),
+  urgency: pickNumber(row, 'urgency'),
+  urgencyDesc: pickString(row, 'urgencyDesc'),
+  status: pickNumber(row, 'status'),
+  statusDesc: pickString(row, 'statusDesc'),
+  deadlineTime: pickNullableString(row, 'deadlineTime'),
+  startTime: pickNullableString(row, 'startTime'),
+  endTime: pickNullableString(row, 'endTime'),
+  closeTime: pickNullableString(row, 'closeTime'),
+  creator: pickString(row, 'creator'),
+  creatorName: pickString(row, 'creatorName'),
+  currentUserId: pickString(row, 'currentUserId'),
+  currentUserName: pickString(row, 'currentUserName'),
+  updator: pickString(row, 'updator'),
+  updatorName: pickString(row, 'updatorName'),
+  createTime: pickString(row, 'createTime'),
+  updateTime: pickString(row, 'updateTime'),
+  content: pickNullableString(row, 'content'),
+  remark: pickNullableString(row, 'remark'),
+  raw: row,
+});
 
 export const useTaskCenterList = (token: string): UseTaskCenterListResult => {
   const [items, setItems] = useState<ITaskCenterRow[]>([]);
@@ -56,34 +114,90 @@ export const useTaskCenterList = (token: string): UseTaskCenterListResult => {
       if (!token) return;
       setLoading(true);
       setError(null);
+
+      const trimmed = debouncedKeyword.trim();
+      const listUrl = buildTaskCenterListUrl({
+        urgency: 'all',
+        projectId: 'all',
+        type: 'all',
+        keyword: trimmed,
+      });
+
+      const searchParam: Array<Record<string, string>> = [
+        { name: 'status', value: '0;1', type: 'other-query', tagName: '' },
+      ];
+      if (trimmed) searchParam.push({ name: 'name', value: trimmed, type: 'text-query', tagName: '' });
+
+      const body = new URLSearchParams({
+        searchParam: JSON.stringify(searchParam),
+        pageNo: String(overridePage ?? pageNo),
+        perPageSize: String(perPageSize),
+      }).toString();
+
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), TASK_CENTER_TIMEOUT_MS);
+
       try {
-        const res = await ipcBridge.taskCenter.list.invoke({
-          token,
-          filters: { keyword: debouncedKeyword },
-          pageNo: overridePage ?? pageNo,
-          perPageSize,
+        const res = await fetch(listUrl, {
+          method: 'POST',
+          headers: {
+            Token: token,
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          credentials: 'include',
+          body,
+          signal: controller.signal,
         });
-        if (res.ok === true) {
-          setItems((prev) => (mode === 'append' ? [...prev, ...res.data.items] : res.data.items));
-          setTotal(res.data.total);
-          setError(null);
-        } else {
+        clearTimeout(timer);
+
+        if (!res.ok) {
           if (mode === 'replace') {
             setItems([]);
             setTotal(0);
           }
-          setError(res.message);
-          if (res.code === 'token_expired') {
-            notifyTokenExpired('task-center');
-          }
+          setError(`HTTP ${res.status}`);
+          return;
         }
+
+        const text = await res.text();
+        if (text.length === 0) {
+          if (mode === 'replace') {
+            setItems([]);
+            setTotal(0);
+          }
+          setError('Empty response from PM center (token may be expired)');
+          notifyTokenExpired('task-center');
+          return;
+        }
+
+        let parsed: { Total?: number; Rows?: Array<Record<string, unknown>> };
+        try {
+          parsed = JSON.parse(text);
+        } catch (err) {
+          if (mode === 'replace') {
+            setItems([]);
+            setTotal(0);
+          }
+          setError(err instanceof Error ? err.message : String(err));
+          return;
+        }
+
+        const totalCount = Number(parsed.Total ?? 0);
+        const newItems = (parsed.Rows ?? []).map((row) => normalizeRow(row));
+        setItems((prev) => (mode === 'append' ? [...prev, ...newItems] : newItems));
+        setTotal(totalCount);
+        setError(null);
       } catch (e) {
+        clearTimeout(timer);
         if (mode === 'replace') {
           setItems([]);
           setTotal(0);
         }
-        setError(e instanceof Error ? e.message : String(e));
+        const message =
+          e instanceof Error && e.name === 'AbortError' ? `Request timeout (${TASK_CENTER_TIMEOUT_MS}ms)` : e instanceof Error ? e.message : String(e);
+        setError(message);
       } finally {
+        clearTimeout(timer);
         setLoading(false);
       }
     },
@@ -141,3 +255,8 @@ export const useTaskCenterList = (token: string): UseTaskCenterListResult => {
     [items, total, loading, error, keyword, pageNo, perPageSize, setKeyword, reset, reload, loadMore]
   );
 };
+
+// PM_CENTER_BASE_URL and TASK_CENTER_MD_CODE are imported for symbol
+// completeness — they're also re-exported from @/renderer/api. This shim
+// keeps them in the import set without an unused-var warning.
+const _unused = { PM_CENTER_BASE_URL, TASK_CENTER_MD_CODE };
