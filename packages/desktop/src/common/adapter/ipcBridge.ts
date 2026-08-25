@@ -215,7 +215,15 @@ export const kbChat = {
   /** Main → renderer: the stream has ended (done / aborted / error). */
   streamEnd: bridge.buildEmitter<{ requestId: string; reason: 'done' | 'aborted' | 'error' }>('kbChat.streamEnd'),
   /** Main → renderer: an error event surfaced from the upstream SSE. */
-  streamError: bridge.buildEmitter<{ requestId: string; code: string; message: string }>('kbChat.streamError'),
+  streamError: bridge.buildEmitter<KbChatStreamErrorPayload>('kbChat.streamError'),
+};
+
+export type KbChatStreamErrorCode = 'token_expired' | 'incomplete' | 'timeout_first_byte' | 'timeout_total' | 'http' | 'http_bad_content_type' | 'network' | 'business' | 'parse';
+
+export type KbChatStreamErrorPayload = {
+  requestId: string;
+  code: KbChatStreamErrorCode;
+  message: string;
 };
 
 // ---------------------------------------------------------------------------

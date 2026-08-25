@@ -6,6 +6,7 @@
 import http from 'node:http';
 import https from 'node:https';
 import { URL } from 'node:url';
+import type { KbChatStreamErrorCode } from '@/common/adapter/ipcBridge';
 import { ipcBridge } from '@/common';
 import {
   KB_CHAT_FIRST_BYTE_TIMEOUT_MS,
@@ -30,7 +31,7 @@ const emitEnd = (requestId: string, reason: 'done' | 'aborted' | 'error'): void 
   ipcBridge.kbChat.streamEnd.emit({ requestId, reason });
 };
 
-const emitError = (requestId: string, code: string, message: string): void => {
+const emitError = (requestId: string, code: KbChatStreamErrorCode, message: string): void => {
   ipcBridge.kbChat.streamError.emit({ requestId, code, message });
 };
 
@@ -118,7 +119,7 @@ const performRequest = (params: KbChatSendParams): Promise<KbChatSendResult> => 
             emitEnd(requestId, 'done');
             req.destroy();
           } else {
-            emitError(requestId, event.code ?? 'business', event.message);
+            emitError(requestId, (event.code ?? 'business') as KbChatStreamErrorCode, event.message);
           }
         });
 
