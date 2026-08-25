@@ -218,7 +218,16 @@ export const kbChat = {
   streamError: bridge.buildEmitter<KbChatStreamErrorPayload>('kbChat.streamError'),
 };
 
-export type KbChatStreamErrorCode = 'token_expired' | 'incomplete' | 'timeout_first_byte' | 'timeout_total' | 'http' | 'http_bad_content_type' | 'network' | 'business' | 'parse';
+export type KbChatStreamErrorCode =
+  | 'token_expired'
+  | 'incomplete'
+  | 'timeout_first_byte'
+  | 'timeout_total'
+  | 'http'
+  | 'http_bad_content_type'
+  | 'network'
+  | 'business'
+  | 'parse';
 
 export type KbChatStreamErrorPayload = {
   requestId: string;
@@ -229,68 +238,6 @@ export type KbChatStreamErrorPayload = {
 // ---------------------------------------------------------------------------
 // Task Center — list the current user's PM-center tasks (Electron-native HTTP)
 // ---------------------------------------------------------------------------
-
-export interface ITaskCenterFilters {
-  keyword?: string;
-  urgency?: number | 'all';
-  projectId?: string | 'all';
-  type?: number | 'all';
-}
-
-export interface ITaskCenterRow {
-  id: string;
-  name: string;
-  mark: string;
-  projectName: string;
-  projectId: string;
-  partName: string;
-  milestoneName: string;
-  type: number;
-  typeDesc: string;
-  urgency: number;
-  urgencyDesc: string;
-  status: number;
-  statusDesc: string;
-  deadlineTime: string | null;
-  startTime: string | null;
-  endTime: string | null;
-  closeTime: string | null;
-  creator: string;
-  creatorName: string;
-  currentUserId: string;
-  currentUserName: string;
-  updator: string;
-  updatorName: string;
-  createTime: string;
-  updateTime: string;
-  content: string | null;
-  remark: string | null;
-  raw: Record<string, unknown>;
-}
-
-export interface ITaskCenterListParams {
-  token: string;
-  filters: ITaskCenterFilters;
-  pageNo: number;
-  perPageSize: number;
-}
-
-export interface ITaskCenterListOk {
-  ok: true;
-  data: { total: number; items: ITaskCenterRow[] };
-}
-
-export interface ITaskCenterListErr {
-  ok: false;
-  code?: 'token_expired' | 'http_error' | 'parse_error' | 'network_error' | 'timeout' | 'invalid_url' | 'missing_token' | 'unknown';
-  message: string;
-}
-
-export type ITaskCenterListResult = ITaskCenterListOk | ITaskCenterListErr;
-
-export const taskCenter = {
-  list: bridge.buildProvider<ITaskCenterListResult, ITaskCenterListParams>('taskCenter.list'),
-};
 
 // ---------------------------------------------------------------------------
 // Conversation — REST + WS

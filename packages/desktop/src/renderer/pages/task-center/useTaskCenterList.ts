@@ -6,17 +6,44 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@/renderer/hooks/context/AuthContext';
 import {
-  PM_CENTER_BASE_URL,
   TASK_CENTER_DEFAULT_PER_PAGE_SIZE,
-  TASK_CENTER_LIST_PATH,
-  TASK_CENTER_MD_CODE,
   TASK_CENTER_TIMEOUT_MS,
   buildTaskCenterListUrl,
 } from '@/renderer/api';
-import type { ITaskCenterRow } from '@/common/adapter/ipcBridge';
+
+export interface TaskCenterRow {
+  id: string;
+  name: string;
+  mark: string;
+  projectName: string;
+  projectId: string;
+  partName: string;
+  milestoneName: string;
+  type: number;
+  typeDesc: string;
+  urgency: number;
+  urgencyDesc: string;
+  status: number;
+  statusDesc: string;
+  deadlineTime: string | null;
+  startTime: string | null;
+  endTime: string | null;
+  closeTime: string | null;
+  creator: string;
+  creatorName: string;
+  currentUserId: string;
+  currentUserName: string;
+  updator: string;
+  updatorName: string;
+  createTime: string;
+  updateTime: string;
+  content: string | null;
+  remark: string | null;
+  raw: Record<string, unknown>;
+}
 
 export interface UseTaskCenterListResult {
-  items: ITaskCenterRow[];
+  items: TaskCenterRow[];
   total: number;
   loading: boolean;
   error: string | null;
@@ -54,7 +81,7 @@ const pickNumber = (row: Record<string, unknown>, key: string): number => {
   return 0;
 };
 
-const normalizeRow = (row: Record<string, unknown>): ITaskCenterRow => ({
+const normalizeRow = (row: Record<string, unknown>): TaskCenterRow => ({
   id: pickString(row, 'id'),
   name: pickString(row, 'name'),
   mark: pickString(row, 'mark'),
@@ -86,7 +113,7 @@ const normalizeRow = (row: Record<string, unknown>): ITaskCenterRow => ({
 });
 
 export const useTaskCenterList = (token: string): UseTaskCenterListResult => {
-  const [items, setItems] = useState<ITaskCenterRow[]>([]);
+  const [items, setItems] = useState<TaskCenterRow[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -255,8 +282,3 @@ export const useTaskCenterList = (token: string): UseTaskCenterListResult => {
     [items, total, loading, error, keyword, pageNo, perPageSize, setKeyword, reset, reload, loadMore]
   );
 };
-
-// PM_CENTER_BASE_URL and TASK_CENTER_MD_CODE are imported for symbol
-// completeness — they're also re-exported from @/renderer/api. This shim
-// keeps them in the import set without an unused-var warning.
-const _unused = { PM_CENTER_BASE_URL, TASK_CENTER_MD_CODE };

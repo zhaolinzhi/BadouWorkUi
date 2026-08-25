@@ -6,7 +6,7 @@
 import { Button, Descriptions, Message, Modal as ArcoModal } from '@arco-design/web-react';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { ITaskCenterRow } from '@/common/adapter/ipcBridge';
+import type { TaskCenterRow } from './useTaskCenterList';
 
 // Arco Modal's TS typings don't play well with React 19's stricter children
 // inference (ModalProps extends PropsWithChildren but the runtime accepts the
@@ -28,7 +28,7 @@ const Modal = ArcoModal as unknown as React.FC<{
 
 export interface TaskCenterDetailModalProps {
   visible: boolean;
-  item: ITaskCenterRow | null;
+  item: TaskCenterRow | null;
   onClose: () => void;
 }
 
