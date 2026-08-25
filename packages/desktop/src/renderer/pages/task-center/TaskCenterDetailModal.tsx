@@ -3,7 +3,7 @@
  * Copyright 2026 AionUi (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
-import { Button, Descriptions, Message, Modal as ArcoModal } from '@arco-design/web-react';
+import { Button, Descriptions, Modal as ArcoModal } from '@arco-design/web-react';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TaskCenterRow } from './useTaskCenterList';
@@ -30,9 +30,20 @@ export interface TaskCenterDetailModalProps {
   visible: boolean;
   item: TaskCenterRow | null;
   onClose: () => void;
+  onStartTask?: (item: TaskCenterRow) => void;
 }
 
-const TaskCenterDetailModal: React.FC<TaskCenterDetailModalProps> = ({ visible, item, onClose }) => {
+/**
+ * Build the 3-line prefill prompt sent to `/guid` when the user clicks
+ * "开始任务". Matches the user-facing layout:
+ *   项目名称：<projectName>
+ *   所属模块：<partName>
+ *   任务内容：<content ?? ''>
+ */
+export const buildStartTaskPrefillPrompt = (item: TaskCenterRow): string =>
+  `项目名称：${item.projectName}\n所属模块：${item.partName}\n任务内容：${item.content ?? ''}`;
+
+const TaskCenterDetailModal: React.FC<TaskCenterDetailModalProps> = ({ visible, item, onClose, onStartTask }) => {
   const { t } = useTranslation();
   const tZh = (key: string): string => String(t(key, { lng: 'zh-CN' }));
   const [showRaw, setShowRaw] = useState(false);
@@ -79,7 +90,9 @@ const TaskCenterDetailModal: React.FC<TaskCenterDetailModalProps> = ({ visible, 
           <Button
             type='primary'
             data-testid='task-detail-start'
-            onClick={() => Message.info(tZh('taskCenter.detail.startTaskTip'))}
+            onClick={() => {
+              if (item) onStartTask?.(item);
+            }}
           >
             {tZh('taskCenter.detail.startTask')}
           </Button>
