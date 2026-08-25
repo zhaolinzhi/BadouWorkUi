@@ -5,11 +5,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@/renderer/hooks/context/AuthContext';
-import {
-  TASK_CENTER_DEFAULT_PER_PAGE_SIZE,
-  TASK_CENTER_TIMEOUT_MS,
-  buildTaskCenterListUrl,
-} from '@/renderer/api';
+import { TASK_CENTER_DEFAULT_PER_PAGE_SIZE, TASK_CENTER_TIMEOUT_MS, buildTaskCenterListUrl } from '@/renderer/api';
 
 export interface TaskCenterRow {
   id: string;
@@ -221,7 +217,11 @@ export const useTaskCenterList = (token: string): UseTaskCenterListResult => {
           setTotal(0);
         }
         const message =
-          e instanceof Error && e.name === 'AbortError' ? `Request timeout (${TASK_CENTER_TIMEOUT_MS}ms)` : e instanceof Error ? e.message : String(e);
+          e instanceof Error && e.name === 'AbortError'
+            ? `Request timeout (${TASK_CENTER_TIMEOUT_MS}ms)`
+            : e instanceof Error
+              ? e.message
+              : String(e);
         setError(message);
       } finally {
         clearTimeout(timer);
