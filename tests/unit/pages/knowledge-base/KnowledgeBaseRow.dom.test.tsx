@@ -60,13 +60,7 @@ const baseItem = {
 describe('KnowledgeBaseRow — chat button default visibility', () => {
   it('renders the chat button without hidden / opacity-0 classes by default', () => {
     render(
-      <KnowledgeBaseRow
-        item={baseItem}
-        onEdit={vi.fn()}
-        onDelete={vi.fn()}
-        onOpen={vi.fn()}
-        onStartChat={vi.fn()}
-      />
+      <KnowledgeBaseRow item={baseItem} onEdit={vi.fn()} onDelete={vi.fn()} onOpen={vi.fn()} onStartChat={vi.fn()} />
     );
     const chatBtn = screen.getByTestId('btn-kb-chat-kb-1');
     expect(chatBtn.className).not.toMatch(/!hidden/);
@@ -81,13 +75,7 @@ describe('KnowledgeBaseRow — chat button default visibility', () => {
     const onStartChat = vi.fn();
     const onOpen = vi.fn();
     render(
-      <KnowledgeBaseRow
-        item={baseItem}
-        onEdit={vi.fn()}
-        onDelete={vi.fn()}
-        onOpen={onOpen}
-        onStartChat={onStartChat}
-      />
+      <KnowledgeBaseRow item={baseItem} onEdit={vi.fn()} onDelete={vi.fn()} onOpen={onOpen} onStartChat={onStartChat} />
     );
     fireEvent.click(screen.getByTestId('btn-kb-chat-kb-1'));
     expect(onStartChat).toHaveBeenCalledWith(baseItem);

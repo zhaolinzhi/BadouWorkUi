@@ -88,7 +88,7 @@ const KnowledgeBaseRow: React.FC<KnowledgeBaseRowProps> = ({
           type='text'
           size='small'
           data-testid={`btn-kb-chat-${item.id}`}
-          className='!hidden !h-28px !items-center !justify-center !rounded-8px !bg-fill-2 !px-12px !leading-none !text-t-secondary !opacity-0 transition-all hover:!bg-primary-6 hover:!text-white group-hover:!opacity-100 sm:!inline-flex'
+          className='!inline-flex !h-28px !items-center !justify-center !rounded-8px !bg-fill-2 !px-12px !leading-none !text-t-secondary !opacity-100 hover:!bg-primary-6 hover:!text-white'
           onClick={() => onStartChat(item)}
         >
           {t('settings.knowledgeBaseGoChat', { defaultValue: 'Chat' })}
