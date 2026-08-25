@@ -48,7 +48,12 @@ vi.mock('@/renderer/pages/settings/components/SettingsPageHeader', () => ({
 }));
 
 vi.mock('@/renderer/components/base', () => ({
-  AionSearchInput: (props: { value?: string; onChange?: (v: string) => void; placeholder?: string; 'data-testid'?: string }) => (
+  AionSearchInput: (props: {
+    value?: string;
+    onChange?: (v: string) => void;
+    placeholder?: string;
+    'data-testid'?: string;
+  }) => (
     <input
       data-testid={props['data-testid'] ?? 'aion-search-input'}
       placeholder={props.placeholder}
@@ -89,11 +94,12 @@ const sampleRow = {
   raw: {},
 };
 
-const fetchMock = vi.fn(async () =>
-  new Response(JSON.stringify({ Total: 1, Rows: [sampleRow] }), {
-    status: 200,
-    headers: { 'Content-Type': 'application/json' },
-  })
+const fetchMock = vi.fn(
+  async () =>
+    new Response(JSON.stringify({ Total: 1, Rows: [sampleRow] }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    })
 );
 vi.stubGlobal('fetch', fetchMock);
 
