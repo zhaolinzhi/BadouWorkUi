@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useAuth } from '@/renderer/hooks/context/AuthContext';
 import { ipcBridge } from '@/common';
 import type { ITaskCenterRow } from '@/common/adapter/ipcBridge';
 import { TASK_CENTER_DEFAULT_PER_PAGE_SIZE } from '@/common/config/taskCenter.config';
@@ -35,6 +36,7 @@ export const useTaskCenterList = (token: string): UseTaskCenterListResult => {
   const [debouncedKeyword, setDebouncedKeyword] = useState('');
   const [pageNo, setPageNo] = useState(1);
   const [perPageSize, setPerPageSize] = useState(TASK_CENTER_DEFAULT_PER_PAGE_SIZE);
+  const { notifyTokenExpired } = useAuth();
 
   const setKeyword = useCallback((v: string) => {
     setKeywordState(v);
@@ -70,8 +72,10 @@ export const useTaskCenterList = (token: string): UseTaskCenterListResult => {
             setItems([]);
             setTotal(0);
           }
-          if (res.ok === false) setError(res.message);
-          else setError('Unknown error');
+          setError(res.message);
+          if (res.code === 'token_expired') {
+            notifyTokenExpired('task-center');
+          }
         }
       } catch (e) {
         if (mode === 'replace') {
@@ -83,7 +87,7 @@ export const useTaskCenterList = (token: string): UseTaskCenterListResult => {
         setLoading(false);
       }
     },
-    [token, debouncedKeyword, pageNo, perPageSize]
+    [token, notifyTokenExpired, debouncedKeyword, pageNo, perPageSize]
   );
 
   // The auto effect below refetches when filters/pageNo change. loadMore

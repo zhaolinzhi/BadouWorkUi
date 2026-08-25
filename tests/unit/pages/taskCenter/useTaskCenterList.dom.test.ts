@@ -7,6 +7,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const listMock = vi.fn();
+const notifyTokenExpiredMock = vi.fn();
 
 vi.mock('@/common', () => ({
   ipcBridge: {
@@ -18,11 +19,18 @@ vi.mock('@/common', () => ({
   },
 }));
 
+vi.mock('@/renderer/hooks/context/AuthContext', () => ({
+  useAuth: () => ({
+    notifyTokenExpired: notifyTokenExpiredMock,
+  }),
+}));
+
 const { useTaskCenterList } = await import('@/renderer/pages/task-center/useTaskCenterList');
 
 beforeEach(() => {
   listMock.mockReset();
   listMock.mockResolvedValue({ ok: true, data: { total: 0, items: [] } });
+  notifyTokenExpiredMock.mockReset();
 });
 
 afterEach(() => {
