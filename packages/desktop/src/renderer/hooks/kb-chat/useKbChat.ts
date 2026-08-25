@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useAuth } from '@/renderer/hooks/context/AuthContext';
 import { ipcBridge } from '@/common';
 
 export type KbChatMessage = { role: 'user' | 'assistant'; content: string };
@@ -45,6 +46,7 @@ export const useKbChat = ({ kbId, token }: UseKbChatOptions): UseKbChatResult =>
   const kbIdRef = useRef<string>(kbId);
   kbIdRef.current = kbId;
   const threadIdRef = useRef<string>(newRequestId());
+  const { notifyTokenExpired } = useAuth();
 
   useEffect(() => {
     const offChunk = ipcBridge.kbChat.streamChunk.on((p: unknown) => {
@@ -68,6 +70,9 @@ export const useKbChat = ({ kbId, token }: UseKbChatOptions): UseKbChatResult =>
       if (payload.requestId !== requestIdRef.current) return;
       setStatus('error');
       setLastError({ code: payload.code, message: payload.message });
+      if (payload.code === 'token_expired') {
+        notifyTokenExpired('kb-chat');
+      }
     });
 
     const offEnd = ipcBridge.kbChat.streamEnd.on((p: unknown) => {
