@@ -140,4 +140,27 @@ describe('useTaskCenterList', () => {
     expect(result.current.items.map((i) => i.id)).toEqual(['a', 'b', 'c', 'd']);
     expect(result.current.pageNo).toBe(2);
   });
+
+  it('calls notifyTokenExpired when bridge returns token_expired code', async () => {
+    listMock.mockResolvedValue({
+      ok: false,
+      code: 'token_expired',
+      message: 'Empty response from PM center (token may be expired)',
+    });
+
+    renderHook(() => useTaskCenterList('tok'));
+
+    await waitFor(() => expect(notifyTokenExpiredMock).toHaveBeenCalledWith('task-center'));
+  });
+
+  it('does NOT call notifyTokenExpired on non-token-expired errors', async () => {
+    listMock.mockResolvedValue({ ok: false, code: 'parse_error', message: 'bad json' });
+
+    renderHook(() => useTaskCenterList('tok'));
+
+    await waitFor(() => expect(listMock).toHaveBeenCalled());
+    // wait a tick to ensure no notification fired
+    await new Promise((r) => setTimeout(r, 20));
+    expect(notifyTokenExpiredMock).not.toHaveBeenCalled();
+  });
 });
