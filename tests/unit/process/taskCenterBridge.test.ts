@@ -259,4 +259,107 @@ describe('listTaskCenter', () => {
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.message).toMatch(/Missing token/);
   });
+
+  it('returns token_expired code on 2xx response with empty body', async () => {
+    const httpModule = await import('node:http');
+    vi.spyOn(httpModule.default, 'request').mockImplementation(((_opts: unknown, cb: (res: HttpResponse) => void) => {
+      const emitter = new EventEmitter() as FakeReq;
+      emitter.destroy = () => emitter.emit('close');
+      emitter.end = () => {
+        queueMicrotask(() => {
+          cb({
+            statusCode: 200,
+            headers: { 'content-type': 'application/json' },
+            on: (event: string, cb2: (chunk?: Buffer | string) => void) => {
+              if (event === 'end') cb2();
+            },
+          });
+        });
+      };
+      return emitter;
+    }) as never);
+
+    const result = await listTaskCenter({
+      token: 'tok',
+      filters: { urgency: 'all', projectId: 'all', type: 'all', keyword: '' },
+      pageNo: 1,
+      perPageSize: 30,
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.code).toBe('token_expired');
+      expect(result.message).toMatch(/Empty response/);
+    }
+  });
+});
+
+const captureBody = async (filters: ITaskCenterFiltersLike, pageNo = 1): Promise<string> => {
+  let capturedBody: string | undefined;
+  const httpModule = await import('node:http');
+  vi.spyOn(httpModule.default, 'request').mockImplementation(((_opts: unknown, cb: (res: HttpResponse) => void) => {
+    const emitter = new EventEmitter() as FakeReq;
+    emitter.destroy = () => emitter.emit('close');
+    emitter.end = (body?: string) => {
+      capturedBody = body;
+      queueMicrotask(() => {
+        cb({
+          statusCode: 200,
+          headers: { 'content-type': 'application/json' },
+          on: (event: string, cb2: (chunk?: Buffer | string) => void) => {
+            if (event === 'data') cb2(Buffer.from('{"Total":0,"Rows":[]}'));
+            if (event === 'end') cb2();
+          },
+        });
+      });
+    };
+    return emitter;
+  }) as never);
+
+  await listTaskCenter({
+    token: 'tok',
+    filters,
+    pageNo,
+    perPageSize: 30,
+  });
+  if (capturedBody === undefined) throw new Error('body not captured');
+  return capturedBody;
+};
+
+type ITaskCenterFiltersLike = Parameters<typeof listTaskCenter>[0]['filters'];
+
+describe('listTaskCenter — searchParam body', () => {
+  it('always includes the default status entry "0;1" with other-query type', async () => {
+    const body = await captureBody({ urgency: 'all', projectId: 'all', type: 'all', keyword: '' });
+    const params = new URLSearchParams(body);
+    const searchParam = JSON.parse(params.get('searchParam') ?? '[]');
+    expect(searchParam).toEqual([{ name: 'status', value: '0;1', type: 'other-query', tagName: '' }]);
+  });
+
+  it('appends a text-query entry for the keyword when keyword is provided', async () => {
+    const body = await captureBody({ urgency: 'all', projectId: 'all', type: 'all', keyword: '策略' });
+    const params = new URLSearchParams(body);
+    const searchParam = JSON.parse(params.get('searchParam') ?? '[]');
+    expect(searchParam).toEqual([
+      { name: 'status', value: '0;1', type: 'other-query', tagName: '' },
+      { name: 'name', value: '策略', type: 'text-query', tagName: '' },
+    ]);
+  });
+
+  it('trims whitespace from keyword before adding the text-query entry', async () => {
+    const body = await captureBody({ urgency: 'all', projectId: 'all', type: 'all', keyword: '   配置  ' });
+    const params = new URLSearchParams(body);
+    const searchParam = JSON.parse(params.get('searchParam') ?? '[]');
+    expect(searchParam).toEqual([
+      { name: 'status', value: '0;1', type: 'other-query', tagName: '' },
+      { name: 'name', value: '配置', type: 'text-query', tagName: '' },
+    ]);
+  });
+
+  it('omits the keyword entry when keyword is whitespace-only', async () => {
+    const body = await captureBody({ urgency: 'all', projectId: 'all', type: 'all', keyword: '   ' });
+    const params = new URLSearchParams(body);
+    const searchParam = JSON.parse(params.get('searchParam') ?? '[]');
+    expect(searchParam).toEqual([{ name: 'status', value: '0;1', type: 'other-query', tagName: '' }]);
+  });
 });
