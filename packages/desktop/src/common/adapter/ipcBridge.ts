@@ -94,6 +94,7 @@ import type {
 import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 import type { Theme } from '@/common/theme/types';
 import type { AttachFolderRequest, ProjectDetailDto, ProjectEntryDto } from '@/common/types/project';
+import type { ProjectBinding } from '@/renderer/api/types';
 import type { ChatFileRef, ContentEncoding } from '@/common/types/chatFile';
 import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from '../utils/protocolDetector';
 import {
@@ -518,6 +519,24 @@ export const project = {
   removeFolder: httpDelete<void, { project_id: string; pe_id: string }>(
     (p) => `/api/projects/${encodeURIComponent(p.project_id)}/folders/${encodeURIComponent(p.pe_id)}`
   ),
+};
+
+// ---------------------------------------------------------------------------
+// Project Binding — task-center Start Task → /guid agent+folder presets
+// ---------------------------------------------------------------------------
+
+export const projectBinding = {
+  /** GET /api/project-binding/{projectId} → { binding: ProjectBinding | null }. */
+  get: httpGet<{ binding: ProjectBinding | null }, { project_id: string }>(
+    (p) => `/api/project-binding/${encodeURIComponent(p.project_id)}`
+  ),
+  /** PUT /api/project-binding/{projectId} → { binding: ProjectBinding }. */
+  put: httpPut<{ binding: ProjectBinding }, { project_id: string; assistantId: string; folderPath: string }>(
+    (p) => `/api/project-binding/${encodeURIComponent(p.project_id)}`,
+    (p) => ({ assistantId: p.assistantId, folderPath: p.folderPath })
+  ),
+  /** DELETE /api/project-binding/{projectId} → 204. */
+  remove: httpDelete<void, { project_id: string }>((p) => `/api/project-binding/${encodeURIComponent(p.project_id)}`),
 };
 
 // ---------------------------------------------------------------------------
