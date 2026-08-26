@@ -43,7 +43,7 @@ import useSWR from 'swr';
 import styles from './index.module.css';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
 
-type GuidNavigationState = {
+export type GuidNavigationState = {
   resetAssistant?: boolean;
   selectedAssistantId?: string;
   prefillPrompt?: string;
