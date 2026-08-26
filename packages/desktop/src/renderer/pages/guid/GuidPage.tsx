@@ -51,6 +51,10 @@ type GuidNavigationState = {
   preservePrefillDraft?: boolean;
   focusPrefill?: boolean;
   workspace?: string;
+  // 项目绑定上下文(任务中心开始任务流程)
+  projectId?: string;
+  projectName?: string;
+  requireBinding?: boolean;
   [key: string]: unknown;
 };
 
@@ -675,17 +679,17 @@ const GuidPage: React.FC = () => {
       <div ref={guidContainerRef} className={styles.guidContainer}>
         <div className={styles.guidLayout}>
           {/* 调试入口条：仅临时，正式入口由后续任务替换 */}
-          <div className={styles.devEntryRow} data-testid='guid-dev-entry'>
-            <button
-              type='button'
-              className={styles.devEntryChip}
-              onClick={handleOpenBrowserDemo}
-              title='打开应用内浏览器 Demo'
-            >
-              <Experiment theme='outline' size={14} />
-              <span>浏览器 Demo</span>
-            </button>
-          </div>
+          {/*<div className={styles.devEntryRow} data-testid='guid-dev-entry'>*/}
+          {/*  <button*/}
+          {/*    type='button'*/}
+          {/*    className={styles.devEntryChip}*/}
+          {/*    onClick={handleOpenBrowserDemo}*/}
+          {/*    title='打开应用内浏览器 Demo'*/}
+          {/*  >*/}
+          {/*    <Experiment theme='outline' size={14} />*/}
+          {/*    <span>浏览器 Demo</span>*/}
+          {/*  </button>*/}
+          {/*</div>*/}
 
           <div className={styles.heroHeader}>
             <p className='text-2xl font-semibold mb-0 text-0 text-center'>
