@@ -83,8 +83,6 @@ describe('ProjectBindingModal', () => {
       />
     );
     await userEvent.click(screen.getByTestId('project-binding-confirm'));
-    await waitFor(() =>
-      expect(onSubmit).toHaveBeenCalledWith({ assistantId: 'a1', folderPath: '/tmp/p' })
-    );
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledWith({ assistantId: 'a1', folderPath: '/tmp/p' }));
   });
 });

@@ -82,9 +82,7 @@ export const ProjectBindingModal: React.FC<ProjectBindingModalProps> = ({
             </Option>
           ))}
         </Select>
-        {assistantError && (
-          <div style={{ color: 'var(--color-danger, #f53f3f)', marginTop: 4 }}>{assistantError}</div>
-        )}
+        {assistantError && <div style={{ color: 'var(--color-danger, #f53f3f)', marginTop: 4 }}>{assistantError}</div>}
       </div>
       <div style={{ marginBottom: 16 }}>
         <div style={{ marginBottom: 4 }}>{t('guid.projectBinding.folderLabel')}</div>

@@ -8,9 +8,7 @@ export const makeBinding = (overrides: Partial<ProjectBinding> = {}): ProjectBin
   ...overrides,
 });
 
-export const makeProjectRow = (
-  overrides: Partial<{ id: string; projectId: string; projectName: string }> = {}
-) => ({
+export const makeProjectRow = (overrides: Partial<{ id: string; projectId: string; projectName: string }> = {}) => ({
   id: 'r1',
   projectId: 'p1',
   projectName: 'Demo Project',
