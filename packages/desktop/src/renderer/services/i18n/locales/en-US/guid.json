@@ -16,7 +16,7 @@
   },
   "projectBinding": {
     "title": "Project binding",
-    "subtitle": "Pick an assistant and working folder for project <{projectName}>",
+    "subtitle": "Pick an assistant and working folder for project {{projectName}}",
     "assistantLabel": "Assistant",
     "folderLabel": "Working folder",
     "browseFolder": "Browse…",

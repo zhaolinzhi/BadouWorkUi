@@ -16,7 +16,7 @@
   },
   "projectBinding": {
     "title": "项目绑定",
-    "subtitle": "为项目 <{projectName}> 选择智能体和工作文件夹",
+    "subtitle": "为项目 {{projectName}} 选择智能体和工作文件夹",
     "assistantLabel": "智能体",
     "folderLabel": "工作文件夹",
     "browseFolder": "浏览…",
