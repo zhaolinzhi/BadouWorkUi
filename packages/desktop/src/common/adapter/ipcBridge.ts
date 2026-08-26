@@ -815,6 +815,8 @@ export const fs = {
   readFile: httpPost<string | null, { path: string; workspace?: string }>('/api/fs/read'),
   writeFile: httpPost<boolean, { path: string; data: string; workspace?: string }>('/api/fs/write'),
   getFileMetadata: httpPost<IFileMetadata, { path: string; workspace?: string }>('/api/fs/metadata'),
+  /** POST /api/fs/exists → boolean. 文件/文件夹是否存在。后端用 stat + try/catch。 */
+  exists: httpPost<boolean, { path: string }>('/api/fs/exists'),
   // ── ChatFileRef content endpoints (PR-2: preview I/O by ref identity) ──────
   // Read a file addressed by ChatFileRef; `encoding` selects text (utf8) vs image
   // data URL (dataurl) vs raw base64. Backend: POST /api/fs/content → String.
