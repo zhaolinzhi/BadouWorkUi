@@ -27,6 +27,7 @@ type KnowledgeBaseHomeTabsProps = {
   onEdit: (item: KnowledgeBaseItem) => void;
   onDelete: (item: KnowledgeBaseItem) => void;
   onOpen: (item: KnowledgeBaseItem) => void;
+  onOpenView: (item: KnowledgeBaseItem) => void;
   onCreate: () => void;
   onStartChat: (item: KnowledgeBaseItem) => void;
   initialTab?: KnowledgeBaseTab;
@@ -46,6 +47,7 @@ const KnowledgeBaseHomeTabs: React.FC<KnowledgeBaseHomeTabsProps> = ({
   onEdit,
   onDelete,
   onOpen,
+  onOpenView,
   onCreate,
   onStartChat,
   initialTab = 'personal',
@@ -160,7 +162,7 @@ const KnowledgeBaseHomeTabs: React.FC<KnowledgeBaseHomeTabsProps> = ({
               loading={sharedLoading}
               error={sharedError}
               onRetry={onRetryLoadShared}
-              onOpen={onOpen}
+              onOpenView={onOpenView}
               onStartChat={onStartChat}
             />
           )}

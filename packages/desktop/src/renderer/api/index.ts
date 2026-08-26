@@ -9,6 +9,7 @@ export {
   getExternalLoginUrl,
   getKnowledgeBaseCreateUrl,
   getKnowledgeBaseEditUrl,
+  getKnowledgeBaseViewUrl,
   PM_CENTER_BASE_URL,
   TASK_CENTER_LIST_PATH,
   TASK_CENTER_MD_CODE,

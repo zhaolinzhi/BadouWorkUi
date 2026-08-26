@@ -4,7 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import { describe, expect, it } from 'vitest';
-import { getKnowledgeBaseCreateUrl, getKnowledgeBaseEditUrl, EXTERNAL_LOGIN_URL_BASE } from '@/renderer/api/config';
+import {
+  getKnowledgeBaseCreateUrl,
+  getKnowledgeBaseEditUrl,
+  getKnowledgeBaseViewUrl,
+  EXTERNAL_LOGIN_URL_BASE,
+} from '@/renderer/api/config';
 
 const base = EXTERNAL_LOGIN_URL_BASE.replace(/\/$/, '');
 
@@ -23,5 +28,12 @@ describe('getKnowledgeBaseCreateUrl / getKnowledgeBaseEditUrl', () => {
     expect(url).not.toContain('/add/kb-1');
     expect(url).not.toMatch(/\/add\//);
     expect(url).toContain('addFormData=');
+  });
+
+  it('view URL uses the /module/view/view/ai_knowledge_user prefix with no query params', () => {
+    const url = getKnowledgeBaseViewUrl('kb-1');
+    expect(url).toBe(`${base}/#/module/view/view/ai_knowledge_user/kb-1`);
+    expect(url).not.toContain('?');
+    expect(url).not.toContain('addFormData=');
   });
 });

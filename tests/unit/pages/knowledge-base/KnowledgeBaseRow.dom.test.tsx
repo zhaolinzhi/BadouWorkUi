@@ -131,4 +131,34 @@ describe('KnowledgeBaseRow — chat button default visibility', () => {
     expect(onOpen).toHaveBeenCalledWith({ ...baseItem, source: 'user' });
     expect(onEdit).not.toHaveBeenCalled();
   });
+
+  it('does not render the more menu button when noMenu is true', () => {
+    render(
+      <KnowledgeBaseRow
+        item={{ ...baseItem, source: 'user' }}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onOpen={vi.fn()}
+        onStartChat={vi.fn()}
+        noMenu
+      />
+    );
+    expect(screen.queryByTestId('btn-kb-more-kb-1')).toBeNull();
+  });
+
+  it('row click still calls onOpen when noMenu is true', () => {
+    const onOpen = vi.fn();
+    render(
+      <KnowledgeBaseRow
+        item={{ ...baseItem, source: 'user' }}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onOpen={onOpen}
+        onStartChat={vi.fn()}
+        noMenu
+      />
+    );
+    fireEvent.click(screen.getByTestId('kb-card-kb-1'));
+    expect(onOpen).toHaveBeenCalledWith({ ...baseItem, source: 'user' });
+  });
 });

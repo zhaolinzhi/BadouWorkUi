@@ -41,6 +41,9 @@ const KNOWLEDGE_BASE_CREATE_PATH = '/#/module/tree/edit/ai_knowledge_user/add';
 /** Hash-route prefix for the external "edit existing knowledge base" page.
  *  The base id is appended as a path segment after this prefix. */
 const KNOWLEDGE_BASE_EDIT_PATH = '/#/module/tree/edit/ai_knowledge_user';
+/** Hash-route prefix for the external "view" page (used for shared bases).
+ *  The base id is appended as a path segment after this prefix. */
+const KNOWLEDGE_BASE_VIEW_PATH = '/#/module/view/view/ai_knowledge_user';
 const KNOWLEDGE_BASE_CREATE_PARENT_NAME = '知识库目录';
 const KNOWLEDGE_BASE_CREATE_PARENT_ID = 'ROOT';
 
@@ -64,6 +67,13 @@ export function getKnowledgeBaseCreateUrl(): string {
  *  mirror the create page so the parent-node context is preserved. */
 export function getKnowledgeBaseEditUrl(id: string): string {
   return buildKnowledgeBaseEditUrl(id);
+}
+
+/** Build the external URL for viewing a knowledge base (used for shared
+ *  bases). Unlike edit/create, the view page does not need parent-tree
+ *  query params — the base resolves on its own. */
+export function getKnowledgeBaseViewUrl(id: string): string {
+  return `${EXTERNAL_LOGIN_URL_BASE.replace(/\/$/, '')}${KNOWLEDGE_BASE_VIEW_PATH}/${id}`;
 }
 
 function buildKnowledgeBaseEditUrl(id: string | null): string {

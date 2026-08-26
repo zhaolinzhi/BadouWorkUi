@@ -23,12 +23,15 @@ type KnowledgeBaseRowProps = {
    *  which do not expose in-app delete. The more menu (with the edit item)
    *  is still rendered. */
   hideDelete?: boolean;
+  /** Hides the more menu entirely (no "edit"/"delete" button rendered).
+   *  Used by the shared KB list, which does not expose in-app editing. */
+  noMenu?: boolean;
 };
 
 /**
  * A single row in the knowledge base list. Clicking the row opens detail;
- * the more menu exposes edit/delete; the chat button (visible on hover)
- * starts a conversation using the knowledge base's configured agent.
+ * the more menu exposes edit/delete (when allowed); the chat button starts a
+ * conversation using the knowledge base's configured agent.
  */
 const KnowledgeBaseRow: React.FC<KnowledgeBaseRowProps> = ({
   item,
@@ -38,6 +41,7 @@ const KnowledgeBaseRow: React.FC<KnowledgeBaseRowProps> = ({
   onStartChat,
   readonly = false,
   hideDelete = false,
+  noMenu = false,
 }) => {
   const { t } = useTranslation();
   const canDelete = !readonly && !hideDelete && item.source !== 'builtin';
@@ -101,7 +105,7 @@ const KnowledgeBaseRow: React.FC<KnowledgeBaseRowProps> = ({
         >
           {t('settings.knowledgeBaseGoChat', { defaultValue: 'Chat' })}
         </Button>
-        {readonly ? null : (
+        {readonly || noMenu ? null : (
           <Dropdown droplist={actionMenu} trigger='click' position='br' getPopupContainer={() => document.body}>
             <Button
               type='text'
