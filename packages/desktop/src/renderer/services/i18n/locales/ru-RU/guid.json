@@ -13,5 +13,22 @@
     "specifyWorkspace": "Выбрать папку проекта",
     "searchPlaceholder": "Поиск проектов…",
     "noProject": "Без проекта"
+  },
+  "projectBinding": {
+    "title": "Project binding",
+    "subtitle": "Pick an assistant and working folder for project <{projectName}>",
+    "assistantLabel": "Assistant",
+    "folderLabel": "Working folder",
+    "browseFolder": "Browse…",
+    "confirm": "Save and start",
+    "cancel": "Cancel",
+    "saveFailed": "Failed to save binding, please try again",
+    "fetchFailed": "Failed to load project binding",
+    "retry": "Retry",
+    "invalidAssistant": "This assistant is unavailable, please pick another",
+    "invalidFolder": "Folder does not exist or is not accessible",
+    "rebind": "Change",
+    "bound": "Bound",
+    "unboundHint": "No project binding selected"
   }
 }
