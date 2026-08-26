@@ -15,7 +15,12 @@ type KnowledgeBaseRowProps = {
   item: KnowledgeBaseItem;
   onEdit: (item: KnowledgeBaseItem) => void;
   onDelete: (item: KnowledgeBaseItem) => void;
+  /** Handler invoked when the row body is clicked. */
   onOpen: (item: KnowledgeBaseItem) => void;
+  /** Handler invoked when the "edit" menu item is clicked. Falls back to
+   *  onOpen when not provided, so callers that want both entry points to
+   *  share a destination can pass only onOpen. */
+  onOpenEdit?: (item: KnowledgeBaseItem) => void;
   onStartChat: (item: KnowledgeBaseItem) => void;
   /** Hides the edit/delete more menu — used for read-only shared bases. */
   readonly?: boolean;
@@ -38,6 +43,7 @@ const KnowledgeBaseRow: React.FC<KnowledgeBaseRowProps> = ({
   onEdit,
   onDelete,
   onOpen,
+  onOpenEdit,
   onStartChat,
   readonly = false,
   hideDelete = false,
@@ -49,10 +55,12 @@ const KnowledgeBaseRow: React.FC<KnowledgeBaseRowProps> = ({
   const actionMenu = (
     <Menu
       onClickMenuItem={(key) => {
-        // The "edit" menu item opens the same external vendor URL as a row click,
-        // so both entry points behave identically. onEdit (in-app editor) is no
-        // longer wired here.
-        if (key === 'edit') onOpen(item);
+        // The "edit" menu item routes to onOpenEdit (when provided) or
+        // falls back to onOpen. The row click separately calls onOpen, so
+        // the two entry points can land on different destinations — e.g.
+        // personal KBs use onOpen (view URL) for the row and onOpenEdit
+        // (edit URL) for the menu.
+        if (key === 'edit') (onOpenEdit ?? onOpen)(item);
         if (key === 'delete') onDelete(item);
       }}
     >

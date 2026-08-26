@@ -18,7 +18,10 @@ type PersonalKnowledgeBaseListProps = {
   onRetry?: () => void;
   onEdit: (item: KnowledgeBaseItem) => void;
   onDelete: (item: KnowledgeBaseItem) => void;
+  /** Row click destination — view URL for personal KBs. */
   onOpen: (item: KnowledgeBaseItem) => void;
+  /** Edit menu destination — edit URL for personal KBs. */
+  onOpenEdit: (item: KnowledgeBaseItem) => void;
   onCreate: () => void;
   onStartChat: (item: KnowledgeBaseItem) => void;
 };
@@ -31,6 +34,7 @@ const PersonalKnowledgeBaseList: React.FC<PersonalKnowledgeBaseListProps> = ({
   onEdit,
   onDelete,
   onOpen,
+  onOpenEdit,
   onCreate,
   onStartChat,
 }) => {
@@ -111,6 +115,7 @@ const PersonalKnowledgeBaseList: React.FC<PersonalKnowledgeBaseListProps> = ({
           onEdit={onEdit}
           onDelete={onDelete}
           onOpen={onOpen}
+          onOpenEdit={onOpenEdit}
           onStartChat={onStartChat}
           hideDelete
         />

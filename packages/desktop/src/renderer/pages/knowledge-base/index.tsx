@@ -182,10 +182,10 @@ const KnowledgeBasePage: React.FC = () => {
               onRetryLoadPersonal={handleRetryLoadPersonal}
               onRetryLoadShared={() => void loadKnowledgeBases()}
               onRefresh={handleTabRefresh}
-              onEdit={(item) => void editor.handleEdit(item)}
+              onEdit={() => undefined}
               onDelete={(item) => editor.handleDeleteRequest(item)}
-              onOpen={handleOpen}
               onOpenView={handleOpenView}
+              onOpenEdit={handleOpen}
               onCreate={() => void handleCreate()}
               onStartChat={handleStartChat}
             />

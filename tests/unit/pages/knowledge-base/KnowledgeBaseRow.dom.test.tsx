@@ -114,13 +114,32 @@ describe('KnowledgeBaseRow — chat button default visibility', () => {
     expect(screen.getByTestId('kb-menu-edit-kb-1')).toBeTruthy();
   });
 
-  it('edit menu item calls onOpen (matching the row click behavior) and not onEdit', () => {
+  it('edit menu item calls onOpenEdit (not onOpen) when both are provided', () => {
     const onEdit = vi.fn();
     const onOpen = vi.fn();
+    const onOpenEdit = vi.fn();
     render(
       <KnowledgeBaseRow
         item={{ ...baseItem, source: 'user' }}
         onEdit={onEdit}
+        onDelete={vi.fn()}
+        onOpen={onOpen}
+        onOpenEdit={onOpenEdit}
+        onStartChat={vi.fn()}
+      />
+    );
+    fireEvent.click(screen.getByTestId('btn-kb-more-kb-1'));
+    fireEvent.click(screen.getByTestId('kb-menu-edit-kb-1'));
+    expect(onOpenEdit).toHaveBeenCalledWith({ ...baseItem, source: 'user' });
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+
+  it('edit menu item falls back to onOpen when onOpenEdit is not provided', () => {
+    const onOpen = vi.fn();
+    render(
+      <KnowledgeBaseRow
+        item={{ ...baseItem, source: 'user' }}
+        onEdit={vi.fn()}
         onDelete={vi.fn()}
         onOpen={onOpen}
         onStartChat={vi.fn()}
@@ -129,7 +148,6 @@ describe('KnowledgeBaseRow — chat button default visibility', () => {
     fireEvent.click(screen.getByTestId('btn-kb-more-kb-1'));
     fireEvent.click(screen.getByTestId('kb-menu-edit-kb-1'));
     expect(onOpen).toHaveBeenCalledWith({ ...baseItem, source: 'user' });
-    expect(onEdit).not.toHaveBeenCalled();
   });
 
   it('does not render the more menu button when noMenu is true', () => {
