@@ -82,4 +82,53 @@ describe('KnowledgeBaseRow — chat button default visibility', () => {
     expect(onStartChat).toHaveBeenCalledTimes(1);
     expect(onOpen).not.toHaveBeenCalled();
   });
+
+  it('hides the delete menu item when hideDelete is true', () => {
+    render(
+      <KnowledgeBaseRow
+        item={{ ...baseItem, source: 'user' }}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onOpen={vi.fn()}
+        onStartChat={vi.fn()}
+        hideDelete
+      />
+    );
+    fireEvent.click(screen.getByTestId('btn-kb-more-kb-1'));
+    expect(screen.queryByTestId('kb-menu-delete-kb-1')).toBeNull();
+    expect(screen.getByTestId('kb-menu-edit-kb-1')).toBeTruthy();
+  });
+
+  it('shows the delete menu item by default when source is user and not readonly', () => {
+    render(
+      <KnowledgeBaseRow
+        item={{ ...baseItem, source: 'user' }}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onOpen={vi.fn()}
+        onStartChat={vi.fn()}
+      />
+    );
+    fireEvent.click(screen.getByTestId('btn-kb-more-kb-1'));
+    expect(screen.getByTestId('kb-menu-delete-kb-1')).toBeTruthy();
+    expect(screen.getByTestId('kb-menu-edit-kb-1')).toBeTruthy();
+  });
+
+  it('edit menu item calls onOpen (matching the row click behavior) and not onEdit', () => {
+    const onEdit = vi.fn();
+    const onOpen = vi.fn();
+    render(
+      <KnowledgeBaseRow
+        item={{ ...baseItem, source: 'user' }}
+        onEdit={onEdit}
+        onDelete={vi.fn()}
+        onOpen={onOpen}
+        onStartChat={vi.fn()}
+      />
+    );
+    fireEvent.click(screen.getByTestId('btn-kb-more-kb-1'));
+    fireEvent.click(screen.getByTestId('kb-menu-edit-kb-1'));
+    expect(onOpen).toHaveBeenCalledWith({ ...baseItem, source: 'user' });
+    expect(onEdit).not.toHaveBeenCalled();
+  });
 });

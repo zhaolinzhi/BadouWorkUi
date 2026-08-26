@@ -112,6 +112,7 @@ const PersonalKnowledgeBaseList: React.FC<PersonalKnowledgeBaseListProps> = ({
           onDelete={onDelete}
           onOpen={onOpen}
           onStartChat={onStartChat}
+          hideDelete
         />
       ))}
     </div>

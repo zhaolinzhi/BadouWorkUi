@@ -35,10 +35,12 @@ export function getExternalLoginUrl(): string {
   return `${EXTERNAL_LOGIN_URL_BASE}?${EXTERNAL_LOGIN_FLAG}`;
 }
 
-/** Hash-route prefix for the external "new knowledge base" page.
- *  Path and query string are vendor-defined; only the host (EXTERNAL_LOGIN_URL_BASE)
- *  needs to vary between environments. */
+/** Hash-route prefix for the external "new knowledge base" page. The
+ *  trailing `add` segment is the create-page route defined by the vendor. */
 const KNOWLEDGE_BASE_CREATE_PATH = '/#/module/tree/edit/ai_knowledge_user/add';
+/** Hash-route prefix for the external "edit existing knowledge base" page.
+ *  The base id is appended as a path segment after this prefix. */
+const KNOWLEDGE_BASE_EDIT_PATH = '/#/module/tree/edit/ai_knowledge_user';
 const KNOWLEDGE_BASE_CREATE_PARENT_NAME = '知识库目录';
 const KNOWLEDGE_BASE_CREATE_PARENT_ID = 'ROOT';
 
@@ -87,8 +89,8 @@ function buildKnowledgeBaseEditUrl(id: string | null): string {
     `backParams=${encodeRawQueryParam(backParams)}`,
     `currentTreeNodeData=${encodeRawQueryParam(currentTreeNodeData)}`,
   ].join('&');
-  const pathSuffix = id ? `/${id}` : '';
-  return `${EXTERNAL_LOGIN_URL_BASE.replace(/\/$/, '')}${KNOWLEDGE_BASE_CREATE_PATH}${pathSuffix}?${params}`;
+  const path = id ? `${KNOWLEDGE_BASE_EDIT_PATH}/${id}` : KNOWLEDGE_BASE_CREATE_PATH;
+  return `${EXTERNAL_LOGIN_URL_BASE.replace(/\/$/, '')}${path}?${params}`;
 }
 
 /**

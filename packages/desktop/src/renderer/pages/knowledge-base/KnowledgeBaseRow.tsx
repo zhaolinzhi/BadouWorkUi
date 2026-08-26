@@ -19,6 +19,10 @@ type KnowledgeBaseRowProps = {
   onStartChat: (item: KnowledgeBaseItem) => void;
   /** Hides the edit/delete more menu — used for read-only shared bases. */
   readonly?: boolean;
+  /** Hides the delete menu item. Used by the personal and shared KB lists,
+   *  which do not expose in-app delete. The more menu (with the edit item)
+   *  is still rendered. */
+  hideDelete?: boolean;
 };
 
 /**
@@ -33,14 +37,18 @@ const KnowledgeBaseRow: React.FC<KnowledgeBaseRowProps> = ({
   onOpen,
   onStartChat,
   readonly = false,
+  hideDelete = false,
 }) => {
   const { t } = useTranslation();
-  const canDelete = !readonly && item.source !== 'builtin';
+  const canDelete = !readonly && !hideDelete && item.source !== 'builtin';
 
   const actionMenu = (
     <Menu
       onClickMenuItem={(key) => {
-        if (key === 'edit') onEdit(item);
+        // The "edit" menu item opens the same external vendor URL as a row click,
+        // so both entry points behave identically. onEdit (in-app editor) is no
+        // longer wired here.
+        if (key === 'edit') onOpen(item);
         if (key === 'delete') onDelete(item);
       }}
     >

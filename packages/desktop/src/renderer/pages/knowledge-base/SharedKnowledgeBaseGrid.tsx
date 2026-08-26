@@ -20,8 +20,10 @@ type SharedKnowledgeBaseGridProps = {
 
 /**
  * Shared knowledge bases rendered as a list — same visual treatment as the
- * personal list. Owners are managed externally so the more menu (edit/delete)
- * is hidden; only the chat entry point is exposed.
+ * personal list. Edit/delete are not exposed in-app; the only affordance
+ * (besides the chat button) is row click, which opens the external vendor
+ * edit page. The more menu only contains the "edit" entry, which routes to
+ * the same external URL.
  */
 const SharedKnowledgeBaseGrid: React.FC<SharedKnowledgeBaseGridProps> = ({
   items,
@@ -89,11 +91,11 @@ const SharedKnowledgeBaseGrid: React.FC<SharedKnowledgeBaseGridProps> = ({
         <KnowledgeBaseRow
           key={item.id}
           item={item}
-          readonly
           onEdit={() => undefined}
           onDelete={() => undefined}
-          onOpen={() => undefined}
+          onOpen={onOpen}
           onStartChat={onStartChat}
+          hideDelete
         />
       ))}
     </div>
