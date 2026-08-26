@@ -28,7 +28,14 @@ const TaskCenterPage: React.FC = () => {
   const handleStartTask = useCallback(
     (item: TaskCenterRow) => {
       setDetailItem(null);
-      navigate('/guid', { state: { prefillPrompt: buildStartTaskPrefillPrompt(item) } });
+      navigate('/guid', {
+        state: {
+          prefillPrompt: buildStartTaskPrefillPrompt(item),
+          projectId: item.projectId,
+          projectName: item.projectName,
+          requireBinding: true,
+        },
+      });
     },
     [navigate]
   );
