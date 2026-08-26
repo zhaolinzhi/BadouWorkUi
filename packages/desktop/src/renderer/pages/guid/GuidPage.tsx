@@ -26,6 +26,11 @@ import { useGuidAssistantSelection } from './hooks/useGuidAssistantSelection';
 import { useGuidInput } from './hooks/useGuidInput';
 import { useGuidModelSelection } from './hooks/useGuidModelSelection';
 import { useGuidSend } from './hooks/useGuidSend';
+import { useGuidNavigationState } from './hooks/useGuidNavigationState';
+import { useGuidBindingPresets, type AssistantLite } from './hooks/useGuidBindingPresets';
+import { ProjectBindingModal } from './components/ProjectBindingModal';
+import { BoundBadge } from './components/BoundBadge';
+import { saveProjectBinding } from '@/renderer/api/projectBinding';
 import { useTypewriterPlaceholder } from './hooks/useTypewriterPlaceholder';
 import { ensureBackendMcpCatalog } from '@/renderer/hooks/mcp/catalog';
 import { resolveGuidAssistantDefaults } from './utils/assistantDefaults';
@@ -152,6 +157,53 @@ const GuidPage: React.FC = () => {
   const guidInput = useGuidInput({
     locationState: location.state as { workspace?: string } | null,
   });
+
+  // --- Project binding (task-center Start Task → preset agent+folder) ---
+  const { projectId, projectName: navProjectName, requireBinding } = useGuidNavigationState();
+  const presets = useGuidBindingPresets({
+    projectId,
+    requireBinding,
+    assistantsReady: agentSelection.assistants.length > 0,
+    assistants: agentSelection.assistants as ReadonlyArray<AssistantLite>,
+    checkFolderExists: useCallback(async (path: string): Promise<boolean> => {
+      try {
+        return await ipcBridge.fs.exists.invoke({ path });
+      } catch {
+        return false;
+      }
+    }, []),
+    applyPreset: useCallback(
+      ({ assistantId, folderPath }) => {
+        agentSelection.setSelectedAssistantId(assistantId);
+        guidInput.setDir(folderPath);
+      },
+      [agentSelection, guidInput]
+    ),
+  });
+
+  const handleBindingSubmit = useCallback(
+    async (input: { assistantId: string; folderPath: string }): Promise<void> => {
+      if (!projectId) return;
+      const next = await saveProjectBinding({ projectId, ...input });
+      presets.apply(next);
+    },
+    [projectId, presets]
+  );
+
+  const handleBrowseFolder = useCallback(async (): Promise<string | null> => {
+    try {
+      const files = await ipcBridge.dialog.showOpen.invoke({ properties: ['openDirectory'] });
+      if (Array.isArray(files) && files.length > 0) return files[0];
+      return null;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const assistantOptions = useMemo(
+    () => agentSelection.assistants.map((a) => ({ id: a.id, name: a.name })),
+    [agentSelection.assistants]
+  );
   // The `/open` builtin + attach picker browse the backend machine's filesystem
   // (native dialog / server-fs) → `local` refs, not uploads.
   const { onSlashBuiltinCommand } = useOpenFileSelector({
@@ -697,6 +749,10 @@ const GuidPage: React.FC = () => {
             </p>
           </div>
 
+          {presets.status === 'bound' && presets.binding && (
+            <BoundBadge binding={presets.binding} assistants={assistantOptions} onRebind={presets.rebind} />
+          )}
+
           <AssistantSelectionArea
             selectedAssistantId={agentSelection.selectedAssistantId}
             assistants={agentSelection.assistants}
@@ -764,6 +820,18 @@ const GuidPage: React.FC = () => {
           activeShadow={activeShadow}
         />
         <FeedbackReportModal visible={showFeedbackModal} onCancel={() => setShowFeedbackModal(false)} />
+        {projectId && (
+          <ProjectBindingModal
+            visible={presets.isModalOpen}
+            projectId={projectId}
+            projectName={navProjectName ?? projectId}
+            assistants={assistantOptions}
+            initialBinding={presets.binding}
+            onCancel={presets.closeModal}
+            onSubmit={handleBindingSubmit}
+            onBrowseFolder={handleBrowseFolder}
+          />
+        )}
       </div>
     </ConfigProvider>
   );
