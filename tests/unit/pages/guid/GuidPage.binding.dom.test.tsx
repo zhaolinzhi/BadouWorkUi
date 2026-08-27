@@ -216,13 +216,9 @@ describe('GuidPage binding flow', () => {
     await waitFor(() => expect(screen.getByTestId('project-binding-modal-p1')).toBeInTheDocument());
   });
 
-  it('已绑定且有效时不显示任何绑定 UI(应用预设即可)', async () => {
+  it('已绑定且有效时显示 BoundBadge', async () => {
     mockedGet.mockResolvedValueOnce(makeBinding());
     renderAt({ projectId: 'p1', projectName: 'Demo', requireBinding: true });
-    // The modal may briefly appear while the effect runs; wait for it to be
-    // either not-present or already gone. The key contract is no BoundBadge.
-    await waitFor(() => expect(screen.queryByTestId('bound-badge')).not.toBeInTheDocument());
-    expect(screen.queryByTestId('bound-badge-rebind')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('reopen-binding-button')).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByTestId('bound-badge')).toBeInTheDocument());
   });
 });

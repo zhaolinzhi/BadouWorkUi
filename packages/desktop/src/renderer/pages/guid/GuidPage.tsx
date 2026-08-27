@@ -29,6 +29,7 @@ import { useGuidSend } from './hooks/useGuidSend';
 import { useGuidNavigationState } from './hooks/useGuidNavigationState';
 import { useGuidBindingPresets, type AssistantLite } from './hooks/useGuidBindingPresets';
 import { ProjectBindingModal } from './components/ProjectBindingModal';
+import { BoundBadge } from './components/BoundBadge';
 import { useTypewriterPlaceholder } from './hooks/useTypewriterPlaceholder';
 import { ensureBackendMcpCatalog } from '@/renderer/hooks/mcp/catalog';
 import { resolveGuidAssistantDefaults } from './utils/assistantDefaults';
@@ -748,6 +749,25 @@ const GuidPage: React.FC = () => {
               {t('conversation.welcome.title', { name: user?.username || '' })}
             </p>
           </div>
+
+          {presets.status === 'bound' && presets.binding && (
+            <BoundBadge binding={presets.binding} assistants={assistantOptions} onRebind={presets.rebind} />
+          )}
+
+          {projectId && requireBinding && presets.userDismissed && !presets.binding && (
+            <button
+              type='button'
+              className='bound-badge'
+              data-testid='reopen-binding-button'
+              onClick={presets.openModal}
+              style={{ background: 'transparent', border: '1px dashed var(--color-border-2, #c9cdd4)', cursor: 'pointer' }}
+            >
+              <span className='bound-badge__label'>{t('guid.projectBinding.unboundHint')}</span>
+              <span style={{ marginLeft: 8, color: 'var(--color-primary, #165dff)' }}>
+                {t('guid.projectBinding.rebind')}
+              </span>
+            </button>
+          )}
 
           <AssistantSelectionArea
             selectedAssistantId={agentSelection.selectedAssistantId}
