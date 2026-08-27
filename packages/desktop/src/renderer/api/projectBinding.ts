@@ -1,19 +1,17 @@
 /**
  * 项目绑定 HTTP 封装。
  *
- * - 生产模式: 走 `ipcBridge.projectBinding`(统一 aioncore HTTP)
- * - 开发模式: 当 `globalThis.__aionuiMockProjectBinding === true` 时,
- *   走 in-memory store(挂载在 `globalThis.__mockProjectBinding`),并通过 localStorage
- *   跨刷新持久化。便于在后端 `/api/project-binding/*` 尚未实现时本地调试。
+ * 走 `ipcBridge.projectBinding`(统一 aioncore HTTP)。
  *
- * 启用 mock 的方式(任选其一):
- *   1. 启动时通过 `<script>window.__aionuiMockProjectBinding = true</script>` 注入
- *   2. 在 DevTools console 中赋值 `window.__aionuiMockProjectBinding = true`
- *   3. 在 vite 插件中通过 `define` 注入
+ * Mock 仅用于本地调试,通过 `globalThis.__aionuiMockProjectBinding = true` 启用:
+ *   1. 在 DevTools console 赋值
+ *   2. vite 插件通过 `define` 注入
  *
- * 自动 fallback:
- *   当首次 fetch 返回 5xx 或网络错误,且 aioncore 后端尚未部署该端点时,
- *   自动切换到 mock 并提示用户。后端就绪后可关闭该 fallback。
+ * 当 mock 启用时,所有调用走 in-memory store(挂载在 `globalThis.__mockProjectBinding`),
+ * 并通过 localStorage 跨刷新持久化。
+ *
+ * 错误处理:任何 backend 错误(404/5xx/网络错)直接抛出,不自动 fallback。
+ * UI 层(ProjectBindingModal)展示错误,用户可重试或关闭 modal。
  */
 import type { ProjectBinding } from './types';
 import { ipcBridge } from '@/common';
@@ -21,7 +19,6 @@ import { isBackendHttpError } from '@/common/adapter/httpBridge';
 
 type GlobalWithFlags = typeof globalThis & {
   __aionuiMockProjectBinding?: boolean;
-  __aionuiMockAutoFallbackAnnounced?: boolean;
   __mockProjectBinding?: MockStore;
 };
 
@@ -55,44 +52,14 @@ const persistMock = (store: MockStore): void => {
 };
 
 /**
- * 首次 backend 失败时自动启用 mock,并在 console 提示一次。
- * 让前端在后端尚未部署 `/api/project-binding/*` 时也能跑通。
- *
- * 触发条件:
- * - 5xx 服务端错误
- * - 404 路由不存在(说明端点没挂上,后端未实现)
- * - 网络错误(连接拒绝、超时等)
- *
- * 不触发 fallback:
- * - 4xx 非 404(如 400/403),这些是用户错误,应当抛出
+ * 抛出一个用户友好的错误信息,从 BackendHttpError 中提取 backendMessage(code 已知时)。
  */
-const enableMockWithFallbackNotice = (reason: string): void => {
-  const g = globalThis as GlobalWithFlags;
-  if (g.__aionuiMockProjectBinding === true) return; // already on
-  g.__aionuiMockProjectBinding = true;
-  if (!g.__aionuiMockAutoFallbackAnnounced) {
-    g.__aionuiMockAutoFallbackAnnounced = true;
-    // eslint-disable-next-line no-console
-    console.warn(
-      `[projectBinding] Backend unreachable (${reason}). Auto-enabling mock store. ` +
-        'Disable by setting window.__aionuiMockProjectBinding = false once backend /api/project-binding/* is live.'
-    );
-  }
-};
-
-/**
- * Decide whether a thrown error from the binding API should fall back to the
- * local mock store. Returns true for: 5xx, route-level 404, network errors.
- * Returns false for: 4xx other than 404 (e.g. 400 invalid input, 403 forbidden).
- */
-const shouldFallbackToMock = (e: unknown): boolean => {
+const toUserError = (e: unknown, fallback: string): Error => {
   if (isBackendHttpError(e)) {
-    if (e.status === 404) return true; // route not found → backend not deployed
-    if (e.status >= 500) return true;
-    return false; // 4xx other than 404 = real client error
+    const code = e.code ? ` [${e.code}]` : '';
+    return new Error(`${e.backendMessage || fallback}${code}`);
   }
-  // Non-BackendHttpError (e.g. TypeError from `fetch` rejection on connection refused)
-  return true;
+  return e instanceof Error ? e : new Error(String(e) || fallback);
 };
 
 export const getProjectBinding = async (projectId: string): Promise<ProjectBinding | null> => {
@@ -103,11 +70,11 @@ export const getProjectBinding = async (projectId: string): Promise<ProjectBindi
     const { binding } = await ipcBridge.projectBinding.get.invoke({ project_id: projectId });
     return binding;
   } catch (e) {
-    if (shouldFallbackToMock(e)) {
-      enableMockWithFallbackNotice(e instanceof Error ? e.message : String(e));
-      return getMockStore().get(projectId) ?? null;
-    }
-    throw e;
+    // 404 = resource doesn't exist for this user (not "route not found").
+    // For ambiguous 404 (route not registered), BackendHttpError carries
+    // code === 'NOT_FOUND' / message === 'Route not found.', which we
+    // surface verbatim so the caller knows the backend is missing the route.
+    throw toUserError(e, 'Failed to load project binding');
   }
 };
 
@@ -136,20 +103,7 @@ export const saveProjectBinding = async (input: {
     });
     return binding;
   } catch (e) {
-    if (shouldFallbackToMock(e)) {
-      enableMockWithFallbackNotice(e instanceof Error ? e.message : String(e));
-      const binding: ProjectBinding = {
-        projectId: input.projectId,
-        assistantId: input.assistantId,
-        folderPath: input.folderPath,
-        updatedAt: new Date().toISOString(),
-      };
-      const store = getMockStore();
-      store.set(input.projectId, binding);
-      persistMock(store);
-      return binding;
-    }
-    throw e;
+    throw toUserError(e, 'Failed to save project binding');
   }
 };
 
@@ -163,13 +117,6 @@ export const clearProjectBinding = async (projectId: string): Promise<void> => {
   try {
     await ipcBridge.projectBinding.remove.invoke({ project_id: projectId });
   } catch (e) {
-    if (shouldFallbackToMock(e)) {
-      enableMockWithFallbackNotice(e instanceof Error ? e.message : String(e));
-      const store = getMockStore();
-      store.delete(projectId);
-      persistMock(store);
-      return;
-    }
-    throw e;
+    throw toUserError(e, 'Failed to clear project binding');
   }
 };
