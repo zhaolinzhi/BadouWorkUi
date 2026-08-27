@@ -107,4 +107,20 @@ describe('useProjectBinding', () => {
     await waitFor(() => expect(result.current.status).toBe('missing'));
     expect((globalThis as { __aionuiMockProjectBinding?: boolean }).__aionuiMockProjectBinding).toBe(true);
   });
+
+  it('save() 抛 BackendHttpError 404 (路由未挂) → fallback 到 mock + apply 成功', async () => {
+    const { BackendHttpError } = await import('@/common/adapter/httpBridge');
+    mockedGet.mockResolvedValueOnce({ binding: null });
+    mockedSave.mockRejectedValueOnce(
+      new BackendHttpError({ method: 'PUT', path: '/x', status: 404, body: { success: false, code: 'NOT_FOUND' } })
+    );
+    const { result } = renderHook(() => useProjectBinding('p1'));
+    await waitFor(() => expect(result.current.status).toBe('missing'));
+    let saved: unknown;
+    await act(async () => {
+      saved = await result.current.save({ assistantId: 'a1', folderPath: '/tmp/y' });
+    });
+    expect(saved).toMatchObject({ projectId: 'p1', assistantId: 'a1', folderPath: '/tmp/y' });
+    expect(result.current.status).toBe('bound');
+  });
 });

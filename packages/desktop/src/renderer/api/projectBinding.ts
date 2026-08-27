@@ -57,6 +57,14 @@ const persistMock = (store: MockStore): void => {
 /**
  * 首次 backend 失败时自动启用 mock,并在 console 提示一次。
  * 让前端在后端尚未部署 `/api/project-binding/*` 时也能跑通。
+ *
+ * 触发条件:
+ * - 5xx 服务端错误
+ * - 404 路由不存在(说明端点没挂上,后端未实现)
+ * - 网络错误(连接拒绝、超时等)
+ *
+ * 不触发 fallback:
+ * - 4xx 非 404(如 400/403),这些是用户错误,应当抛出
  */
 const enableMockWithFallbackNotice = (reason: string): void => {
   const g = globalThis as GlobalWithFlags;
@@ -72,6 +80,21 @@ const enableMockWithFallbackNotice = (reason: string): void => {
   }
 };
 
+/**
+ * Decide whether a thrown error from the binding API should fall back to the
+ * local mock store. Returns true for: 5xx, route-level 404, network errors.
+ * Returns false for: 4xx other than 404 (e.g. 400 invalid input, 403 forbidden).
+ */
+const shouldFallbackToMock = (e: unknown): boolean => {
+  if (isBackendHttpError(e)) {
+    if (e.status === 404) return true; // route not found → backend not deployed
+    if (e.status >= 500) return true;
+    return false; // 4xx other than 404 = real client error
+  }
+  // Non-BackendHttpError (e.g. TypeError from `fetch` rejection on connection refused)
+  return true;
+};
+
 export const getProjectBinding = async (projectId: string): Promise<ProjectBinding | null> => {
   if (getMockEnabled()) {
     return getMockStore().get(projectId) ?? null;
@@ -80,12 +103,11 @@ export const getProjectBinding = async (projectId: string): Promise<ProjectBindi
     const { binding } = await ipcBridge.projectBinding.get.invoke({ project_id: projectId });
     return binding;
   } catch (e) {
-    if (isBackendHttpError(e) && e.status === 404) return null;
-    // 5xx, network errors, or anything else → backend likely not deployed.
-    // Fall back to mock transparently so the Start Task flow stays usable.
-    if (isBackendHttpError(e) && e.status < 500 && e.status !== 0) throw e;
-    enableMockWithFallbackNotice(e instanceof Error ? e.message : String(e));
-    return getMockStore().get(projectId) ?? null;
+    if (shouldFallbackToMock(e)) {
+      enableMockWithFallbackNotice(e instanceof Error ? e.message : String(e));
+      return getMockStore().get(projectId) ?? null;
+    }
+    throw e;
   }
 };
 
@@ -114,18 +136,20 @@ export const saveProjectBinding = async (input: {
     });
     return binding;
   } catch (e) {
-    if (isBackendHttpError(e) && e.status < 500 && e.status !== 0) throw e;
-    enableMockWithFallbackNotice(e instanceof Error ? e.message : String(e));
-    const binding: ProjectBinding = {
-      projectId: input.projectId,
-      assistantId: input.assistantId,
-      folderPath: input.folderPath,
-      updatedAt: new Date().toISOString(),
-    };
-    const store = getMockStore();
-    store.set(input.projectId, binding);
-    persistMock(store);
-    return binding;
+    if (shouldFallbackToMock(e)) {
+      enableMockWithFallbackNotice(e instanceof Error ? e.message : String(e));
+      const binding: ProjectBinding = {
+        projectId: input.projectId,
+        assistantId: input.assistantId,
+        folderPath: input.folderPath,
+        updatedAt: new Date().toISOString(),
+      };
+      const store = getMockStore();
+      store.set(input.projectId, binding);
+      persistMock(store);
+      return binding;
+    }
+    throw e;
   }
 };
 
@@ -139,11 +163,13 @@ export const clearProjectBinding = async (projectId: string): Promise<void> => {
   try {
     await ipcBridge.projectBinding.remove.invoke({ project_id: projectId });
   } catch (e) {
-    if (isBackendHttpError(e) && e.status < 500 && e.status !== 0) throw e;
-    enableMockWithFallbackNotice(e instanceof Error ? e.message : String(e));
-    const store = getMockStore();
-    store.delete(projectId);
-    persistMock(store);
-    return;
+    if (shouldFallbackToMock(e)) {
+      enableMockWithFallbackNotice(e instanceof Error ? e.message : String(e));
+      const store = getMockStore();
+      store.delete(projectId);
+      persistMock(store);
+      return;
+    }
+    throw e;
   }
 };
