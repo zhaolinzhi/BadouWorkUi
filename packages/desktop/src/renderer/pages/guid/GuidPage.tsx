@@ -30,7 +30,6 @@ import { useGuidNavigationState } from './hooks/useGuidNavigationState';
 import { useGuidBindingPresets, type AssistantLite } from './hooks/useGuidBindingPresets';
 import { ProjectBindingModal } from './components/ProjectBindingModal';
 import { BoundBadge } from './components/BoundBadge';
-import { saveProjectBinding } from '@/renderer/api/projectBinding';
 import { useTypewriterPlaceholder } from './hooks/useTypewriterPlaceholder';
 import { ensureBackendMcpCatalog } from '@/renderer/hooks/mcp/catalog';
 import { resolveGuidAssistantDefaults } from './utils/assistantDefaults';
@@ -183,11 +182,13 @@ const GuidPage: React.FC = () => {
 
   const handleBindingSubmit = useCallback(
     async (input: { assistantId: string; folderPath: string }): Promise<void> => {
-      if (!projectId) return;
-      const next = await saveProjectBinding({ projectId, ...input });
-      presets.apply(next);
+      // Use the hook's saveAndApply so internal state (binding, status) stays
+      // in sync — bypassing it left the modal stuck because the underlying
+      // fetch status never transitioned to 'bound' and the effect re-opened
+      // the modal on every re-render.
+      await presets.saveAndApply(input);
     },
-    [projectId, presets]
+    [presets]
   );
 
   const handleBrowseFolder = useCallback(async (): Promise<string | null> => {
@@ -753,6 +754,21 @@ const GuidPage: React.FC = () => {
             <BoundBadge binding={presets.binding} assistants={assistantOptions} onRebind={presets.rebind} />
           )}
 
+          {projectId && requireBinding && presets.userDismissed && !presets.binding && (
+            <button
+              type='button'
+              className='bound-badge'
+              data-testid='reopen-binding-button'
+              onClick={presets.openModal}
+              style={{ background: 'transparent', border: '1px dashed var(--color-border-2, #c9cdd4)', cursor: 'pointer' }}
+            >
+              <span className='bound-badge__label'>{t('guid.projectBinding.unboundHint')}</span>
+              <span style={{ marginLeft: 8, color: 'var(--color-primary, #165dff)' }}>
+                {t('guid.projectBinding.rebind')}
+              </span>
+            </button>
+          )}
+
           <AssistantSelectionArea
             selectedAssistantId={agentSelection.selectedAssistantId}
             assistants={agentSelection.assistants}
@@ -827,6 +843,8 @@ const GuidPage: React.FC = () => {
             projectName={navProjectName ?? projectId}
             assistants={assistantOptions}
             initialBinding={presets.binding}
+            saving={presets.saving}
+            saveError={presets.saveError}
             onCancel={presets.closeModal}
             onSubmit={handleBindingSubmit}
             onBrowseFolder={handleBrowseFolder}

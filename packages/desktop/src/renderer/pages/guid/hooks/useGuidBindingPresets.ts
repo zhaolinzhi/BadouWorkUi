@@ -31,11 +31,9 @@ export type UseGuidBindingPresetsResult = {
   openModal: () => void;
   closeModal: () => void;
   rebind: () => void;
-  apply: (binding: ProjectBinding) => void;
+  /** Host-side save that updates internal state and closes the modal on success. */
+  saveAndApply: (input: { assistantId: string; folderPath: string }) => Promise<void>;
   refetch: () => Promise<void>;
-  /** Used by the host (GuidPage) to report save success/failure. */
-  beginSave: () => void;
-  finishSave: (errorMessage?: string) => void;
 };
 
 /**
@@ -44,10 +42,18 @@ export type UseGuidBindingPresetsResult = {
  * 2. 校验 assistant 在 assistants 列表中
  * 3. 校验 folder 存在(checkFolderExists)
  * 4. 通过则 applyPreset + status=bound;否则打开 modal
+ *
+ * Save 路径(host → saveAndApply):
+ * 1. 调底层 saveProjectBinding
+ * 2. 应用 preset(设 selectedAssistantId + dir)
+ * 3. setValidated(bound) + status='bound'
+ * 4. 关闭 modal
  */
 export const useGuidBindingPresets = (args: UseGuidBindingPresetsArgs): UseGuidBindingPresetsResult => {
   const { projectId, requireBinding, assistantsReady, assistants, checkFolderExists, applyPreset } = args;
-  const { binding, status: fetchStatus, error, refetch } = useProjectBinding(requireBinding ? projectId : undefined);
+  const { binding, status: fetchStatus, error, save: rawSave, refetch } = useProjectBinding(
+    requireBinding ? projectId : undefined
+  );
   const [validated, setValidated] = useState<ProjectBinding | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [status, setStatus] = useState<GuidBindingPresetStatus>('idle');
@@ -125,26 +131,31 @@ export const useGuidBindingPresets = (args: UseGuidBindingPresetsArgs): UseGuidB
     setModalOpen(true);
   }, []);
 
-  const apply = useCallback(
-    (next: ProjectBinding): void => {
-      setValidated(next);
-      setStatus('bound');
-      applyPreset({ assistantId: next.assistantId, folderPath: next.folderPath });
-      // A successful apply closes the modal implicitly (no rebind needed yet).
-      setModalOpen(false);
+  const saveAndApply = useCallback(
+    async (input: { assistantId: string; folderPath: string }): Promise<void> => {
+      if (!projectId) throw new Error('projectId is required');
+      setSaving(true);
+      setSaveError(null);
+      try {
+        // rawSave calls the underlying API and updates useProjectBinding's
+        // internal state (binding/status). That triggers the effect above,
+        // but we'll close the modal immediately so the user sees instant
+        // feedback rather than a flash.
+        const next = await rawSave(input);
+        setValidated(next);
+        setStatus('bound');
+        applyPreset({ assistantId: next.assistantId, folderPath: next.folderPath });
+        setModalOpen(false);
+        setUserDismissed(false); // successfully-bound state should not block re-opens
+      } catch (e) {
+        setSaveError(e instanceof Error ? e.message : String(e));
+        throw e; // let the modal keep itself open
+      } finally {
+        setSaving(false);
+      }
     },
-    [applyPreset]
+    [projectId, rawSave, applyPreset]
   );
-
-  const beginSave = useCallback(() => {
-    setSaving(true);
-    setSaveError(null);
-  }, []);
-
-  const finishSave = useCallback((errorMessage?: string) => {
-    setSaving(false);
-    if (errorMessage) setSaveError(errorMessage);
-  }, []);
 
   return {
     status,
@@ -157,9 +168,7 @@ export const useGuidBindingPresets = (args: UseGuidBindingPresetsArgs): UseGuidB
     openModal,
     closeModal,
     rebind,
-    apply,
+    saveAndApply,
     refetch,
-    beginSave,
-    finishSave,
   };
 };
