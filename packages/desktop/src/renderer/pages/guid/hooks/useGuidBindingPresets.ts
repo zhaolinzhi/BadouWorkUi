@@ -79,7 +79,19 @@ export const useGuidBindingPresets = (args: UseGuidBindingPresetsArgs): UseGuidB
   }, []);
 
   useEffect(() => {
-    if (!requireBinding) return;
+    // When the user navigates to /guid without a project context (e.g. via
+    // the "new session" sidebar link, navigate('/guid', { state: { resetAssistant } })),
+    // wipe any previously-loaded project-binding state. Otherwise the
+    // BoundBadge keeps showing the prior task's assistant/folder even
+    // though we're now in an unscoped conversation.
+    if (!requireBinding) {
+      if (validated !== null) setValidated(null);
+      if (status !== 'idle') setStatus('idle');
+      if (modalOpen) setModalOpen(false);
+      if (userDismissed) setUserDismissed(false);
+      if (saveError !== null) setSaveError(null);
+      return;
+    }
     // Don't reopen after the user dismissed once.
     if (userDismissed) return;
     if (fetchStatus === 'loading') {
