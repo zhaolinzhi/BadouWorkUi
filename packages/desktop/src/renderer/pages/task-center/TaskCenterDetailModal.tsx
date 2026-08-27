@@ -84,7 +84,7 @@ const TaskCenterDetailModal: React.FC<TaskCenterDetailModalProps> = ({ visible, 
       onOk={onClose}
       okText={tZh('common.close')}
       hideCancel
-      width={1040}
+      width={720}
       footer={
         <div className='flex items-center justify-end gap-8px'>
           <Button
@@ -106,7 +106,7 @@ const TaskCenterDetailModal: React.FC<TaskCenterDetailModalProps> = ({ visible, 
         <section>
           <h3 className='m-0 mb-8px text-14px font-600 text-t-primary'>{tZh('taskCenter.detail.basicInfo')}</h3>
           <Descriptions
-            column={3}
+            column={2}
             border
             size='small'
             data={basicData.map((d) => ({ key: d.key, label: d.label, value: d.value }))}
@@ -116,7 +116,7 @@ const TaskCenterDetailModal: React.FC<TaskCenterDetailModalProps> = ({ visible, 
         <section>
           <h3 className='m-0 mb-8px text-14px font-600 text-t-primary'>{tZh('taskCenter.detail.progressInfo')}</h3>
           <Descriptions
-            column={3}
+            column={2}
             border
             size='small'
             data={progressData.map((d) => ({ key: d.key, label: d.label, value: d.value }))}
