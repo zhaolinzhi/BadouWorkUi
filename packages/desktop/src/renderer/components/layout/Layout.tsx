@@ -308,24 +308,17 @@ const Layout: React.FC<{
       }
     };
 
-    // Handle check update request from tray / 托盘请求检查更新
-    const handleCheckUpdate = () => {
-      window.dispatchEvent(new CustomEvent('aionui-open-update-modal', { detail: { source: 'tray' } }));
-    };
-
     // Listen for tray events / 监听托盘事件
     window.addEventListener('tray:navigate-to-guid', handleNavigateToGuid as EventListener);
     window.addEventListener('tray:navigate-to-conversation', handleNavigateToConversation as EventListener);
     window.addEventListener('tray:open-about', handleOpenAbout as EventListener);
     window.addEventListener('tray:pause-all-tasks', handlePauseAllTasks as EventListener);
-    window.addEventListener('tray:check-update', handleCheckUpdate as EventListener);
 
     return () => {
       window.removeEventListener('tray:navigate-to-guid', handleNavigateToGuid as EventListener);
       window.removeEventListener('tray:navigate-to-conversation', handleNavigateToConversation as EventListener);
       window.removeEventListener('tray:open-about', handleOpenAbout as EventListener);
       window.removeEventListener('tray:pause-all-tasks', handlePauseAllTasks as EventListener);
-      window.removeEventListener('tray:check-update', handleCheckUpdate as EventListener);
     };
   }, [navigate]);
 
@@ -545,9 +538,9 @@ const Layout: React.FC<{
               >
                 <Outlet />
                 <PwaPullToRefresh />
-                <Suspense fallback={null}>
-                  <UpdateModal />
-                </Suspense>
+                {/*<Suspense fallback={null}>*/}
+                {/*  <UpdateModal />*/}
+                {/*</Suspense>*/}
                 {IS_DISCONTINUED_BUILD && <UpdateMigrationDialog />}
               </ArcoLayout.Content>
               {/* Hoisted preview region (project conversations only). Structurally

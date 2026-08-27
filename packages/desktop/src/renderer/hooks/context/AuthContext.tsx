@@ -132,14 +132,17 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     clearAuthCache();
   }, []);
 
-  const notifyTokenExpired = useCallback((_source: TokenExpiredSource) => {
-    if (tokenExpiredFiredRef.current) return;
-    tokenExpiredFiredRef.current = true;
-    Message.warning(t('common.sessionExpired'));
-    setTimeout(() => {
-      void logout();
-    }, 1000);
-  }, [logout, t]);
+  const notifyTokenExpired = useCallback(
+    (_source: TokenExpiredSource) => {
+      if (tokenExpiredFiredRef.current) return;
+      tokenExpiredFiredRef.current = true;
+      Message.warning(t('common.sessionExpired'));
+      setTimeout(() => {
+        void logout();
+      }, 1000);
+    },
+    [logout, t]
+  );
 
   const value = useMemo<AuthContextValue>(
     () => ({

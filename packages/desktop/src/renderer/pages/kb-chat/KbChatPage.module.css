@@ -23,8 +23,44 @@
 }
 
 .message {
-  margin-bottom: 12px;
-  line-height: 1.5;
+  display: flex;
+  margin-bottom: 16px;
+}
+
+.messageUser {
+  justify-content: flex-end;
+}
+
+.messageAssistant {
+  justify-content: flex-start;
+}
+
+.bubble {
+  max-width: min(85%, 720px);
+  min-width: 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+.messageUser .bubble {
+  background-color: var(--color-fill-2);
+  color: var(--color-text-1);
+  border-top-right-radius: 2px;
+}
+
+.messageAssistant .bubble {
+  background-color: transparent;
+  color: var(--color-text-1);
+  padding-left: 0;
+  padding-right: 0;
+  max-width: 100%;
+}
+
+.userText {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .error {

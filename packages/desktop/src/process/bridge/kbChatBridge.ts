@@ -136,7 +136,8 @@ const performRequest = (params: KbChatSendParams): Promise<KbChatSendResult> => 
           inFlight.delete(requestId);
           if (sawDone) return;
           const code = bytesReceived === 0 && status >= 200 && status < 300 ? 'token_expired' : 'incomplete';
-          const message = code === 'token_expired' ? 'Empty SSE stream (token may be expired)' : 'Stream ended without done event';
+          const message =
+            code === 'token_expired' ? 'Empty SSE stream (token may be expired)' : 'Stream ended without done event';
           emitError(requestId, code, message);
           emitEnd(requestId, 'error');
         });

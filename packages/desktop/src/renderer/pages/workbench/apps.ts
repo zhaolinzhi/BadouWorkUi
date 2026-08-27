@@ -44,8 +44,8 @@ export const WORKBENCH_APPS: WorkbenchApp[] = [
   },
   {
     id: 'aipaas',
-    name: 'aiPass 平台',
-    description: '本地 aiPass 服务',
-    url: 'http://localhost:8910/',
+    name: 'AIPass 平台',
+    description: 'AIPass 服务',
+    url: 'http://devops.badousoft.com/aipaas-front/',
   },
 ];

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Button, Input, Modal, Select, Message } from '@arco-design/web-react';
+import { Alert, Button, Input, Modal, Select, Message } from '@arco-design/web-react';
 import { FolderOpen } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import type { ProjectBinding } from '@/renderer/api/types';
@@ -14,6 +14,10 @@ export interface ProjectBindingModalProps {
   projectName: string;
   assistants: ReadonlyArray<AssistantOption>;
   initialBinding: ProjectBinding | null;
+  /** True while binding is being saved — disables controls and shows a hint. */
+  saving?: boolean;
+  /** Last save error message to surface inline; clears when user retries. */
+  saveError?: string | null;
   onCancel: () => void;
   onSubmit: (input: { assistantId: string; folderPath: string }) => Promise<void>;
   onBrowseFolder: () => Promise<string | null>;
@@ -25,6 +29,8 @@ export const ProjectBindingModal: React.FC<ProjectBindingModalProps> = ({
   projectName,
   assistants,
   initialBinding,
+  saving = false,
+  saveError = null,
   onCancel,
   onSubmit,
   onBrowseFolder,
@@ -35,7 +41,18 @@ export const ProjectBindingModal: React.FC<ProjectBindingModalProps> = ({
   const [submitting, setSubmitting] = useState(false);
   const [assistantError, setAssistantError] = useState<string | null>(null);
 
-  const confirmDisabled = !assistantId || !folderPath || submitting;
+  // Re-sync local form state whenever the modal is re-opened with a fresh
+  // initial binding (e.g. user clicked "Change" on the BoundBadge).
+  React.useEffect(() => {
+    if (visible) {
+      setAssistantId(initialBinding?.assistantId ?? '');
+      setFolderPath(initialBinding?.folderPath ?? '');
+      setAssistantError(null);
+    }
+  }, [visible, initialBinding]);
+
+  const confirmDisabled = !assistantId || !folderPath || submitting || saving;
+  const cancelDisabled = submitting || saving;
 
   const handleConfirm = async (): Promise<void> => {
     setAssistantError(null);
@@ -50,8 +67,11 @@ export const ProjectBindingModal: React.FC<ProjectBindingModalProps> = ({
     setSubmitting(true);
     try {
       await onSubmit({ assistantId, folderPath });
+      // onSubmit is expected to throw on failure. If it resolves, the parent
+      // will close the modal (apply() → status='bound' → effect-driven close).
     } catch {
-      Message.error(t('guid.projectBinding.saveFailed'));
+      // Inline error is rendered via the `saveError` prop. The modal stays
+      // open so the user can retry or hit Cancel.
     } finally {
       setSubmitting(false);
     }
@@ -63,10 +83,15 @@ export const ProjectBindingModal: React.FC<ProjectBindingModalProps> = ({
       visible={visible}
       onCancel={onCancel}
       footer={null}
-      maskClosable={false}
+      maskClosable={!cancelDisabled}
+      escToExit={!cancelDisabled}
+      closable={!cancelDisabled}
       data-testid={`project-binding-modal-${projectId}`}
     >
       <p data-testid='project-binding-subtitle'>{t('guid.projectBinding.subtitle', { projectName })}</p>
+      {saveError && (
+        <Alert type='error' content={saveError} style={{ marginBottom: 12 }} data-testid='project-binding-error' />
+      )}
       <div style={{ marginBottom: 16 }}>
         <div style={{ marginBottom: 4 }}>{t('guid.projectBinding.assistantLabel')}</div>
         <Select
@@ -74,6 +99,7 @@ export const ProjectBindingModal: React.FC<ProjectBindingModalProps> = ({
           onChange={setAssistantId}
           placeholder={t('guid.projectBinding.assistantLabel')}
           error={assistantError !== null}
+          disabled={saving}
           data-testid='project-binding-assistant'
         >
           {assistants.map((a) => (
@@ -90,10 +116,12 @@ export const ProjectBindingModal: React.FC<ProjectBindingModalProps> = ({
           value={folderPath}
           onChange={setFolderPath}
           placeholder='/absolute/path/to/folder'
+          disabled={saving}
           addAfter={
             <Button
               type='text'
               icon={<FolderOpen />}
+              disabled={saving}
               onClick={async () => {
                 const picked = await onBrowseFolder();
                 if (picked) setFolderPath(picked);
@@ -107,12 +135,12 @@ export const ProjectBindingModal: React.FC<ProjectBindingModalProps> = ({
         />
       </div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-        <Button onClick={onCancel} data-testid='project-binding-cancel'>
+        <Button onClick={onCancel} disabled={cancelDisabled} data-testid='project-binding-cancel'>
           {t('guid.projectBinding.cancel')}
         </Button>
         <Button
           type='primary'
-          loading={submitting}
+          loading={submitting || saving}
           disabled={confirmDisabled}
           onClick={handleConfirm}
           data-testid='project-binding-confirm'

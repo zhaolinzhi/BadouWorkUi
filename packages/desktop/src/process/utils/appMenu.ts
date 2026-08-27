@@ -60,17 +60,17 @@ export function setupApplicationMenu(): void {
     ],
   });
 
-  template.push({
-    label: 'Help',
-    submenu: [
-      {
-        label: 'Check for Updates...',
-        click: () => {
-          ipcBridge.update.open.emit({ source: 'menu' });
-        },
-      },
-    ],
-  });
+  // template.push({
+  //   label: 'Help',
+  //   submenu: [
+  //     {
+  //       label: 'Check for Updates...',
+  //       click: () => {
+  //         ipcBridge.update.open.emit({ source: 'menu' });
+  //       },
+  //     },
+  //   ],
+  // });
 
   const menu = Menu.buildFromTemplate(template);
   Menu.setApplicationMenu(menu);
