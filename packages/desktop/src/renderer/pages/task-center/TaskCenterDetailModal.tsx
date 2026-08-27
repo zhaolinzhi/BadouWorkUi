@@ -84,7 +84,7 @@ const TaskCenterDetailModal: React.FC<TaskCenterDetailModalProps> = ({ visible, 
       onOk={onClose}
       okText={tZh('common.close')}
       hideCancel
-      width={720}
+      width={880}
       footer={
         <div className='flex items-center justify-end gap-8px'>
           <Button
