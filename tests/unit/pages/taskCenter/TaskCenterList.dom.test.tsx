@@ -98,6 +98,87 @@ describe('TaskCenterList', () => {
     expect(screen.getByText('未开展')).toBeTruthy();
   });
 
+  it('renders avatar as first CJK char of projectName', () => {
+    const { container } = render(
+      <TaskCenterList
+        items={[sampleItem]}
+        total={1}
+        loading={false}
+        pageNo={1}
+        pageSize={30}
+        onView={vi.fn()}
+        onLoadMore={noop}
+      />
+    );
+    const card = container.querySelector('[data-testid="task-card-1"]');
+    const avatar = card?.firstElementChild?.firstElementChild;
+    expect(avatar?.textContent).toBe('八');
+  });
+
+  it('avatar falls back to first non-CJK char of projectName when no Chinese', () => {
+    const { container } = render(
+      <TaskCenterList
+        items={[{ ...sampleItem, projectName: 'AIPlatform-2026' }]}
+        total={1}
+        loading={false}
+        pageNo={1}
+        pageSize={30}
+        onView={vi.fn()}
+        onLoadMore={noop}
+      />
+    );
+    const card = container.querySelector('[data-testid="task-card-1"]');
+    expect(card?.firstElementChild?.firstElementChild?.textContent).toBe('A');
+  });
+
+  it('avatar skips leading ASCII/punctuation to find first CJK char', () => {
+    const { container } = render(
+      <TaskCenterList
+        items={[{ ...sampleItem, projectName: '- 2026 八斗平台' }]}
+        total={1}
+        loading={false}
+        pageNo={1}
+        pageSize={30}
+        onView={vi.fn()}
+        onLoadMore={noop}
+      />
+    );
+    const card = container.querySelector('[data-testid="task-card-1"]');
+    expect(card?.firstElementChild?.firstElementChild?.textContent).toBe('八');
+  });
+
+  it('avatar falls back to first char of name when projectName is blank', () => {
+    const { container } = render(
+      <TaskCenterList
+        items={[{ ...sampleItem, projectName: '   ' }]}
+        total={1}
+        loading={false}
+        pageNo={1}
+        pageSize={30}
+        onView={vi.fn()}
+        onLoadMore={noop}
+      />
+    );
+    const card = container.querySelector('[data-testid="task-card-1"]');
+    expect(card?.firstElementChild?.firstElementChild?.textContent).toBe('策');
+  });
+
+  it('avatar shows ? when both projectName and name are empty', () => {
+    const { container } = render(
+      <TaskCenterList
+        items={[{ ...sampleItem, projectName: '', name: '' }]}
+        total={1}
+        loading={false}
+        pageNo={1}
+        pageSize={30}
+        onView={vi.fn()}
+        onLoadMore={noop}
+      />
+    );
+    const card = container.querySelector('[data-testid="task-card-1"]');
+    expect(card?.firstElementChild?.firstElementChild?.textContent).toBe('?');
+  });
+
   it('emits onView when card clicked', () => {
     const onView = vi.fn();
     const { container } = render(

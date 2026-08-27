@@ -6,6 +6,7 @@
 import http from 'node:http';
 import https from 'node:https';
 import { URL } from 'node:url';
+import type { KbChatStreamErrorCode } from '@/common/adapter/ipcBridge';
 import { ipcBridge } from '@/common';
 import {
   KB_CHAT_FIRST_BYTE_TIMEOUT_MS,
@@ -30,7 +31,7 @@ const emitEnd = (requestId: string, reason: 'done' | 'aborted' | 'error'): void 
   ipcBridge.kbChat.streamEnd.emit({ requestId, reason });
 };
 
-const emitError = (requestId: string, code: string, message: string): void => {
+const emitError = (requestId: string, code: KbChatStreamErrorCode, message: string): void => {
   ipcBridge.kbChat.streamError.emit({ requestId, code, message });
 };
 
@@ -100,6 +101,7 @@ const performRequest = (params: KbChatSendParams): Promise<KbChatSendResult> => 
         }, KB_CHAT_TOTAL_TIMEOUT_MS);
 
         let sawDone = false;
+        let bytesReceived = 0;
 
         const parser = createSseParser((event: SseEvent) => {
           console.log('[kbChat] parser event=', JSON.stringify(event));
@@ -117,22 +119,26 @@ const performRequest = (params: KbChatSendParams): Promise<KbChatSendResult> => 
             emitEnd(requestId, 'done');
             req.destroy();
           } else {
-            emitError(requestId, event.code ?? 'business', event.message);
+            emitError(requestId, (event.code ?? 'business') as KbChatStreamErrorCode, event.message);
           }
         });
 
         res.on('data', (chunk: Buffer) => {
+          bytesReceived += chunk.length;
           clearTimeout(firstByteTimer);
           parser.feed(chunk.toString('utf8'));
         });
 
         res.on('end', () => {
-          console.log('[kbChat] SSE end, sawDone=', sawDone);
+          console.log('[kbChat] SSE end, sawDone=', sawDone, 'bytesReceived=', bytesReceived);
           clearTimeout(firstByteTimer);
           clearTimeout(totalTimer);
           inFlight.delete(requestId);
           if (sawDone) return;
-          emitError(requestId, 'incomplete', 'Stream ended without done event');
+          const code = bytesReceived === 0 && status >= 200 && status < 300 ? 'token_expired' : 'incomplete';
+          const message =
+            code === 'token_expired' ? 'Empty SSE stream (token may be expired)' : 'Stream ended without done event';
+          emitError(requestId, code, message);
           emitEnd(requestId, 'error');
         });
 

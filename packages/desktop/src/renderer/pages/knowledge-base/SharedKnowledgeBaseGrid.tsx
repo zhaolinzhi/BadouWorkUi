@@ -14,21 +14,21 @@ type SharedKnowledgeBaseGridProps = {
   loading?: boolean;
   error?: string | null;
   onRetry?: () => void;
-  onOpen: (item: KnowledgeBaseItem) => void;
+  onOpenView: (item: KnowledgeBaseItem) => void;
   onStartChat: (item: KnowledgeBaseItem) => void;
 };
 
 /**
  * Shared knowledge bases rendered as a list — same visual treatment as the
- * personal list. Owners are managed externally so the more menu (edit/delete)
- * is hidden; only the chat entry point is exposed.
+ * personal list. Shared bases are not editable in-app; the row click opens
+ * the external vendor view page. The more menu is hidden entirely.
  */
 const SharedKnowledgeBaseGrid: React.FC<SharedKnowledgeBaseGridProps> = ({
   items,
   loading = false,
   error = null,
   onRetry,
-  onOpen,
+  onOpenView,
   onStartChat,
 }) => {
   const { t } = useTranslation();
@@ -89,11 +89,11 @@ const SharedKnowledgeBaseGrid: React.FC<SharedKnowledgeBaseGridProps> = ({
         <KnowledgeBaseRow
           key={item.id}
           item={item}
-          readonly
           onEdit={() => undefined}
           onDelete={() => undefined}
-          onOpen={() => undefined}
+          onOpen={onOpenView}
           onStartChat={onStartChat}
+          noMenu
         />
       ))}
     </div>

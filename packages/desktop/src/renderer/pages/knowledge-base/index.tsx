@@ -9,7 +9,7 @@ import { useKnowledgeBaseEditor, useKnowledgeBaseList } from '@/renderer/hooks/k
 import { useAuth } from '@/renderer/hooks/context/AuthContext';
 import { useManagedAgentRuntimeCatalog } from '@/renderer/hooks/agent/useManagedAgents';
 import { buildAssistantEditorBackends } from '@/renderer/pages/settings/AssistantSettings/assistantUtils';
-import { getKnowledgeBaseCreateUrl, getKnowledgeBaseEditUrl } from '@/renderer/api';
+import { getKnowledgeBaseCreateUrl, getKnowledgeBaseEditUrl, getKnowledgeBaseViewUrl } from '@/renderer/api';
 import { openExternalUrl } from '@/renderer/utils/platform';
 import { resolveIconImageSrc } from './knowledgeBaseUtils';
 import KnowledgeBaseEditorPage from './KnowledgeBaseEditorPage';
@@ -130,6 +130,14 @@ const KnowledgeBasePage: React.FC = () => {
     }
   }, []);
 
+  const handleOpenView = useCallback(async (item: KnowledgeBaseItem) => {
+    try {
+      await openExternalUrl(getKnowledgeBaseViewUrl(item.id));
+    } catch (error) {
+      console.error('Failed to open knowledge base view page:', error);
+    }
+  }, []);
+
   // TODO: API - 知识库直接打开对话：根据 KB 的 agentId 跳转到 /guid
   const handleStartChat = useCallback(
     (item: KnowledgeBaseItem) => {
@@ -174,9 +182,10 @@ const KnowledgeBasePage: React.FC = () => {
               onRetryLoadPersonal={handleRetryLoadPersonal}
               onRetryLoadShared={() => void loadKnowledgeBases()}
               onRefresh={handleTabRefresh}
-              onEdit={(item) => void editor.handleEdit(item)}
+              onEdit={() => undefined}
               onDelete={(item) => editor.handleDeleteRequest(item)}
-              onOpen={handleOpen}
+              onOpenView={handleOpenView}
+              onOpenEdit={handleOpen}
               onCreate={() => void handleCreate()}
               onStartChat={handleStartChat}
             />

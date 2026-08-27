@@ -31,5 +31,22 @@
     "understand": "Familiarízate con este proyecto y explícame con palabras sencillas qué hace y por dónde empezar",
     "cleanup": "Encuentra archivos duplicados e inútiles en esta carpeta y lístalos para que los confirme",
     "create": "Créame una página personal bonita y ábrela cuando esté lista"
+  },
+  "projectBinding": {
+    "title": "Project binding",
+    "subtitle": "Pick an assistant and working folder for project {{projectName}}",
+    "assistantLabel": "Assistant",
+    "folderLabel": "Working folder",
+    "browseFolder": "Browse…",
+    "confirm": "Save and start",
+    "cancel": "Cancel",
+    "saveFailed": "Failed to save binding, please try again",
+    "fetchFailed": "Failed to load project binding",
+    "retry": "Retry",
+    "invalidAssistant": "This assistant is unavailable, please pick another",
+    "invalidFolder": "Folder does not exist or is not accessible",
+    "rebind": "Change",
+    "bound": "Bound",
+    "unboundHint": "No project binding selected"
   }
 }

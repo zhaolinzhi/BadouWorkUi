@@ -13,5 +13,22 @@
     "specifyWorkspace": "选择项目文件夹",
     "searchPlaceholder": "搜索项目…",
     "noProject": "不使用项目"
+  },
+  "projectBinding": {
+    "title": "项目绑定",
+    "subtitle": "为项目 {{projectName}} 选择智能体和工作文件夹",
+    "assistantLabel": "智能体",
+    "folderLabel": "工作文件夹",
+    "browseFolder": "浏览…",
+    "confirm": "保存并开始",
+    "cancel": "取消",
+    "saveFailed": "保存绑定失败，请重试",
+    "fetchFailed": "加载项目绑定失败",
+    "retry": "重试",
+    "invalidAssistant": "该智能体不可用，请重新选择",
+    "invalidFolder": "文件夹不存在或不可访问",
+    "rebind": "重新选择",
+    "bound": "已绑定",
+    "unboundHint": "未选择项目绑定"
   }
 }

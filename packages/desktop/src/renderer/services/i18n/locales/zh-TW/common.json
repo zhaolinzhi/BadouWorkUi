@@ -42,6 +42,7 @@
   "saveSuccess": "Saved successfully",
   "saveFailed": "Failed to save",
   "unknownError": "未知錯誤",
+  "sessionExpired": "登入已過期，請重新登入",
   "confirmDelete": "確認刪除",
   "deleteSuccess": "刪除成功",
   "deleteFailed": "刪除失敗",

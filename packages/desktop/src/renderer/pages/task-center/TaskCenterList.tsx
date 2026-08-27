@@ -7,17 +7,17 @@ import { Button, Spin, Tag } from '@arco-design/web-react';
 import { Clipboard } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import type { ITaskCenterRow } from '@/common/adapter/ipcBridge';
+import type { TaskCenterRow } from './useTaskCenterList';
 import { isOverdue, statusToColor, urgencyToColor } from './types';
 
 export interface TaskCenterListProps {
-  items: ITaskCenterRow[];
+  items: TaskCenterRow[];
   total: number;
   loading: boolean;
   pageNo: number;
   pageSize: number;
   error?: string | null;
-  onView: (item: ITaskCenterRow) => void;
+  onView: (item: TaskCenterRow) => void;
   onLoadMore: () => void;
   onRetry?: () => void;
 }
@@ -27,6 +27,16 @@ const urgencyAvatarClass = (urgency: number): string => {
   if (urgency === 0) return 'bg-[rgb(var(--danger-1))] text-[rgb(var(--danger-6))]';
   if (urgency === 1) return 'bg-[rgb(var(--warning-1))] text-[rgb(var(--warning-6))]';
   return 'bg-fill-2 text-t-secondary';
+};
+
+/** Avatar glyph: first CJK char of projectName; falls back to first
+ *  non-space char of projectName, then to first char of name, then '?'. */
+const avatarGlyph = (projectName: string, name: string): string => {
+  const cjkMatch = projectName.match(/[一-鿿]/);
+  if (cjkMatch) return cjkMatch[0];
+  const trimmed = projectName.trim();
+  if (trimmed) return trimmed[0];
+  return name ? name.slice(0, 1) : '?';
 };
 
 const TaskCenterList: React.FC<TaskCenterListProps> = ({
@@ -101,7 +111,7 @@ const TaskCenterList: React.FC<TaskCenterListProps> = ({
               <div
                 className={`flex h-40px w-40px shrink-0 items-center justify-center rounded-10px text-15px font-600 ${urgencyAvatarClass(item.urgency)}`}
               >
-                {item.name ? item.name.slice(0, 1) : '?'}
+                {avatarGlyph(item.projectName, item.name)}
               </div>
               <div className='min-w-0 flex-1'>
                 <div className='flex min-w-0 items-center gap-10px'>

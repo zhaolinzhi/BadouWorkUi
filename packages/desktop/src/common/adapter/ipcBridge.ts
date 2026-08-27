@@ -94,6 +94,7 @@ import type {
 import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 import type { Theme } from '@/common/theme/types';
 import type { AttachFolderRequest, ProjectDetailDto, ProjectEntryDto } from '@/common/types/project';
+import type { ProjectBinding } from '@/renderer/api/types';
 import type { ChatFileRef, ContentEncoding } from '@/common/types/chatFile';
 import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from '../utils/protocolDetector';
 import {
@@ -215,73 +216,29 @@ export const kbChat = {
   /** Main → renderer: the stream has ended (done / aborted / error). */
   streamEnd: bridge.buildEmitter<{ requestId: string; reason: 'done' | 'aborted' | 'error' }>('kbChat.streamEnd'),
   /** Main → renderer: an error event surfaced from the upstream SSE. */
-  streamError: bridge.buildEmitter<{ requestId: string; code: string; message: string }>('kbChat.streamError'),
+  streamError: bridge.buildEmitter<KbChatStreamErrorPayload>('kbChat.streamError'),
+};
+
+export type KbChatStreamErrorCode =
+  | 'token_expired'
+  | 'incomplete'
+  | 'timeout_first_byte'
+  | 'timeout_total'
+  | 'http'
+  | 'http_bad_content_type'
+  | 'network'
+  | 'business'
+  | 'parse';
+
+export type KbChatStreamErrorPayload = {
+  requestId: string;
+  code: KbChatStreamErrorCode;
+  message: string;
 };
 
 // ---------------------------------------------------------------------------
 // Task Center — list the current user's PM-center tasks (Electron-native HTTP)
 // ---------------------------------------------------------------------------
-
-export interface ITaskCenterFilters {
-  keyword?: string;
-  urgency?: number | 'all';
-  projectId?: string | 'all';
-  type?: number | 'all';
-}
-
-export interface ITaskCenterRow {
-  id: string;
-  name: string;
-  mark: string;
-  projectName: string;
-  projectId: string;
-  partName: string;
-  milestoneName: string;
-  type: number;
-  typeDesc: string;
-  urgency: number;
-  urgencyDesc: string;
-  status: number;
-  statusDesc: string;
-  deadlineTime: string | null;
-  startTime: string | null;
-  endTime: string | null;
-  closeTime: string | null;
-  creator: string;
-  creatorName: string;
-  currentUserId: string;
-  currentUserName: string;
-  updator: string;
-  updatorName: string;
-  createTime: string;
-  updateTime: string;
-  content: string | null;
-  remark: string | null;
-  raw: Record<string, unknown>;
-}
-
-export interface ITaskCenterListParams {
-  token: string;
-  filters: ITaskCenterFilters;
-  pageNo: number;
-  perPageSize: number;
-}
-
-export interface ITaskCenterListOk {
-  ok: true;
-  data: { total: number; items: ITaskCenterRow[] };
-}
-
-export interface ITaskCenterListErr {
-  ok: false;
-  message: string;
-}
-
-export type ITaskCenterListResult = ITaskCenterListOk | ITaskCenterListErr;
-
-export const taskCenter = {
-  list: bridge.buildProvider<ITaskCenterListResult, ITaskCenterListParams>('taskCenter.list'),
-};
 
 // ---------------------------------------------------------------------------
 // Conversation — REST + WS
@@ -562,6 +519,24 @@ export const project = {
   removeFolder: httpDelete<void, { project_id: string; pe_id: string }>(
     (p) => `/api/projects/${encodeURIComponent(p.project_id)}/folders/${encodeURIComponent(p.pe_id)}`
   ),
+};
+
+// ---------------------------------------------------------------------------
+// Project Binding — task-center Start Task → /guid agent+folder presets
+// ---------------------------------------------------------------------------
+
+export const projectBinding = {
+  /** GET /api/project-binding/{projectId} → { binding: ProjectBinding | null }. */
+  get: httpGet<{ binding: ProjectBinding | null }, { project_id: string }>(
+    (p) => `/api/project-binding/${encodeURIComponent(p.project_id)}`
+  ),
+  /** PUT /api/project-binding/{projectId} → { binding: ProjectBinding }. */
+  put: httpPut<{ binding: ProjectBinding }, { project_id: string; assistantId: string; folderPath: string }>(
+    (p) => `/api/project-binding/${encodeURIComponent(p.project_id)}`,
+    (p) => ({ assistantId: p.assistantId, folderPath: p.folderPath })
+  ),
+  /** DELETE /api/project-binding/{projectId} → 204. */
+  remove: httpDelete<void, { project_id: string }>((p) => `/api/project-binding/${encodeURIComponent(p.project_id)}`),
 };
 
 // ---------------------------------------------------------------------------
@@ -859,6 +834,8 @@ export const fs = {
   readFile: httpPost<string | null, { path: string; workspace?: string }>('/api/fs/read'),
   writeFile: httpPost<boolean, { path: string; data: string; workspace?: string }>('/api/fs/write'),
   getFileMetadata: httpPost<IFileMetadata, { path: string; workspace?: string }>('/api/fs/metadata'),
+  /** POST /api/fs/exists → boolean. 文件/文件夹是否存在。后端用 stat + try/catch。 */
+  exists: httpPost<boolean, { path: string }>('/api/fs/exists'),
   // ── ChatFileRef content endpoints (PR-2: preview I/O by ref identity) ──────
   // Read a file addressed by ChatFileRef; `encoding` selects text (utf8) vs image
   // data URL (dataurl) vs raw base64. Backend: POST /api/fs/content → String.

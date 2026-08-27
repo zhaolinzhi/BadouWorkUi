@@ -1,4 +1,6 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { Message } from '@arco-design/web-react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { PREVIEW_SCOPE_KEY_PREFIX } from '@/renderer/pages/conversation/Preview/context/previewScope';
 import { AIPAAS_BASE_URL } from '@/renderer/api';
 
@@ -18,6 +20,8 @@ interface ExternalAuthPayload {
   username: string;
 }
 
+export type TokenExpiredSource = 'task-center' | 'kb-chat';
+
 interface AuthContextValue {
   ready: boolean;
   user: AuthUser | null;
@@ -25,6 +29,7 @@ interface AuthContextValue {
   completeExternalLogin: (token: string, user: { id: string; username: string }) => void;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
+  notifyTokenExpired: (source: TokenExpiredSource) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -73,6 +78,9 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
   const [status, setStatus] = useState<AuthStatus>('checking');
   const [ready, setReady] = useState(false);
 
+  const tokenExpiredFiredRef = useRef(false);
+  const { t } = useTranslation();
+
   const refresh = useCallback(async () => {
     setStatus('checking');
     const stored = readExternalAuth();
@@ -104,6 +112,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     setUser({ id: payload.id, username: payload.username, token });
     setStatus('authenticated');
     setReady(true);
+    tokenExpiredFiredRef.current = false;
   }, []);
 
   const logout = useCallback(async () => {
@@ -123,6 +132,18 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     clearAuthCache();
   }, []);
 
+  const notifyTokenExpired = useCallback(
+    (_source: TokenExpiredSource) => {
+      if (tokenExpiredFiredRef.current) return;
+      tokenExpiredFiredRef.current = true;
+      Message.warning(t('common.sessionExpired'));
+      setTimeout(() => {
+        void logout();
+      }, 1000);
+    },
+    [logout, t]
+  );
+
   const value = useMemo<AuthContextValue>(
     () => ({
       ready,
@@ -131,8 +152,9 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       completeExternalLogin,
       logout,
       refresh,
+      notifyTokenExpired,
     }),
-    [completeExternalLogin, logout, ready, refresh, status, user]
+    [completeExternalLogin, logout, notifyTokenExpired, ready, refresh, status, user]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

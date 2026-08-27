@@ -42,6 +42,7 @@
   "saveSuccess": "保存成功",
   "saveFailed": "保存失败",
   "unknownError": "未知错误",
+  "sessionExpired": "登录已过期，请重新登录",
   "confirmDelete": "确认删除",
   "deleteSuccess": "删除成功",
   "deleteFailed": "删除失败",

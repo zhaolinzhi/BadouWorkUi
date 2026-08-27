@@ -15,32 +15,52 @@ type KnowledgeBaseRowProps = {
   item: KnowledgeBaseItem;
   onEdit: (item: KnowledgeBaseItem) => void;
   onDelete: (item: KnowledgeBaseItem) => void;
+  /** Handler invoked when the row body is clicked. */
   onOpen: (item: KnowledgeBaseItem) => void;
+  /** Handler invoked when the "edit" menu item is clicked. Falls back to
+   *  onOpen when not provided, so callers that want both entry points to
+   *  share a destination can pass only onOpen. */
+  onOpenEdit?: (item: KnowledgeBaseItem) => void;
   onStartChat: (item: KnowledgeBaseItem) => void;
   /** Hides the edit/delete more menu — used for read-only shared bases. */
   readonly?: boolean;
+  /** Hides the delete menu item. Used by the personal and shared KB lists,
+   *  which do not expose in-app delete. The more menu (with the edit item)
+   *  is still rendered. */
+  hideDelete?: boolean;
+  /** Hides the more menu entirely (no "edit"/"delete" button rendered).
+   *  Used by the shared KB list, which does not expose in-app editing. */
+  noMenu?: boolean;
 };
 
 /**
  * A single row in the knowledge base list. Clicking the row opens detail;
- * the more menu exposes edit/delete; the chat button (visible on hover)
- * starts a conversation using the knowledge base's configured agent.
+ * the more menu exposes edit/delete (when allowed); the chat button starts a
+ * conversation using the knowledge base's configured agent.
  */
 const KnowledgeBaseRow: React.FC<KnowledgeBaseRowProps> = ({
   item,
   onEdit,
   onDelete,
   onOpen,
+  onOpenEdit,
   onStartChat,
   readonly = false,
+  hideDelete = false,
+  noMenu = false,
 }) => {
   const { t } = useTranslation();
-  const canDelete = !readonly && item.source !== 'builtin';
+  const canDelete = !readonly && !hideDelete && item.source !== 'builtin';
 
   const actionMenu = (
     <Menu
       onClickMenuItem={(key) => {
-        if (key === 'edit') onEdit(item);
+        // The "edit" menu item routes to onOpenEdit (when provided) or
+        // falls back to onOpen. The row click separately calls onOpen, so
+        // the two entry points can land on different destinations — e.g.
+        // personal KBs use onOpen (view URL) for the row and onOpenEdit
+        // (edit URL) for the menu.
+        if (key === 'edit') (onOpenEdit ?? onOpen)(item);
         if (key === 'delete') onDelete(item);
       }}
     >
@@ -88,12 +108,12 @@ const KnowledgeBaseRow: React.FC<KnowledgeBaseRowProps> = ({
           type='text'
           size='small'
           data-testid={`btn-kb-chat-${item.id}`}
-          className='!hidden !h-28px !items-center !justify-center !rounded-8px !bg-fill-2 !px-12px !leading-none !text-t-secondary !opacity-0 transition-all hover:!bg-primary-6 hover:!text-white group-hover:!opacity-100 sm:!inline-flex'
+          className='!inline-flex !h-28px !items-center !justify-center !rounded-8px !bg-fill-2 !px-12px !leading-none !text-t-secondary !opacity-100 hover:!bg-primary-6 hover:!text-white'
           onClick={() => onStartChat(item)}
         >
           {t('settings.knowledgeBaseGoChat', { defaultValue: 'Chat' })}
         </Button>
-        {readonly ? null : (
+        {readonly || noMenu ? null : (
           <Dropdown droplist={actionMenu} trigger='click' position='br' getPopupContainer={() => document.body}>
             <Button
               type='text'

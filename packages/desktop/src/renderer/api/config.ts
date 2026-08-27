@@ -14,7 +14,7 @@ export const AIPAAS_BASE_URL = 'http://devops.badousoft.com/aipaas-service';
 /** External login page URL base. The system browser loads this URL during
  *  the external login flow. `aipaas-front` reads the `from` query flag and
  *  redirects to the deep link below on SSO success. */
-export const EXTERNAL_LOGIN_URL_BASE = 'http://devops.badousoft.com/aipaas-front/';
+export const EXTERNAL_LOGIN_URL_BASE = 'https://devops.badousoft.com/aipaas-front/';
 //export const EXTERNAL_LOGIN_URL_BASE = 'http://localhost:8910/';
 
 /** Query string appended to the external login URL so `aipaas-front` knows
@@ -35,10 +35,15 @@ export function getExternalLoginUrl(): string {
   return `${EXTERNAL_LOGIN_URL_BASE}?${EXTERNAL_LOGIN_FLAG}`;
 }
 
-/** Hash-route prefix for the external "new knowledge base" page.
- *  Path and query string are vendor-defined; only the host (EXTERNAL_LOGIN_URL_BASE)
- *  needs to vary between environments. */
+/** Hash-route prefix for the external "new knowledge base" page. The
+ *  trailing `add` segment is the create-page route defined by the vendor. */
 const KNOWLEDGE_BASE_CREATE_PATH = '/#/module/tree/edit/ai_knowledge_user/add';
+/** Hash-route prefix for the external "edit existing knowledge base" page.
+ *  The base id is appended as a path segment after this prefix. */
+const KNOWLEDGE_BASE_EDIT_PATH = '/#/module/tree/edit/ai_knowledge_user';
+/** Hash-route prefix for the external "view" page (used for shared bases).
+ *  The base id is appended as a path segment after this prefix. */
+const KNOWLEDGE_BASE_VIEW_PATH = '/#/module/view/view/ai_knowledge_user';
 const KNOWLEDGE_BASE_CREATE_PARENT_NAME = '知识库目录';
 const KNOWLEDGE_BASE_CREATE_PARENT_ID = 'ROOT';
 
@@ -64,6 +69,13 @@ export function getKnowledgeBaseEditUrl(id: string): string {
   return buildKnowledgeBaseEditUrl(id);
 }
 
+/** Build the external URL for viewing a knowledge base (used for shared
+ *  bases). Unlike edit/create, the view page does not need parent-tree
+ *  query params — the base resolves on its own. */
+export function getKnowledgeBaseViewUrl(id: string): string {
+  return `${EXTERNAL_LOGIN_URL_BASE.replace(/\/$/, '')}${KNOWLEDGE_BASE_VIEW_PATH}/${id}`;
+}
+
 function buildKnowledgeBaseEditUrl(id: string | null): string {
   const addFormData = JSON.stringify({
     parentId: KNOWLEDGE_BASE_CREATE_PARENT_ID,
@@ -87,6 +99,40 @@ function buildKnowledgeBaseEditUrl(id: string | null): string {
     `backParams=${encodeRawQueryParam(backParams)}`,
     `currentTreeNodeData=${encodeRawQueryParam(currentTreeNodeData)}`,
   ].join('&');
-  const pathSuffix = id ? `/${id}` : '';
-  return `${EXTERNAL_LOGIN_URL_BASE.replace(/\/$/, '')}${KNOWLEDGE_BASE_CREATE_PATH}${pathSuffix}?${params}`;
+  const path = id ? `${KNOWLEDGE_BASE_EDIT_PATH}/${id}` : KNOWLEDGE_BASE_CREATE_PATH;
+  return `${EXTERNAL_LOGIN_URL_BASE.replace(/\/$/, '')}${path}?${params}`;
 }
+
+/**
+ * PM 中心 (badou PM) base URL. Independent domain from AIPAAS — no shared
+ * auth, but the renderer carries `useAuth().user.token` in the `Token`
+ * request header. Hard-coded per project preference.
+ */
+export const PM_CENTER_BASE_URL = 'http://pm.badousoft.com/platform/';
+
+/** Endpoint path for the user's task list. */
+export const TASK_CENTER_LIST_PATH = '/jdbc/common/basecommonlist/listJSON.do';
+
+/** Query param identifying the dataset. */
+export const TASK_CENTER_MD_CODE = 'y_project_task_mine';
+
+/** Total timeout for the list request, in ms. */
+export const TASK_CENTER_TIMEOUT_MS = 15_000;
+
+/** Default page size. */
+export const TASK_CENTER_DEFAULT_PER_PAGE_SIZE = 30;
+
+/** Build the full list URL with query params appended. */
+export const buildTaskCenterListUrl = (params: {
+  urgency: number | 'all';
+  projectId: string | 'all';
+  type: number | 'all';
+  keyword: string;
+}): string => {
+  const search = new URLSearchParams({ mdCode: TASK_CENTER_MD_CODE });
+  if (params.urgency !== 'all') search.set('urgency', String(params.urgency));
+  if (params.projectId !== 'all') search.set('projectId', params.projectId);
+  if (params.type !== 'all') search.set('type', String(params.type));
+  if (params.keyword) search.set('keyword', params.keyword);
+  return `${PM_CENTER_BASE_URL}${TASK_CENTER_LIST_PATH}?${search.toString()}`;
+};

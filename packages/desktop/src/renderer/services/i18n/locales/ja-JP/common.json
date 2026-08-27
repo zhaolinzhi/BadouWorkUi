@@ -42,6 +42,7 @@
   "saveSuccess": "保存に成功しました",
   "saveFailed": "保存に失敗しました",
   "unknownError": "不明なエラー",
+  "sessionExpired": "セッションの有効期限が切れました。再度サインインしてください。",
   "confirmDelete": "削除の確認",
   "deleteSuccess": "削除に成功しました",
   "deleteFailed": "削除に失敗しました",

@@ -42,6 +42,7 @@
   "saveSuccess": "Сохранено успешно",
   "saveFailed": "Не удалось сохранить",
   "unknownError": "Неизвестная ошибка",
+  "sessionExpired": "Сессия истекла. Войдите снова.",
   "confirmDelete": "Подтвердить удаление",
   "deleteSuccess": "Удалено успешно",
   "deleteFailed": "Не удалось удалить",

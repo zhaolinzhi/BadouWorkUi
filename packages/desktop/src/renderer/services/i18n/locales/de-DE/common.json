@@ -41,6 +41,7 @@
   "saveSuccess": "Erfolgreich gespeichert",
   "saveFailed": "Speichern fehlgeschlagen",
   "unknownError": "Unbekannter Fehler",
+  "sessionExpired": "Ihre Sitzung ist abgelaufen. Bitte melden Sie sich erneut an.",
   "confirmDelete": "Löschen bestätigen",
   "deleteSuccess": "Erfolgreich gelöscht",
   "deleteFailed": "Löschen fehlgeschlagen",

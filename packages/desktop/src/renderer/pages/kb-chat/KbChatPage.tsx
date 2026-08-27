@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { Button, Input } from '@arco-design/web-react';
 import { useLocation, useParams } from 'react-router-dom';
 import { KbChatHeader } from '@/renderer/components/kb-chat/KbChatHeader';
+import MarkdownView from '@renderer/components/Markdown';
 import { useKbChat } from '@/renderer/hooks/kb-chat/useKbChat';
 import { useAuth } from '@/renderer/hooks/context/AuthContext';
 import styles from './KbChatPage.module.css';
@@ -27,8 +28,21 @@ export const KbChatPage: React.FC = () => {
       <div className={styles.body}>
         {messages.length === 0 && <div className={styles.empty}>{t('kb-chat.empty')}</div>}
         {messages.map((m, i) => (
-          <div key={i} className={styles.message}>
-            <strong>{m.role === 'user' ? 'You' : 'KB'}:</strong> {m.content}
+          <div
+            key={i}
+            className={
+              m.role === 'user'
+                ? `${styles.message} ${styles.messageUser}`
+                : `${styles.message} ${styles.messageAssistant}`
+            }
+          >
+            <div className={styles.bubble} data-role={m.role}>
+              {m.role === 'user' ? (
+                <div className={styles.userText}>{m.content}</div>
+              ) : (
+                <MarkdownView>{m.content}</MarkdownView>
+              )}
+            </div>
           </div>
         ))}
         {status === 'streaming' && (

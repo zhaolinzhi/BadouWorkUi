@@ -40,7 +40,6 @@ vi.mock('react-i18next', () => ({
       const map: Record<string, string> = {
         'taskCenter.detail.title': '任务详情',
         'taskCenter.detail.startTask': '开始任务',
-        'taskCenter.detail.startTaskTip': '功能正在开发',
         'taskCenter.detail.basicInfo': '基本信息',
         'taskCenter.detail.progressInfo': '进度信息',
         'taskCenter.detail.content': '任务内容',
@@ -135,11 +134,27 @@ describe('TaskCenterDetailModal', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it('shows "开始任务" button that triggers a "功能正在开发" toast', () => {
-    render(<TaskCenterDetailModal visible item={item} onClose={vi.fn()} />);
+  it('calls onStartTask with the item when the start button is clicked', () => {
+    const onStartTask = vi.fn();
+    render(<TaskCenterDetailModal visible item={item} onClose={vi.fn()} onStartTask={onStartTask} />);
     const startBtn = screen.getByTestId('task-detail-start');
     expect(startBtn.textContent).toContain('开始任务');
     fireEvent.click(startBtn);
-    expect(messageInfoMock).toHaveBeenCalledWith('功能正在开发');
+    expect(onStartTask).toHaveBeenCalledWith(item);
+    expect(messageInfoMock).not.toHaveBeenCalled();
+  });
+
+  it('does not throw when start button is clicked without an onStartTask prop', () => {
+    render(<TaskCenterDetailModal visible item={item} onClose={vi.fn()} />);
+    expect(() => fireEvent.click(screen.getByTestId('task-detail-start'))).not.toThrow();
+    expect(messageInfoMock).not.toHaveBeenCalled();
+  });
+
+  it('calls onClose when the title-bar × (Close) icon is clicked', () => {
+    const onClose = vi.fn();
+    render(<TaskCenterDetailModal visible item={item} onClose={onClose} />);
+    const closeIcon = screen.getByRole('button', { name: 'Close' });
+    fireEvent.click(closeIcon);
+    expect(onClose).toHaveBeenCalledOnce();
   });
 });

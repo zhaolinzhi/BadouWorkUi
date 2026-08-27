@@ -59,8 +59,7 @@
       "updatorName": "Updated By",
       "updateTime": "Updated At"
     },
-    "startTask": "",
-    "startTaskTip": ""
+    "startTask": ""
   },
   "empty": "No tasks",
   "loading": "Loading tasks...",

@@ -26,6 +26,10 @@ import { useGuidAssistantSelection } from './hooks/useGuidAssistantSelection';
 import { useGuidInput } from './hooks/useGuidInput';
 import { useGuidModelSelection } from './hooks/useGuidModelSelection';
 import { useGuidSend } from './hooks/useGuidSend';
+import { useGuidNavigationState } from './hooks/useGuidNavigationState';
+import { useGuidBindingPresets, type AssistantLite } from './hooks/useGuidBindingPresets';
+import { ProjectBindingModal } from './components/ProjectBindingModal';
+import { BoundBadge } from './components/BoundBadge';
 import { useTypewriterPlaceholder } from './hooks/useTypewriterPlaceholder';
 import { ensureBackendMcpCatalog } from '@/renderer/hooks/mcp/catalog';
 import { resolveGuidAssistantDefaults } from './utils/assistantDefaults';
@@ -43,7 +47,7 @@ import useSWR from 'swr';
 import styles from './index.module.css';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
 
-type GuidNavigationState = {
+export type GuidNavigationState = {
   resetAssistant?: boolean;
   selectedAssistantId?: string;
   prefillPrompt?: string;
@@ -51,6 +55,10 @@ type GuidNavigationState = {
   preservePrefillDraft?: boolean;
   focusPrefill?: boolean;
   workspace?: string;
+  // 项目绑定上下文(任务中心开始任务流程)
+  projectId?: string;
+  projectName?: string;
+  requireBinding?: boolean;
   [key: string]: unknown;
 };
 
@@ -148,6 +156,55 @@ const GuidPage: React.FC = () => {
   const guidInput = useGuidInput({
     locationState: location.state as { workspace?: string } | null,
   });
+
+  // --- Project binding (task-center Start Task → preset agent+folder) ---
+  const { projectId, projectName: navProjectName, requireBinding } = useGuidNavigationState();
+  const presets = useGuidBindingPresets({
+    projectId,
+    requireBinding,
+    assistantsReady: agentSelection.assistants.length > 0,
+    assistants: agentSelection.assistants as ReadonlyArray<AssistantLite>,
+    checkFolderExists: useCallback(async (path: string): Promise<boolean> => {
+      try {
+        return await ipcBridge.fs.exists.invoke({ path });
+      } catch {
+        return false;
+      }
+    }, []),
+    applyPreset: useCallback(
+      ({ assistantId, folderPath }) => {
+        agentSelection.setSelectedAssistantId(assistantId);
+        guidInput.setDir(folderPath);
+      },
+      [agentSelection, guidInput]
+    ),
+  });
+
+  const handleBindingSubmit = useCallback(
+    async (input: { assistantId: string; folderPath: string }): Promise<void> => {
+      // Use the hook's saveAndApply so internal state (binding, status) stays
+      // in sync — bypassing it left the modal stuck because the underlying
+      // fetch status never transitioned to 'bound' and the effect re-opened
+      // the modal on every re-render.
+      await presets.saveAndApply(input);
+    },
+    [presets]
+  );
+
+  const handleBrowseFolder = useCallback(async (): Promise<string | null> => {
+    try {
+      const files = await ipcBridge.dialog.showOpen.invoke({ properties: ['openDirectory'] });
+      if (Array.isArray(files) && files.length > 0) return files[0];
+      return null;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const assistantOptions = useMemo(
+    () => agentSelection.assistants.map((a) => ({ id: a.id, name: a.name })),
+    [agentSelection.assistants]
+  );
   // The `/open` builtin + attach picker browse the backend machine's filesystem
   // (native dialog / server-fs) → `local` refs, not uploads.
   const { onSlashBuiltinCommand } = useOpenFileSelector({
@@ -675,23 +732,42 @@ const GuidPage: React.FC = () => {
       <div ref={guidContainerRef} className={styles.guidContainer}>
         <div className={styles.guidLayout}>
           {/* 调试入口条：仅临时，正式入口由后续任务替换 */}
-          <div className={styles.devEntryRow} data-testid='guid-dev-entry'>
-            <button
-              type='button'
-              className={styles.devEntryChip}
-              onClick={handleOpenBrowserDemo}
-              title='打开应用内浏览器 Demo'
-            >
-              <Experiment theme='outline' size={14} />
-              <span>浏览器 Demo</span>
-            </button>
-          </div>
+          {/*<div className={styles.devEntryRow} data-testid='guid-dev-entry'>*/}
+          {/*  <button*/}
+          {/*    type='button'*/}
+          {/*    className={styles.devEntryChip}*/}
+          {/*    onClick={handleOpenBrowserDemo}*/}
+          {/*    title='打开应用内浏览器 Demo'*/}
+          {/*  >*/}
+          {/*    <Experiment theme='outline' size={14} />*/}
+          {/*    <span>浏览器 Demo</span>*/}
+          {/*  </button>*/}
+          {/*</div>*/}
 
           <div className={styles.heroHeader}>
             <p className='text-2xl font-semibold mb-0 text-0 text-center'>
               {t('conversation.welcome.title', { name: user?.username || '' })}
             </p>
           </div>
+
+          {presets.status === 'bound' && presets.binding && (
+            <BoundBadge binding={presets.binding} assistants={assistantOptions} onRebind={presets.rebind} />
+          )}
+
+          {projectId && requireBinding && presets.userDismissed && !presets.binding && (
+            <button
+              type='button'
+              className='bound-badge'
+              data-testid='reopen-binding-button'
+              onClick={presets.openModal}
+              style={{ background: 'transparent', border: '1px dashed var(--color-border-2, #c9cdd4)', cursor: 'pointer' }}
+            >
+              <span className='bound-badge__label'>{t('guid.projectBinding.unboundHint')}</span>
+              <span style={{ marginLeft: 8, color: 'var(--color-primary, #165dff)' }}>
+                {t('guid.projectBinding.rebind')}
+              </span>
+            </button>
+          )}
 
           <AssistantSelectionArea
             selectedAssistantId={agentSelection.selectedAssistantId}
@@ -760,6 +836,20 @@ const GuidPage: React.FC = () => {
           activeShadow={activeShadow}
         />
         <FeedbackReportModal visible={showFeedbackModal} onCancel={() => setShowFeedbackModal(false)} />
+        {projectId && (
+          <ProjectBindingModal
+            visible={presets.isModalOpen}
+            projectId={projectId}
+            projectName={navProjectName ?? projectId}
+            assistants={assistantOptions}
+            initialBinding={presets.binding}
+            saving={presets.saving}
+            saveError={presets.saveError}
+            onCancel={presets.closeModal}
+            onSubmit={handleBindingSubmit}
+            onBrowseFolder={handleBrowseFolder}
+          />
+        )}
       </div>
     </ConfigProvider>
   );

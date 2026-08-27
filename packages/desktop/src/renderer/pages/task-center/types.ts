@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { ITaskCenterFilters, ITaskCenterRow } from '@/common/adapter/ipcBridge';
+import type { TaskCenterRow } from './useTaskCenterList';
 
-export type { ITaskCenterFilters, ITaskCenterRow };
+export type { TaskCenterRow };
 
 export type UrgencyKey = 'urgent' | 'important' | 'normal';
 
@@ -34,7 +34,7 @@ export const statusToColor = (status: number, statusDesc: string): 'blue' | 'gre
 };
 
 /** Returns true when the task is incomplete AND past its deadline. */
-export const isOverdue = (item: ITaskCenterRow): boolean => {
+export const isOverdue = (item: TaskCenterRow): boolean => {
   if (!item.deadlineTime) return false;
   if (item.status === 2) return false;
   const d = Date.parse(String(item.deadlineTime).replace(/-/g, '/'));
