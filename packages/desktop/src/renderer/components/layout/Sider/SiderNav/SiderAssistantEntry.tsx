@@ -37,6 +37,8 @@ const SiderAssistantEntry: React.FC<SiderAssistantEntryProps> = ({
             isActive ? 'bg-fill-3' : 'hover:bg-fill-3 active:bg-fill-4'
           )}
           onClick={onClick}
+          title={t('settings.assistants')}
+          data-collapsed-rail-item='1'
         >
           <Ghost
             theme='outline'
