@@ -9,55 +9,39 @@ import { useTranslation } from 'react-i18next';
 import { Tooltip } from '@arco-design/web-react';
 import { ListCheckbox, Plus } from '@icon-park/react';
 import classNames from 'classnames';
-import type { SiderTooltipProps } from '@renderer/utils/ui/siderTooltip';
+import CollapsedRailTooltip from '../CollapsedRailTooltip';
 import styles from '../Sider.module.css';
 
 interface SiderToolbarProps {
   isMobile: boolean;
   isBatchMode: boolean;
   collapsed: boolean;
-  siderTooltipProps: SiderTooltipProps;
   onNewChat: () => void;
   onToggleBatchMode: () => void;
 }
 
-const SiderToolbar: React.FC<SiderToolbarProps> = ({
-  isMobile,
-  isBatchMode,
-  collapsed,
-  siderTooltipProps,
-  onNewChat,
-  onToggleBatchMode,
-}) => {
+const SiderToolbar: React.FC<SiderToolbarProps> = ({ isMobile, isBatchMode, collapsed, onNewChat, onToggleBatchMode }) => {
   const { t } = useTranslation();
 
   if (collapsed) {
     return (
       <div className='shrink-0 flex flex-col items-center gap-2px w-full'>
-        <Tooltip {...siderTooltipProps} content={t('conversation.welcome.newConversation')} position='right'>
-          <div
-            className={classNames(
-              'w-full h-34px flex items-center justify-center cursor-pointer transition-colors text-t-primary rd-8px hover:bg-fill-3 active:bg-fill-4',
-              styles.newChatTrigger
-            )}
-            onClick={onNewChat}
-          >
-            <Plus
-              theme='outline'
-              size='16'
-              fill='currentColor'
-              className={classNames('block leading-none', styles.newChatIcon)}
-              style={{ lineHeight: 0 }}
-            />
-          </div>
-        </Tooltip>
+        <CollapsedRailTooltip label={t('conversation.welcome.newConversation')} onClick={onNewChat}>
+          <Plus
+            theme='outline'
+            size='16'
+            fill='currentColor'
+            className={classNames('block leading-none', styles.newChatIcon)}
+            style={{ lineHeight: 0 }}
+          />
+        </CollapsedRailTooltip>
       </div>
     );
   }
 
   return (
     <div className='shrink-0 flex items-center gap-8px'>
-      <Tooltip {...siderTooltipProps} content={t('conversation.welcome.newConversation')} position='right'>
+      <Tooltip content={t('conversation.welcome.newConversation')} position='right'>
         <div
           className={classNames(
             styles.newChatTrigger,
@@ -81,7 +65,6 @@ const SiderToolbar: React.FC<SiderToolbarProps> = ({
         </div>
       </Tooltip>
       <Tooltip
-        {...siderTooltipProps}
         content={isBatchMode ? t('conversation.history.batchModeExit') : t('conversation.history.batchManage')}
         position='right'
       >
