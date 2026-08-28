@@ -266,7 +266,6 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
               isMobile={isMobile}
               isActive={pathname.startsWith('/assistants')}
               collapsed={collapsed}
-              siderTooltipProps={siderTooltipProps}
               onClick={handleAssistantClick}
             />
             {/* Knowledge base nav entry - fixed below Assistant */}
