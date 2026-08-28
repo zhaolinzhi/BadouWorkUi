@@ -19,6 +19,26 @@ interface SiderAssistantEntryProps {
   onClick: () => void;
 }
 
+// Arco Tooltip in StrictMode requires the immediate child to expose
+// getRootDOMNode (or to be a forwardRef component). Wrapping the trigger
+// element in forwardRef silences the findDOMNode deprecation and lets the
+// tooltip resolve its position.
+const CollapsedTrigger = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement> & { active: boolean }>(
+  function CollapsedTrigger({ active, className, ...rest }, ref) {
+    return (
+      <div
+        ref={ref}
+        className={classNames(
+          'w-full h-34px flex items-center justify-center cursor-pointer transition-colors rd-8px text-t-primary',
+          active ? 'bg-fill-3' : 'hover:bg-fill-3 active:bg-fill-4',
+          className
+        )}
+        {...rest}
+      />
+    );
+  }
+);
+
 const SiderAssistantEntry: React.FC<SiderAssistantEntryProps> = ({
   isMobile,
   isActive,
@@ -31,15 +51,7 @@ const SiderAssistantEntry: React.FC<SiderAssistantEntryProps> = ({
   if (collapsed) {
     return (
       <Tooltip {...siderTooltipProps} content={t('settings.assistants')} position='right'>
-        <div
-          className={classNames(
-            'w-full h-34px flex items-center justify-center cursor-pointer transition-colors rd-8px text-t-primary',
-            isActive ? 'bg-fill-3' : 'hover:bg-fill-3 active:bg-fill-4'
-          )}
-          onClick={onClick}
-          title={t('settings.assistants')}
-          data-collapsed-rail-item='1'
-        >
+        <CollapsedTrigger active={isActive} onClick={onClick} title={t('settings.assistants')}>
           <Ghost
             theme='outline'
             size='20'
@@ -47,7 +59,7 @@ const SiderAssistantEntry: React.FC<SiderAssistantEntryProps> = ({
             className='block leading-none shrink-0'
             style={{ lineHeight: 0 }}
           />
-        </div>
+        </CollapsedTrigger>
       </Tooltip>
     );
   }
