@@ -122,18 +122,12 @@
 
 .chat-history--collapsed .chat-history__placeholder,
 .chat-history--collapsed .chat-history__section {
-  opacity: 0;
-  max-height: 0;
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
+  display: none;
 }
 
 .chat-history--collapsed .chat-history__item-name,
 .chat-history--collapsed .chat-history__item-editor {
-  opacity: 0;
-  transform: translateX(-8px);
+  display: none;
 }
 
 .settings-sider--collapsed .settings-sider__item-label {
