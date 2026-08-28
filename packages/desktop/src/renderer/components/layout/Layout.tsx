@@ -417,7 +417,8 @@ const Layout: React.FC<{
             >
               <ArcoLayout.Header
                 className={classNames(
-                  'flex items-center justify-start pt-8px pb-8px pl-18px pr-16px gap-12px layout-sider-header',
+                  'flex items-center pt-8px pb-8px gap-12px layout-sider-header',
+                  collapsed ? 'justify-center pl-0 pr-0' : 'justify-start pl-18px pr-16px',
                   isMobile && 'layout-sider-header--mobile',
                   {
                     'cursor-pointer group ': collapsed,
