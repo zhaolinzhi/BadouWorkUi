@@ -10,11 +10,6 @@ import type { TooltipProps } from '@arco-design/web-react';
  */
 export const getSiderPopupContainer = (_node: HTMLElement): Element => document.body;
 
-const isNoHoverDevice = (): boolean => {
-  if (typeof window === 'undefined') return false;
-  return window.matchMedia('(hover: none)').matches || window.matchMedia('(pointer: coarse)').matches;
-};
-
 const SIDER_TOOLTIP_CLASS = 'sider-tooltip-popup';
 
 export const cleanupSiderTooltips = () => {
@@ -28,15 +23,19 @@ export type SiderTooltipProps = Pick<
   'className' | 'trigger' | 'disabled' | 'unmountOnExit' | 'popupHoverStay' | 'popupVisible' | 'getPopupContainer'
 >;
 
+// Sider tooltip is only constructed when collapsed && !isMobile, so the
+// (hover: none) / (pointer: coarse) check would only ever mis-fire in dev
+// (e.g. a touch-enabled laptop reporting itself as coarse). Drop it — desktop
+// users always want the hover tooltip, and the mobile branch never reaches
+// here.
 export const getSiderTooltipProps = (enabled = false): SiderTooltipProps => {
-  const disabled = !enabled || isNoHoverDevice();
   return {
     className: SIDER_TOOLTIP_CLASS,
-    trigger: disabled ? [] : 'hover',
-    disabled,
+    trigger: enabled ? 'hover' : [],
+    disabled: !enabled,
     unmountOnExit: true,
     popupHoverStay: false,
-    popupVisible: disabled ? false : undefined,
+    popupVisible: enabled ? undefined : false,
     getPopupContainer: getSiderPopupContainer,
   };
 };
