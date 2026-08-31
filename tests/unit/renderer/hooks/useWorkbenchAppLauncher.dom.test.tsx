@@ -9,13 +9,7 @@ import { act, cleanup, render } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Hoisted mocks so the (hoisted) vi.mock factories can reference them safely.
-const {
-  useAuthMock,
-  isElectronMock,
-  mockOpenExternalUrl,
-  mockMessageWarning,
-  mockMessageError,
-} = vi.hoisted(() => ({
+const { useAuthMock, isElectronMock, mockOpenExternalUrl, mockMessageWarning, mockMessageError } = vi.hoisted(() => ({
   useAuthMock: vi.fn(),
   isElectronMock: { value: true },
   mockOpenExternalUrl: vi.fn(),

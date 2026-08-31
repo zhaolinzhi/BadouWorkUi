@@ -4,37 +4,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useCallback } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Empty, Message, Spin } from '@arco-design/web-react';
+import { Empty, Spin } from '@arco-design/web-react';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
-import { openExternalUrl } from '@renderer/utils/platform';
-import { WORKBENCH_APPS, type WorkbenchApp } from './apps';
+import { WORKBENCH_APPS } from './apps';
+import { useWorkbenchAppLauncher } from './useWorkbenchAppLauncher';
 
 const WorkbenchPage: React.FC = () => {
-  const { user, status } = useAuth();
+  const { status } = useAuth();
   const { t } = useTranslation();
-
-  const handleOpenApp = useCallback(
-    async (app: WorkbenchApp) => {
-      if (!user?.token) {
-        Message.warning(t('workbench.noToken', { defaultValue: '请先登录后再打开工作台' }));
-        return;
-      }
-      try {
-        const url = new URL(app.url);
-        for (const [key, value] of Object.entries(app.extraParams ?? {})) {
-          url.searchParams.set(key, value);
-        }
-        url.searchParams.set('Token', user.token);
-        await openExternalUrl(url.toString());
-      } catch (error) {
-        console.error('Failed to open workbench app:', error);
-        Message.error(t('workbench.openFailed', { defaultValue: '打开应用失败' }));
-      }
-    },
-    [user?.token, t]
-  );
+  const { launch } = useWorkbenchAppLauncher();
 
   if (status === 'checking') {
     return (
@@ -71,11 +51,11 @@ const WorkbenchPage: React.FC = () => {
                 tabIndex={0}
                 data-testid={`workbench-app-${app.id}`}
                 className='group flex min-w-0 cursor-pointer flex-col gap-6px rounded-10px border border-solid border-[var(--color-border-2)] bg-bg-1 px-12px py-10px shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-all hover:border-b-light hover:bg-primary-1'
-                onClick={() => void handleOpenApp(app)}
+                onClick={() => void launch(app)}
                 onKeyDown={(event) => {
                   if (event.key === 'Enter' || event.key === ' ') {
                     event.preventDefault();
-                    void handleOpenApp(app);
+                    void launch(app);
                   }
                 }}
               >
