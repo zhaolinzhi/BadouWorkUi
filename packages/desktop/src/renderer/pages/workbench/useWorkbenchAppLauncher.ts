@@ -4,30 +4,52 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { Message } from '@arco-design/web-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
-import { usePreviewContext } from '@renderer/pages/conversation/Preview/context/PreviewContext';
 import { isElectronDesktop, openExternalUrl } from '@renderer/utils/platform';
 import type { WorkbenchApp } from './apps';
 
 export interface UseWorkbenchAppLauncher {
   /**
-   * Open the given workbench app inside the in-app Browser tab.
+   * URL currently loaded in the in-page webview. `null` while the card grid
+   * is shown. Set by `launch` on Electron; untouched on WebUI.
+   */
+  activeUrl: string | null;
+  /**
+   * Open the given workbench app.
    * - Returns early with a warning if the user has no token.
-   * - On Electron: routes through `openBrowserTab` so the existing Browser
-   *   tab system handles persistence, session cookies, and tab UI.
+   * - On Electron: loads `activeUrl` in the in-page `<WebviewHost>` (the
+   *   workbench page renders the webview itself; the Preview panel is only
+   *   available inside project conversations).
    * - On WebUI: falls back to `openExternalUrl` (no webview available).
    * - Any thrown error is surfaced via `Message.error` and logged.
    */
   launch: (app: WorkbenchApp) => Promise<void>;
+  /** Return to the card grid (clears `activeUrl`). */
+  close: () => void;
+  /**
+   * Update the URL shown in the webview. Used by the page's
+   * `<WebviewHost onUrlChange>` so internal navigation stays in sync.
+   */
+  setActiveUrl: (url: string) => void;
 }
 
+/**
+ * Launch workbench apps inside the workbench page's own in-app webview.
+ *
+ * NOTE: we intentionally do NOT route through `PreviewContext.openBrowserTab`
+ * here — the Preview panel only renders while a project conversation is
+ * active (`Layout.tsx` gates it on `currentProject`), so on the non-chat
+ * `/workbench` route the panel never mounts and opened tabs would be
+ * invisible. Instead the hook tracks `activeUrl` and the page renders
+ * `<WebviewHost>` directly.
+ */
 export const useWorkbenchAppLauncher = (): UseWorkbenchAppLauncher => {
   const { user } = useAuth();
-  const { openBrowserTab } = usePreviewContext();
   const { t } = useTranslation();
+  const [activeUrl, setActiveUrl] = useState<string | null>(null);
 
   const launch = useCallback(
     async (app: WorkbenchApp): Promise<void> => {
@@ -43,7 +65,7 @@ export const useWorkbenchAppLauncher = (): UseWorkbenchAppLauncher => {
         url.searchParams.set('Token', user.token);
         const finalUrl = url.toString();
         if (isElectronDesktop()) {
-          openBrowserTab(finalUrl);
+          setActiveUrl(finalUrl);
         } else {
           await openExternalUrl(finalUrl);
         }
@@ -52,8 +74,12 @@ export const useWorkbenchAppLauncher = (): UseWorkbenchAppLauncher => {
         Message.error(t('workbench.openFailed', { defaultValue: '打开应用失败' }));
       }
     },
-    [user?.token, openBrowserTab, t]
+    [user?.token, t]
   );
 
-  return { launch };
+  const close = useCallback(() => {
+    setActiveUrl(null);
+  }, []);
+
+  return { activeUrl, launch, close, setActiveUrl };
 };

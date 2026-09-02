@@ -17,22 +17,6 @@ const { useAuthMock, isElectronMock, mockOpenExternalUrl, mockMessageWarning, mo
   mockMessageError: vi.fn(),
 }));
 
-// PreviewProvider pulls ipcBridge (WS-backed emitters + fs IO). Stub the same
-// surface previewContext.dom.test.tsx stubs so the provider mounts cleanly in
-// jsdom; only the openBrowserTab path is exercised here.
-vi.mock('@/common', () => ({
-  ipcBridge: {
-    fileStream: { contentUpdate: { on: () => () => {} } },
-    preview: { open: { on: () => () => {} } },
-    fs: {
-      writeFile: { invoke: async () => true },
-      getFileMetadata: { invoke: async () => null },
-      readFile: { invoke: async () => null },
-      getImageBase64: { invoke: async () => null },
-    },
-  },
-}));
-
 // Use the exact same module specifiers the hook imports so the mocks match.
 vi.mock('@renderer/hooks/context/AuthContext', () => ({
   useAuth: useAuthMock,
@@ -54,11 +38,6 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
 
-import {
-  PreviewProvider,
-  usePreviewContext,
-  type PreviewContextValue,
-} from '@/renderer/pages/conversation/Preview/context/PreviewContext';
 import { useWorkbenchAppLauncher } from '@/renderer/pages/workbench/useWorkbenchAppLauncher';
 import type { WorkbenchApp } from '@/renderer/pages/workbench/apps';
 
@@ -67,21 +46,15 @@ interface ProbeHandle {
 }
 
 let handle: ProbeHandle;
-let ctx: PreviewContextValue;
 
 const Probe: React.FC = () => {
   handle.launcher = useWorkbenchAppLauncher();
-  ctx = usePreviewContext();
   return null;
 };
 
 const mount = (): void => {
   handle = { launcher: null };
-  render(
-    <PreviewProvider>
-      <Probe />
-    </PreviewProvider>
-  );
+  render(<Probe />);
 };
 
 const APP_WITH_EXTRA: WorkbenchApp = {
@@ -104,11 +77,13 @@ const launch = async (app: WorkbenchApp): Promise<void> => {
   });
 };
 
-/** Latest tab's content (URL for browser tabs). */
-const lastTabContent = (): string => ctx.tabs[ctx.tabs.length - 1].content;
+const close = (): void => {
+  act(() => {
+    handle.launcher?.close();
+  });
+};
 
 beforeEach(() => {
-  localStorage.clear();
   useAuthMock.mockReset();
   isElectronMock.value = true;
   mockOpenExternalUrl.mockReset();
@@ -124,27 +99,26 @@ afterEach(() => {
   cleanup();
 });
 
-describe('useWorkbenchAppLauncher (Electron)', () => {
-  it('returns a launch function', () => {
+describe('useWorkbenchAppLauncher (Electron — in-app webview)', () => {
+  it('exposes launch, activeUrl and close', () => {
     mount();
     expect(typeof handle.launcher?.launch).toBe('function');
+    expect(typeof handle.launcher?.close).toBe('function');
+    expect(handle.launcher?.activeUrl).toBeNull();
   });
 
-  it('warns and returns early when no token is present', async () => {
+  it('warns and keeps activeUrl null when no token is present', async () => {
     useAuthMock.mockReturnValue({ user: null, status: 'authenticated' });
     mount();
     await launch(APP_PLAIN);
     expect(mockMessageWarning).toHaveBeenCalledTimes(1);
-    // No new tab was opened.
-    expect(ctx.tabs).toHaveLength(0);
+    expect(handle.launcher?.activeUrl).toBeNull();
   });
 
-  it('builds URL with extraParams + Token and opens a browser tab', async () => {
+  it('builds URL with extraParams + Token and sets activeUrl', async () => {
     mount();
     await launch(APP_WITH_EXTRA);
-    expect(ctx.tabs).toHaveLength(1);
-    expect(ctx.tabs[0].content_type).toBe('browser');
-    const url = lastTabContent();
+    const url = handle.launcher?.activeUrl ?? '';
     expect(url).toContain('http://pm.badousoft.com/center');
     expect(url).toContain('tenant=badou');
     expect(url).toContain('source=workbench');
@@ -154,18 +128,25 @@ describe('useWorkbenchAppLauncher (Electron)', () => {
   it('injects only Token when extraParams is undefined', async () => {
     mount();
     await launch(APP_PLAIN);
-    const url = lastTabContent();
+    const url = handle.launcher?.activeUrl ?? '';
     expect(url).toContain('http://ksp.badousoft.com/');
     expect(url).toContain('Token=token-123');
     expect(url).not.toContain('tenant=');
   });
 
+  it('close() clears activeUrl back to null', async () => {
+    mount();
+    await launch(APP_PLAIN);
+    expect(handle.launcher?.activeUrl).not.toBeNull();
+    close();
+    expect(handle.launcher?.activeUrl).toBeNull();
+  });
+
   it('surfaces error via Message.error when URL construction throws', async () => {
     mount();
-    const before = ctx.tabs.length;
     await launch({ id: 'bad', name: 'Bad', url: 'http://[invalid-url' });
     expect(mockMessageError).toHaveBeenCalledTimes(1);
-    expect(ctx.tabs).toHaveLength(before);
+    expect(handle.launcher?.activeUrl).toBeNull();
   });
 
   it('does not fall back to openExternalUrl on Electron', async () => {
@@ -176,7 +157,7 @@ describe('useWorkbenchAppLauncher (Electron)', () => {
 });
 
 describe('useWorkbenchAppLauncher (WebUI fallback)', () => {
-  it('routes to openExternalUrl when not Electron and does not open a tab', async () => {
+  it('routes to openExternalUrl when not Electron and keeps activeUrl null', async () => {
     isElectronMock.value = false;
     mount();
     await launch(APP_PLAIN);
@@ -184,7 +165,6 @@ describe('useWorkbenchAppLauncher (WebUI fallback)', () => {
     const calledWith = mockOpenExternalUrl.mock.calls[0]?.[0] as string;
     expect(calledWith).toContain('http://ksp.badousoft.com/');
     expect(calledWith).toContain('Token=token-123');
-    // No in-app tab was created.
-    expect(ctx.tabs).toHaveLength(0);
+    expect(handle.launcher?.activeUrl).toBeNull();
   });
 });

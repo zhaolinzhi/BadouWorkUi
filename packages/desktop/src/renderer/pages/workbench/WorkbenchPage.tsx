@@ -6,20 +6,46 @@
 
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Empty, Spin } from '@arco-design/web-react';
+import { Button, Empty, Spin } from '@arco-design/web-react';
+import { ArrowLeft } from '@icon-park/react';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
+import WebviewHost from '@renderer/components/media/WebviewHost';
+import { BROWSER_SESSION_PARTITION } from '@/common/config/constants';
 import { WORKBENCH_APPS } from './apps';
 import { useWorkbenchAppLauncher } from './useWorkbenchAppLauncher';
 
 const WorkbenchPage: React.FC = () => {
   const { status } = useAuth();
   const { t } = useTranslation();
-  const { launch } = useWorkbenchAppLauncher();
+  const { activeUrl, launch, close, setActiveUrl } = useWorkbenchAppLauncher();
 
   if (status === 'checking') {
     return (
       <div className='size-full flex items-center justify-center'>
         <Spin />
+      </div>
+    );
+  }
+
+  // An app is open: show the in-page webview with a back bar to the cards.
+  if (activeUrl) {
+    return (
+      <div className='size-full min-w-0 flex flex-col overflow-hidden bg-bg-2'>
+        <div className='flex shrink-0 items-center gap-8px border-b border-[var(--color-border-2)] px-12px py-6px'>
+          <Button size='small' onClick={close} icon={<ArrowLeft />}>
+            {t('workbench.back', { defaultValue: '返回工作台' })}
+          </Button>
+          <span className='min-w-0 flex-1 truncate text-12px text-t-tertiary'>{activeUrl}</span>
+        </div>
+        <div className='min-h-0 flex-1'>
+          <WebviewHost
+            url={activeUrl}
+            partition={BROWSER_SESSION_PARTITION}
+            showNavBar
+            className='bg-bg-1'
+            onUrlChange={setActiveUrl}
+          />
+        </div>
       </div>
     );
   }
