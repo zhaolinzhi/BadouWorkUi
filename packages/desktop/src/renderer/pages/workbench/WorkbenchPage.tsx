@@ -10,6 +10,7 @@ import { Button, Empty, Spin } from '@arco-design/web-react';
 import { ArrowLeft } from '@icon-park/react';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
 import WebviewHost from '@renderer/components/media/WebviewHost';
+import { getChromeLikeUserAgent } from '@renderer/utils/platform';
 import { BROWSER_SESSION_PARTITION } from '@/common/config/constants';
 import { WORKBENCH_APPS } from './apps';
 import { useWorkbenchAppLauncher } from './useWorkbenchAppLauncher';
@@ -41,6 +42,7 @@ const WorkbenchPage: React.FC = () => {
           <WebviewHost
             url={activeUrl}
             partition={BROWSER_SESSION_PARTITION}
+            useragent={getChromeLikeUserAgent()}
             showNavBar
             className='bg-bg-1'
             onUrlChange={setActiveUrl}

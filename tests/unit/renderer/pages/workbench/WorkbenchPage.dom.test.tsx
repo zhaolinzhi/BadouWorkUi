@@ -19,6 +19,7 @@ vi.mock('@renderer/components/media/WebviewHost', () => ({
 vi.mock('@renderer/utils/platform', () => ({
   isElectronDesktop: () => true,
   openExternalUrl: vi.fn(),
+  getChromeLikeUserAgent: () => 'Mozilla/5.0 (Chrome) Chrome/130.0.0.0',
 }));
 
 vi.mock('@renderer/hooks/context/AuthContext', () => ({
