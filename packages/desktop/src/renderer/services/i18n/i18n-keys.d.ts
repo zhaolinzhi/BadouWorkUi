@@ -2762,6 +2762,7 @@ export type I18nKey =
   | 'update.showInFolder'
   | 'update.upToDateTitle'
   | 'update.viewRelease'
+  | 'workbench.back'
   | 'workbench.empty'
   | 'workbench.noToken'
   | 'workbench.openFailed'

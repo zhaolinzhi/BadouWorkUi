@@ -46,7 +46,13 @@ const SiderNoteEntry: React.FC<SiderNoteEntryProps> = ({ isMobile, isActive, col
         onClick={onClick}
       >
         <span className='size-22px flex items-center justify-center shrink-0 text-t-primary'>
-          <Notes theme='outline' size='16' fill='currentColor' className='block leading-none' style={{ lineHeight: 0 }} />
+          <Notes
+            theme='outline'
+            size='16'
+            fill='currentColor'
+            className='block leading-none'
+            style={{ lineHeight: 0 }}
+          />
         </span>
         <span className='collapsed-hidden text-t-primary text-14px font-[500] leading-24px'>{t('settings.notes')}</span>
       </div>

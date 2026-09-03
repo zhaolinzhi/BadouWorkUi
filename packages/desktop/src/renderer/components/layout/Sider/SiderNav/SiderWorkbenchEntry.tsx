@@ -54,7 +54,9 @@ const SiderWorkbenchEntry: React.FC<SiderWorkbenchEntryProps> = ({ isMobile, isA
             style={{ lineHeight: 0 }}
           />
         </span>
-        <span className='collapsed-hidden text-t-primary text-14px font-[500] leading-24px'>{t('workbench.title')}</span>
+        <span className='collapsed-hidden text-t-primary text-14px font-[500] leading-24px'>
+          {t('workbench.title')}
+        </span>
       </div>
     </Tooltip>
   );

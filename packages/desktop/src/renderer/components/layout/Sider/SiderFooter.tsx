@@ -59,7 +59,9 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
   // Use Arco Tooltip when expanded (label sits in-flow), custom CollapsedRailTooltip
   // when collapsed (avoids the StrictMode findDOMNode bug).
   const Wrap: React.FC<{ label: string; children: React.ReactElement }> = ({ label, children }) =>
-    collapsed ? <CollapsedRailTooltip label={label}>{children}</CollapsedRailTooltip> : (
+    collapsed ? (
+      <CollapsedRailTooltip label={label}>{children}</CollapsedRailTooltip>
+    ) : (
       <Tooltip content={label} position='right'>
         {children}
       </Tooltip>

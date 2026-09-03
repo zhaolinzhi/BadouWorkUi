@@ -141,45 +141,44 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
     );
   };
 
-  return (
-    collapsed ? (
-      <CollapsedRailTooltip
-        key={conversation.id}
-        label={conversation.name || t('conversation.welcome.newConversation')}
-        onClick={handleRowClick}
-        onContextMenu={handleRowContextMenu}
-        className='w-full'
+  return collapsed ? (
+    <CollapsedRailTooltip
+      key={conversation.id}
+      label={conversation.name || t('conversation.welcome.newConversation')}
+      onClick={handleRowClick}
+      onContextMenu={handleRowContextMenu}
+      className='w-full'
+    >
+      <div
+        id={'c-' + conversation.id}
+        className={classNames(
+          'chat-history__item h-34px rd-8px flex items-center group cursor-pointer relative overflow-hidden shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px min-w-0 transition-colors w-full',
+          collapsed ? 'justify-center px-0' : 'justify-start gap-8px pr-16px',
+          {
+            'hover:bg-fill-3': !batchMode && !selected,
+            '!bg-fill-3': selected,
+            'bg-[rgba(var(--primary-6),0.08)]': batchMode && checked,
+          }
+        )}
       >
-        <div
-          id={'c-' + conversation.id}
-          className={classNames(
-            'chat-history__item h-34px rd-8px flex items-center group cursor-pointer relative overflow-hidden shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px min-w-0 transition-colors w-full',
-            collapsed ? 'justify-center px-0' : 'justify-start gap-8px pr-16px',
-            {
-              'hover:bg-fill-3': !batchMode && !selected,
-              '!bg-fill-3': selected,
-              'bg-[rgba(var(--primary-6),0.08)]': batchMode && checked,
-            }
-          )}
-        >
-          <span className='size-22px flex items-center justify-center shrink-0 relative'>
-            {isGenerating && !batchMode ? <Spin size={16} /> : renderLeadingIcon()}
-            {!batchMode &&
-              isPinned &&
-              !isMobile &&
-              !isGenerating &&
-              (dragHandle ?? (
-                <span
-                  className='absolute inset-0 flex-center text-t-secondary pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity'
-                  style={{ lineHeight: 0 }}
-                >
-                  <Pushpin theme='outline' size='14' />
-                </span>
-              ))}
-          </span>
-        </div>
-      </CollapsedRailTooltip>
-    ) : (
+        <span className='size-22px flex items-center justify-center shrink-0 relative'>
+          {isGenerating && !batchMode ? <Spin size={16} /> : renderLeadingIcon()}
+          {!batchMode &&
+            isPinned &&
+            !isMobile &&
+            !isGenerating &&
+            (dragHandle ?? (
+              <span
+                className='absolute inset-0 flex-center text-t-secondary pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity'
+                style={{ lineHeight: 0 }}
+              >
+                <Pushpin theme='outline' size='14' />
+              </span>
+            ))}
+        </span>
+      </div>
+    </CollapsedRailTooltip>
+  ) : (
     <Tooltip
       key={conversation.id}
       {...siderTooltipProps}
@@ -360,7 +359,6 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
         )}
       </div>
     </Tooltip>
-    )
   );
 };
 

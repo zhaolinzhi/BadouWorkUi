@@ -760,7 +760,11 @@ const GuidPage: React.FC = () => {
               className='bound-badge'
               data-testid='reopen-binding-button'
               onClick={presets.openModal}
-              style={{ background: 'transparent', border: '1px dashed var(--color-border-2, #c9cdd4)', cursor: 'pointer' }}
+              style={{
+                background: 'transparent',
+                border: '1px dashed var(--color-border-2, #c9cdd4)',
+                cursor: 'pointer',
+              }}
             >
               <span className='bound-badge__label'>{t('guid.projectBinding.unboundHint')}</span>
               <span style={{ marginLeft: 8, color: 'var(--color-primary, #165dff)' }}>

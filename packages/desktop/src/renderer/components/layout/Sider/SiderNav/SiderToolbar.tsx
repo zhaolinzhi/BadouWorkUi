@@ -20,7 +20,13 @@ interface SiderToolbarProps {
   onToggleBatchMode: () => void;
 }
 
-const SiderToolbar: React.FC<SiderToolbarProps> = ({ isMobile, isBatchMode, collapsed, onNewChat, onToggleBatchMode }) => {
+const SiderToolbar: React.FC<SiderToolbarProps> = ({
+  isMobile,
+  isBatchMode,
+  collapsed,
+  onNewChat,
+  onToggleBatchMode,
+}) => {
   const { t } = useTranslation();
 
   if (collapsed) {
