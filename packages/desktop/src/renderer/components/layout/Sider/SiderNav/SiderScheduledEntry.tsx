@@ -36,7 +36,7 @@ const SiderScheduledEntry: React.FC<SiderScheduledEntryProps> = ({ isMobile, isA
   }
 
   return (
-    <Tooltip content={t('cron.scheduledTasks')} position='right'>
+    <Tooltip content={t('cron.scheduledTasks')} disabled={!collapsed} position='right'>
       <div
         className={classNames(
           'box-border group h-34px w-full flex items-center justify-start gap-8px pl-10px pr-8px rd-0.5rem cursor-pointer shrink-0 transition-all text-t-primary',
