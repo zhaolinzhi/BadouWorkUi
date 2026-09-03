@@ -630,7 +630,7 @@ function generateHtmlReport(report: BenchReport): string {
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>AionUi Benchmark Report - ${report.timestamp}</title>
+<title>BadouWork Benchmark Report - ${report.timestamp}</title>
 <style>
   :root { --bg: #0d1117; --fg: #c9d1d9; --border: #30363d; --accent: #58a6ff; --green: #3fb950; --red: #f85149; --card: #161b22; }
   * { margin: 0; padding: 0; box-sizing: border-box; }

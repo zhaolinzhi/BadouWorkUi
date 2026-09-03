@@ -121,14 +121,40 @@ childProcess.execSync = function mockedExecSync(command) {
     );
   });
 
+  it('derives the Windows app executable filename from the build config instead of hardcoding AionUi.exe', () => {
+    const observability = readFileSync(resolve(repoRoot, 'resources/windows/installer-observability.nsh'), 'utf8');
+    const updateVerify = readFileSync(resolve(repoRoot, 'resources/windows/installer-update-verify.nsh'), 'utf8');
+
+    // The macro that runs after the 7z/zip extract must check for the real
+    // executable that electron-builder produced, not a literal "AionUi.exe"
+    // baked into the NSIS script. A fork that renames productName/executableName
+    // to BadouWork must not leave the install-time verifier looking for
+    // AionUi.exe, or every install fails with E1010 (missing=AionUi.exe)
+    // even though BadouWork.exe is sitting on disk.
+    expect(observability).toContain('${AIONUI_APP_EXECUTABLE_FILENAME}');
+    expect(observability).not.toMatch(/FileExists\s+"[^"]*AionUi\.exe"/);
+    expect(observability).not.toMatch(/missing=AionUi\.exe/);
+
+    expect(updateVerify).toContain('${AIONUI_APP_EXECUTABLE_FILENAME}');
+    expect(updateVerify).not.toMatch(/"\$INSTDIR\\AionUi\.exe"/);
+  });
+
   it('uses install-directory ownership checks in the shared Windows NSIS include', () => {
     const script = readFileSync(resolve(repoRoot, 'resources/windows/installer-process-control.nsh'), 'utf8');
+    const buildScript = readFileSync(resolve(repoRoot, 'scripts/build-with-builder.js'), 'utf8');
 
     expect(script).toContain('!macro customCheckAppRunning');
     expect(script).toContain('$$ownedPrefix');
     expect(script).toContain('StartsWith($$ownedPrefix');
     expect(script).toContain('[System.IO.Path]::GetFullPath($$path)');
     expect(script).not.toContain("Name -ieq '${AIONUI_APP_EXECUTABLE_FILENAME}'");
+
+    // scripts/build-with-builder.js must derive the executable name from
+    // electron-builder.yml (executableName), not hardcode "AionUi.exe". A
+    // fork that renames the product must not leave the build script
+    // looking for the wrong process or path on Windows.
+    expect(buildScript).not.toMatch(/['"]AionUi\.exe['"]/);
+    expect(buildScript).toMatch(/executableName/i);
   });
 
   it('records installer self-lock diagnostics when Restart Manager finds no locking process', () => {
@@ -144,7 +170,10 @@ childProcess.execSync = function mockedExecSync(command) {
     expect(queryScript).toContain("'installer-self-lock'");
     expect(queryScript).toContain('outerInstallerPid');
     expect(queryScript).toContain('currentOutDir');
-    expect(queryScript).toContain("name = 'AionUi installer'");
+    // The installer-display name is derived from the runtime AppExeName
+    // (e.g. "BadouWork installer"), not hardcoded to "AionUi installer".
+    expect(queryScript).toContain('$AppExeName');
+    expect(queryScript).not.toContain("name = 'AionUi installer'");
   });
 
   it('continues with the bundled uninstaller when installed-uninstaller repair remains locked', () => {

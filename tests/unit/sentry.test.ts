@@ -16,7 +16,7 @@ import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 
 vi.mock('electron', () => ({
-  app: { getVersion: () => '0.0.0-test', getPath: () => '/tmp', isPackaged: false },
+  app: { getVersion: () => '0.0.0-test', getPath: () => '/tmp', getName: () => 'BadouWork', isPackaged: false },
 }));
 
 let sentryInitOptions: { beforeSend?: (event: unknown) => unknown } | undefined;
@@ -187,7 +187,7 @@ describe('captureBackendStartupFailure', () => {
         isPackaged: true,
         runtimeKey: 'win32-x64',
         binaryName: 'aioncore.exe',
-        resourcesPath: 'C:\\Users\\alice\\AppData\\Local\\Programs\\AionUi\\resources',
+        resourcesPath: 'C:\\Users\\alice\\AppData\\Local\\Programs\\BadouWork\\resources',
         bundledDirExists: false,
         runtimeDirExists: false,
         resourcesDirEntries: [
@@ -343,7 +343,7 @@ describe('initSentry beforeSend', () => {
         ],
       },
       contexts: {
-        'AionUi.exe': { process_type: 'gpu-process', ptype: 'gpu-process' },
+        'BadouWork.exe': { process_type: 'gpu-process', ptype: 'gpu-process' },
       },
     };
 
@@ -367,7 +367,7 @@ describe('initSentry beforeSend', () => {
     const event = {
       exception: { values: [{ value: 'EXCEPTION_ACCESS_VIOLATION_0x0' }] },
       contexts: {
-        'AionUi.exe': { process_type: 'renderer', ptype: 'renderer' },
+        'BadouWork.exe': { process_type: 'renderer', ptype: 'renderer' },
       },
       tags: { 'event.process': 'renderer' },
     };

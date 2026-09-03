@@ -47,7 +47,7 @@ const SiderToolbar: React.FC<SiderToolbarProps> = ({
 
   return (
     <div className='shrink-0 flex items-center gap-8px'>
-      <Tooltip content={t('conversation.welcome.newConversation')} position='right'>
+      <Tooltip content={t('conversation.welcome.newConversation')} disabled={!collapsed} position='right'>
         <div
           className={classNames(
             styles.newChatTrigger,
@@ -72,6 +72,7 @@ const SiderToolbar: React.FC<SiderToolbarProps> = ({
       </Tooltip>
       <Tooltip
         content={isBatchMode ? t('conversation.history.batchModeExit') : t('conversation.history.batchManage')}
+        disabled={!collapsed}
         position='right'
       >
         <div

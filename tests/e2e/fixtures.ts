@@ -5,7 +5,7 @@
  *
  * Two modes:
  *   1. **Packaged mode** (CI default): Launches from electron-builder's unpacked output
- *      (e.g. out/linux-unpacked/aionui, out/mac-arm64/AionUi.app, out/win-unpacked/AionUi.exe).
+ *      (e.g. out/linux-unpacked/badouwork, out/mac-arm64/BadouWork.app, out/win-unpacked/BadouWork.exe).
  *      This validates that packaged resources are intact.
  *   2. **Dev mode** (local default): Launches via `electron .` from project root with
  *      the Vite dev server (electron-vite dev).
@@ -17,6 +17,37 @@ import { _electron as electron } from 'playwright';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
+
+// Read executableName from electron-builder.yml so this fixture stays in sync
+// with the actual packaged output even if the product is later renamed.
+function readExecutableName(): string {
+  try {
+    const configPath = path.resolve(__dirname, '../../packages/desktop/electron-builder.yml');
+    const content = fs.readFileSync(configPath, 'utf8');
+    const match = content.match(/^\s*executableName:\s*['"]?([^'"\s#]+)['"]?\s*$/m);
+    if (match) return match[1].trim();
+  } catch {
+    // fall through
+  }
+  // Final fallback matches electron-builder's own behaviour: it defaults to
+  // the package.json `name` field. The current name is BaDouWork.
+  try {
+    const pkgPath = path.resolve(__dirname, '../../package.json');
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8')) as { name?: string };
+    if (pkg.name) return pkg.name;
+  } catch {
+    // fall through
+  }
+  throw new Error('Could not derive executable name from electron-builder.yml or package.json');
+}
+
+const APP_EXECUTABLE_NAME = readExecutableName();
+const APP_EXECUTABLE_FILE = `${APP_EXECUTABLE_NAME}.exe`;
+const APP_EXECUTABLE_BASENAME_WINDOWS = APP_EXECUTABLE_FILE;
+// Linux deb/AppImage conventionally uses a lowercase basename.
+const APP_EXECUTABLE_BASENAME_LINUX = APP_EXECUTABLE_NAME.toLowerCase();
+// macOS .app bundle name = productName (= executableName in this repo's yml).
+const APP_BUNDLE_NAME = `${APP_EXECUTABLE_NAME}.app`;
 
 type Fixtures = {
   electronApp: ElectronApplication;
@@ -154,29 +185,29 @@ function resolvePackagedApp(): { executablePath: string; cwd: string } | null {
   const platform = process.platform;
 
   if (platform === 'win32') {
-    // out/win-unpacked/AionUi.exe  or  out/win-x64-unpacked/AionUi.exe
+    // out/win-unpacked/<exe>.exe  or  out/win-x64-unpacked/<exe>.exe
     for (const dir of ['win-unpacked', 'win-x64-unpacked', 'win-arm64-unpacked']) {
-      const exe = path.join(outDir, dir, 'AionUi.exe');
+      const exe = path.join(outDir, dir, APP_EXECUTABLE_BASENAME_WINDOWS);
       if (fs.existsSync(exe)) return { executablePath: exe, cwd: path.join(outDir, dir) };
     }
   } else if (platform === 'darwin') {
-    // out/mac-arm64/AionUi.app/Contents/MacOS/AionUi  or  out/mac/AionUi.app/...
+    // out/mac-arm64/<App>.app/Contents/MacOS/<App>  or  out/mac/<App>.app/...
     for (const dir of ['mac-arm64', 'mac-x64', 'mac', 'mac-universal']) {
       const macDir = path.join(outDir, dir);
       if (!fs.existsSync(macDir)) continue;
-      const appBundle = fs.readdirSync(macDir).find((f) => f.endsWith('.app'));
+      const appBundle = fs.readdirSync(macDir).find((f) => f === APP_BUNDLE_NAME);
       if (appBundle) {
-        const exe = path.join(macDir, appBundle, 'Contents', 'MacOS', 'AionUi');
+        const exe = path.join(macDir, appBundle, 'Contents', 'MacOS', APP_EXECUTABLE_NAME);
         if (fs.existsSync(exe)) return { executablePath: exe, cwd: macDir };
       }
     }
   } else {
-    // Linux: out/linux-unpacked/aionui  (lowercase executable name)
+    // Linux: out/linux-unpacked/<basename>  (lowercase executable name)
     for (const dir of ['linux-unpacked', 'linux-x64-unpacked', 'linux-arm64-unpacked']) {
       const dirPath = path.join(outDir, dir);
       if (!fs.existsSync(dirPath)) continue;
-      // Try common executable names
-      for (const name of ['aionui', 'AionUi']) {
+      // Try the conventional lowercase basename first, then the verbatim name.
+      for (const name of [APP_EXECUTABLE_BASENAME_LINUX, APP_EXECUTABLE_NAME]) {
         const exe = path.join(dirPath, name);
         if (fs.existsSync(exe)) return { executablePath: exe, cwd: dirPath };
       }
