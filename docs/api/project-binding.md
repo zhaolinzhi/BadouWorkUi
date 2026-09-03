@@ -19,41 +19,41 @@ Mounted on the existing aioncore HTTP server (same origin and auth as `/api/proj
 
 Look up the current user's binding for a project.
 
-| | |
-|---|---|
-| **Path** | `/api/project-binding/{projectId}` |
-| **Method** | `GET` |
-| **Auth** | Current aioncore session |
-| **Path params** | `projectId: string` (URL-encoded) |
-| **Body** | — |
+|                 |                                    |
+| --------------- | ---------------------------------- |
+| **Path**        | `/api/project-binding/{projectId}` |
+| **Method**      | `GET`                              |
+| **Auth**        | Current aioncore session           |
+| **Path params** | `projectId: string` (URL-encoded)  |
+| **Body**        | —                                  |
 
 **Success responses**
 
-| Status | Body | When |
-|---|---|---|
-| `200` | `{ "binding": ProjectBinding }` | Binding exists |
-| `200` | `{ "binding": null }` | No binding for `(currentUser, projectId)` |
-| `404` | (empty body, or `{ "error": "not found" }`) | Same as `binding: null` — front end treats both as "missing" |
+| Status | Body                                        | When                                                         |
+| ------ | ------------------------------------------- | ------------------------------------------------------------ |
+| `200`  | `{ "binding": ProjectBinding }`             | Binding exists                                               |
+| `200`  | `{ "binding": null }`                       | No binding for `(currentUser, projectId)`                    |
+| `404`  | (empty body, or `{ "error": "not found" }`) | Same as `binding: null` — front end treats both as "missing" |
 
 The front end handles `200 binding: null` and `404` identically. Choose whichever matches aioncore's existing conventions for "no row" semantics. If aioncore uses 404 for "no row" everywhere (e.g. `/api/projects/{id}`), prefer `404` for consistency.
 
 **Error responses**
 
-| Status | Body | When |
-|---|---|---|
-| `403` | `{ "error": "forbidden" }` | Binding exists but belongs to another user (rare — would only happen if `projectId` collides across users) |
+| Status | Body                       | When                                                                                                       |
+| ------ | -------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `403`  | `{ "error": "forbidden" }` | Binding exists but belongs to another user (rare — would only happen if `projectId` collides across users) |
 
 ### 1.2. `PUT /api/project-binding/{projectId}`
 
 Upsert the current user's binding for a project.
 
-| | |
-|---|---|
-| **Path** | `/api/project-binding/{projectId}` |
-| **Method** | `PUT` |
-| **Auth** | Current aioncore session |
-| **Path params** | `projectId: string` (URL-encoded) |
-| **Body** | `application/json` |
+|                 |                                    |
+| --------------- | ---------------------------------- |
+| **Path**        | `/api/project-binding/{projectId}` |
+| **Method**      | `PUT`                              |
+| **Auth**        | Current aioncore session           |
+| **Path params** | `projectId: string` (URL-encoded)  |
+| **Body**        | `application/json`                 |
 
 **Request body**
 
@@ -64,48 +64,48 @@ Upsert the current user's binding for a project.
 }
 ```
 
-| Field | Required | Type | Notes |
-|---|---|---|---|
-| `assistantId` | yes | string | Must reference an assistant that the current user is allowed to use. Validate server-side. |
-| `folderPath` | yes | string | Absolute path, OS-native (`/...` or `C:\...`). Front end validates existence via `ipcBridge.fs.exists`. No server-side path-existence check needed. |
+| Field         | Required | Type   | Notes                                                                                                                                               |
+| ------------- | -------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `assistantId` | yes      | string | Must reference an assistant that the current user is allowed to use. Validate server-side.                                                          |
+| `folderPath`  | yes      | string | Absolute path, OS-native (`/...` or `C:\...`). Front end validates existence via `ipcBridge.fs.exists`. No server-side path-existence check needed. |
 
 **Success response**
 
-| Status | Body | When |
-|---|---|---|
-| `200` | `{ "binding": ProjectBinding }` | Created or replaced. Server fills `projectId` (from path) and `updatedAt` (server time, ISO-8601). |
+| Status | Body                            | When                                                                                               |
+| ------ | ------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `200`  | `{ "binding": ProjectBinding }` | Created or replaced. Server fills `projectId` (from path) and `updatedAt` (server time, ISO-8601). |
 
 **Error responses**
 
-| Status | Body | When |
-|---|---|---|
-| `400` | `{ "code": "INVALID_ASSISTANT", "error": "..." }` | `assistantId` does not reference an assistant the user can use. |
-| `400` | `{ "code": "INVALID_INPUT", "error": "..." }` | `folderPath` empty or exceeds max length. |
-| `403` | `{ "error": "forbidden" }` | Same-user ownership conflict (rare). |
+| Status | Body                                              | When                                                            |
+| ------ | ------------------------------------------------- | --------------------------------------------------------------- |
+| `400`  | `{ "code": "INVALID_ASSISTANT", "error": "..." }` | `assistantId` does not reference an assistant the user can use. |
+| `400`  | `{ "code": "INVALID_INPUT", "error": "..." }`     | `folderPath` empty or exceeds max length.                       |
+| `403`  | `{ "error": "forbidden" }`                        | Same-user ownership conflict (rare).                            |
 
 ### 1.3. `DELETE /api/project-binding/{projectId}`
 
 Remove the current user's binding for a project. Idempotent.
 
-| | |
-|---|---|
-| **Path** | `/api/project-binding/{projectId}` |
-| **Method** | `DELETE` |
-| **Auth** | Current aioncore session |
-| **Path params** | `projectId: string` (URL-encoded) |
-| **Body** | — |
+|                 |                                    |
+| --------------- | ---------------------------------- |
+| **Path**        | `/api/project-binding/{projectId}` |
+| **Method**      | `DELETE`                           |
+| **Auth**        | Current aioncore session           |
+| **Path params** | `projectId: string` (URL-encoded)  |
+| **Body**        | —                                  |
 
 **Success response**
 
-| Status | Body | When |
-|---|---|---|
-| `204` | (empty) | Deleted (or no binding to delete — front end does not distinguish). |
+| Status | Body    | When                                                                |
+| ------ | ------- | ------------------------------------------------------------------- |
+| `204`  | (empty) | Deleted (or no binding to delete — front end does not distinguish). |
 
 **Error responses**
 
-| Status | Body | When |
-|---|---|---|
-| `403` | `{ "error": "forbidden" }` | Binding belongs to another user. |
+| Status | Body                       | When                             |
+| ------ | -------------------------- | -------------------------------- |
+| `403`  | `{ "error": "forbidden" }` | Binding belongs to another user. |
 
 ---
 
@@ -115,10 +115,10 @@ Remove the current user's binding for a project. Idempotent.
 
 ```ts
 type ProjectBinding = {
-  projectId: string;    // Path parameter; not in request body
-  assistantId: string;  // Required on PUT
-  folderPath: string;   // Required on PUT
-  updatedAt: string;    // ISO-8601; server-generated on every PUT
+  projectId: string; // Path parameter; not in request body
+  assistantId: string; // Required on PUT
+  folderPath: string; // Required on PUT
+  updatedAt: string; // ISO-8601; server-generated on every PUT
 };
 ```
 
@@ -179,12 +179,12 @@ LIMIT 1;
 
 This endpoint is **not strictly part of the binding feature**, but the binding UI calls it on every Start Task to validate that the bound folder still exists on disk before pre-applying the preset. The frontend will silently fall back to "treat as unbound" if this endpoint is unavailable — so it can be deployed later than the binding endpoints without blocking the feature.
 
-| | |
-|---|---|
-| **Path** | `/api/fs/exists` |
-| **Method** | `POST` |
-| **Auth** | Current aioncore session |
-| **Body** | `application/json` |
+|            |                          |
+| ---------- | ------------------------ |
+| **Path**   | `/api/fs/exists`         |
+| **Method** | `POST`                   |
+| **Auth**   | Current aioncore session |
+| **Body**   | `application/json`       |
 
 **Request body**
 
@@ -194,19 +194,19 @@ This endpoint is **not strictly part of the binding feature**, but the binding U
 
 **Success response**
 
-| Status | Body | When |
-|---|---|---|
-| `200` | `true` or `false` | `true` if the path resolves (file or directory). |
-| `200` | `{ "exists": true \| false }` | Acceptable alternative if your other `/api/fs/*` endpoints return JSON envelopes. |
+| Status | Body                          | When                                                                              |
+| ------ | ----------------------------- | --------------------------------------------------------------------------------- |
+| `200`  | `true` or `false`             | `true` if the path resolves (file or directory).                                  |
+| `200`  | `{ "exists": true \| false }` | Acceptable alternative if your other `/api/fs/*` endpoints return JSON envelopes. |
 
 The frontend uses a direct boolean return path (`httpPost<boolean, { path: string }>`) — see `ipcBridge.fs.exists` in `common/adapter/ipcBridge.ts`. If aioncore's envelope shape differs from a plain boolean, the frontend will need a one-line adapter, but the simpler path is to return `200` with a raw boolean body to match.
 
 **Error responses**
 
-| Status | Body | When |
-|---|---|---|
-| `400` | `{ "error": "invalid path" }` | `path` is empty, not a string, or too long. |
-| `500` | `{ "error": "..." }` | Filesystem error other than ENOENT. |
+| Status | Body                          | When                                        |
+| ------ | ----------------------------- | ------------------------------------------- |
+| `400`  | `{ "error": "invalid path" }` | `path` is empty, not a string, or too long. |
+| `500`  | `{ "error": "..." }`          | Filesystem error other than ENOENT.         |
 
 **Implementation hint**
 

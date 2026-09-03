@@ -19,6 +19,12 @@ export interface WebviewHostProps {
   showNavBar?: boolean;
   /** Webview partition for cache/session isolation, e.g. "persist:ext-settings-feishu" */
   partition?: string;
+  /**
+   * Override the guest page's User-Agent. Pass a Chrome-like UA (e.g.
+   * `getChromeLikeUserAgent()`) so SSO sites that reject Electron-tagged UAs
+   * (WeCom QR login, etc.) behave like they would in a normal browser.
+   */
+  useragent?: string;
   /** Extra class names for root container */
   className?: string;
   /** Extra styles for root container */
@@ -62,6 +68,7 @@ const WebviewHost: React.FC<WebviewHostProps> = ({
   id: _id,
   showNavBar = false,
   partition,
+  useragent,
   className,
   style,
   onDidFinishLoad,
@@ -614,6 +621,9 @@ const WebviewHost: React.FC<WebviewHostProps> = ({
   };
   if (partition) {
     webviewAttrs.partition = partition;
+  }
+  if (useragent) {
+    webviewAttrs.useragent = useragent;
   }
 
   return (

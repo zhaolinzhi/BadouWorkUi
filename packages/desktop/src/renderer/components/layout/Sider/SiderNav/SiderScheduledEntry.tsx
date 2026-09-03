@@ -9,49 +9,34 @@ import { useTranslation } from 'react-i18next';
 import { Tooltip } from '@arco-design/web-react';
 import { AlarmClock } from '@icon-park/react';
 import classNames from 'classnames';
-import type { SiderTooltipProps } from '@renderer/utils/ui/siderTooltip';
+import CollapsedRailTooltip from '../CollapsedRailTooltip';
 
 interface SiderScheduledEntryProps {
   isMobile: boolean;
   isActive: boolean;
   collapsed: boolean;
-  siderTooltipProps: SiderTooltipProps;
   onClick: () => void;
 }
 
-const SiderScheduledEntry: React.FC<SiderScheduledEntryProps> = ({
-  isMobile,
-  isActive,
-  collapsed,
-  siderTooltipProps,
-  onClick,
-}) => {
+const SiderScheduledEntry: React.FC<SiderScheduledEntryProps> = ({ isMobile, isActive, collapsed, onClick }) => {
   const { t } = useTranslation();
 
   if (collapsed) {
     return (
-      <Tooltip {...siderTooltipProps} content={t('cron.scheduledTasks')} position='right'>
-        <div
-          className={classNames(
-            'w-full h-34px flex items-center justify-center cursor-pointer transition-colors rd-8px text-t-primary',
-            isActive ? 'bg-fill-3' : 'hover:bg-fill-3 active:bg-fill-4'
-          )}
-          onClick={onClick}
-        >
-          <AlarmClock
-            theme='outline'
-            size='20'
-            fill='currentColor'
-            className='block leading-none shrink-0'
-            style={{ lineHeight: 0 }}
-          />
-        </div>
-      </Tooltip>
+      <CollapsedRailTooltip label={t('cron.scheduledTasks')} onClick={onClick} active={isActive}>
+        <AlarmClock
+          theme='outline'
+          size='20'
+          fill='currentColor'
+          className='block leading-none shrink-0'
+          style={{ lineHeight: 0 }}
+        />
+      </CollapsedRailTooltip>
     );
   }
 
   return (
-    <Tooltip {...siderTooltipProps} content={t('cron.scheduledTasks')} position='right'>
+    <Tooltip content={t('cron.scheduledTasks')} position='right'>
       <div
         className={classNames(
           'box-border group h-34px w-full flex items-center justify-start gap-8px pl-10px pr-8px rd-0.5rem cursor-pointer shrink-0 transition-all text-t-primary',

@@ -51,7 +51,9 @@ describe('useProjectBinding', () => {
 
   it('fetch 抛 BackendHttpError 4xx 非 404 → 仍作为 error 抛出(不 fallback)', async () => {
     const { BackendHttpError } = await import('@/common/adapter/httpBridge');
-    mockedGet.mockRejectedValueOnce(new BackendHttpError({ method: 'GET', path: '/x', status: 403, body: 'forbidden' }));
+    mockedGet.mockRejectedValueOnce(
+      new BackendHttpError({ method: 'GET', path: '/x', status: 403, body: 'forbidden' })
+    );
     const { result } = renderHook(() => useProjectBinding('p1'));
     await waitFor(() => expect(result.current.status).toBe('error'));
   });
@@ -95,7 +97,9 @@ describe('useProjectBinding', () => {
   });
 
   it('fetch 抛 BackendHttpError 404 → error 抛出(让 modal 显示错误)', async () => {
-    mockedGet.mockRejectedValueOnce(new BackendHttpError({ method: 'GET', path: '/x', status: 404, body: 'not found' }));
+    mockedGet.mockRejectedValueOnce(
+      new BackendHttpError({ method: 'GET', path: '/x', status: 404, body: 'not found' })
+    );
     const { result } = renderHook(() => useProjectBinding('p1'));
     await waitFor(() => expect(result.current.status).toBe('error'));
     expect(result.current.error?.message).toContain('not found');

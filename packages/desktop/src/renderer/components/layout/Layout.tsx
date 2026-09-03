@@ -94,7 +94,7 @@ const useDebug = () => {
 const UpdateModal = React.lazy(() => import('@/renderer/components/settings/UpdateModal'));
 
 const DEFAULT_SIDER_WIDTH = 260;
-const DESKTOP_COLLAPSED_WIDTH = 0;
+const DESKTOP_COLLAPSED_WIDTH = 48;
 const SIDER_DRAG_SNAP_THRESHOLD = Math.round((DEFAULT_SIDER_WIDTH + DESKTOP_COLLAPSED_WIDTH) / 2);
 const SIDER_DRAG_HYSTERESIS = 6;
 const MOBILE_SIDER_WIDTH_RATIO = 0.67;
@@ -407,7 +407,7 @@ const Layout: React.FC<{
 
           <ArcoLayout className={'size-full layout flex-1 min-h-0'}>
             <ArcoLayout.Sider
-              collapsedWidth={isMobile ? 0 : 0}
+              collapsedWidth={isMobile ? 0 : 48}
               collapsed={collapsed}
               width={siderWidth}
               className={classNames('!bg-2 layout-sider', {
@@ -417,7 +417,8 @@ const Layout: React.FC<{
             >
               <ArcoLayout.Header
                 className={classNames(
-                  'flex items-center justify-start pt-8px pb-8px pl-18px pr-16px gap-12px layout-sider-header',
+                  'flex items-center pt-8px pb-8px gap-12px layout-sider-header',
+                  collapsed ? 'justify-center pl-0 pr-0' : 'justify-start pl-18px pr-16px',
                   isMobile && 'layout-sider-header--mobile',
                   {
                     'cursor-pointer group ': collapsed,

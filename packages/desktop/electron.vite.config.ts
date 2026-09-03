@@ -252,9 +252,15 @@ export default defineConfig(({ mode }) => {
           // path lets the glob find it, and the resolved `base` becomes
           // `dist`, which fileMap keys as `/vditor/dist` to match Vditor's
           // hardcoded URLs.
+          //
+          // On Windows, `resolve()` returns backslash separators
+          // (D:\a\...\node_modules\vditor\dist), which tinyglobby treats as
+          // glob escapes and matches nothing — vite-plugin-static-copy then
+          // fails with "No file was found to copy". Normalize to forward
+          // slashes so the absolute-path glob works on every platform.
           targets: [
             {
-              src: resolve(__dirname, '../../node_modules/vditor/dist'),
+              src: resolve(__dirname, '../../node_modules/vditor/dist').replace(/\\/g, '/'),
               dest: 'vditor',
             },
           ],

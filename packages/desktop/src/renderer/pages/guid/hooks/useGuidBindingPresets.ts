@@ -51,9 +51,13 @@ export type UseGuidBindingPresetsResult = {
  */
 export const useGuidBindingPresets = (args: UseGuidBindingPresetsArgs): UseGuidBindingPresetsResult => {
   const { projectId, requireBinding, assistantsReady, assistants, checkFolderExists, applyPreset } = args;
-  const { binding, status: fetchStatus, error, save: rawSave, refetch } = useProjectBinding(
-    requireBinding ? projectId : undefined
-  );
+  const {
+    binding,
+    status: fetchStatus,
+    error,
+    save: rawSave,
+    refetch,
+  } = useProjectBinding(requireBinding ? projectId : undefined);
   const [validated, setValidated] = useState<ProjectBinding | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [status, setStatus] = useState<GuidBindingPresetStatus>('idle');
@@ -135,7 +139,16 @@ export const useGuidBindingPresets = (args: UseGuidBindingPresetsArgs): UseGuidB
         }
       });
     }
-  }, [requireBinding, fetchStatus, binding, assistants, assistantsReady, checkFolderExists, applyPreset, userDismissed]);
+  }, [
+    requireBinding,
+    fetchStatus,
+    binding,
+    assistants,
+    assistantsReady,
+    checkFolderExists,
+    applyPreset,
+    userDismissed,
+  ]);
 
   const rebind = useCallback(() => {
     setUserDismissed(false);

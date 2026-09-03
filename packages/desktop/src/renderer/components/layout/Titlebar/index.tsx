@@ -3,6 +3,7 @@ import classNames from 'classnames';
 import { ArrowCircleLeft, ArrowLeft, ArrowRight, ExpandLeft, ExpandRight, Peoples, Search } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { Tooltip } from '@arco-design/web-react';
 
 import { ipcBridge } from '@/common';
 import { TEAM_MODE_ENABLED } from '@/common/config/constants';
@@ -314,69 +315,71 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
     >
       <div ref={menuRef} className='app-titlebar__menu' style={menuStyle}>
         {showBackToChatButton && (
-          <button
-            type='button'
-            className={classNames('app-titlebar__button', layout?.isMobile && 'app-titlebar__button--mobile')}
-            onClick={handleBackToChat}
-            aria-label={backToChatTooltip}
-          >
-            <ArrowCircleLeft theme='outline' size={iconSize} fill='currentColor' />
-          </button>
+          <Tooltip content={backToChatTooltip} position='bottom'>
+            <button
+              type='button'
+              className={classNames('app-titlebar__button', layout?.isMobile && 'app-titlebar__button--mobile')}
+              onClick={handleBackToChat}
+              aria-label={backToChatTooltip}
+            >
+              <ArrowCircleLeft theme='outline' size={iconSize} fill='currentColor' />
+            </button>
+          </Tooltip>
         )}
         {showSiderToggle && (
-          <button
-            type='button'
-            className={classNames('app-titlebar__button', layout?.isMobile && 'app-titlebar__button--mobile')}
-            onClick={handleSiderToggle}
-            aria-label={siderTooltip}
-          >
-            <SidebarIcon size={iconSize} strokeWidth={desktopIconStroke} />
-          </button>
+          <Tooltip content={siderTooltip} position='bottom'>
+            <button
+              type='button'
+              className={classNames('app-titlebar__button', layout?.isMobile && 'app-titlebar__button--mobile')}
+              onClick={handleSiderToggle}
+              aria-label={siderTooltip}
+            >
+              <SidebarIcon size={iconSize} strokeWidth={desktopIconStroke} />
+            </button>
+          </Tooltip>
         )}
         {showSearchButton && (
-          <ConversationSearchPopover
-            renderTrigger={({ onClick }) => (
-              <button
-                type='button'
-                className='app-titlebar__button'
-                onClick={onClick}
-                aria-label={searchTooltip}
-                title={searchTooltip}
-              >
-                <Search
-                  theme='outline'
-                  size={iconSize}
-                  fill='currentColor'
-                  strokeWidth={desktopIconStroke}
-                  className='block leading-none'
-                  style={{ lineHeight: 0 }}
-                />
-              </button>
-            )}
-          />
+          <Tooltip content={searchTooltip} position='bottom'>
+            <ConversationSearchPopover
+              renderTrigger={({ onClick }) => (
+                <button type='button' className='app-titlebar__button' onClick={onClick} aria-label={searchTooltip}>
+                  <Search
+                    theme='outline'
+                    size={iconSize}
+                    fill='currentColor'
+                    strokeWidth={desktopIconStroke}
+                    className='block leading-none'
+                    style={{ lineHeight: 0 }}
+                  />
+                </button>
+              )}
+            />
+          </Tooltip>
         )}
         {showHistoryNav && (
           <>
-            <button
-              type='button'
-              className='app-titlebar__button app-titlebar__button--nav'
-              onClick={() => navigationHistory?.back()}
-              disabled={!navigationHistory?.canBack}
-              aria-label={historyBackTooltip}
-              title={historyBackTooltip}
-            >
-              <ArrowLeft theme='outline' size={iconSize} fill='currentColor' strokeWidth={desktopIconStroke} />
-            </button>
-            <button
-              type='button'
-              className='app-titlebar__button app-titlebar__button--nav'
-              onClick={() => navigationHistory?.forward()}
-              disabled={!navigationHistory?.canForward}
-              aria-label={historyForwardTooltip}
-              title={historyForwardTooltip}
-            >
-              <ArrowRight theme='outline' size={iconSize} fill='currentColor' strokeWidth={desktopIconStroke} />
-            </button>
+            <Tooltip content={historyBackTooltip} position='bottom'>
+              <button
+                type='button'
+                className='app-titlebar__button app-titlebar__button--nav'
+                onClick={() => navigationHistory?.back()}
+                disabled={!navigationHistory?.canBack}
+                aria-label={historyBackTooltip}
+              >
+                <ArrowLeft theme='outline' size={iconSize} fill='currentColor' strokeWidth={desktopIconStroke} />
+              </button>
+            </Tooltip>
+            <Tooltip content={historyForwardTooltip} position='bottom'>
+              <button
+                type='button'
+                className='app-titlebar__button app-titlebar__button--nav'
+                onClick={() => navigationHistory?.forward()}
+                disabled={!navigationHistory?.canForward}
+                aria-label={historyForwardTooltip}
+              >
+                <ArrowRight theme='outline' size={iconSize} fill='currentColor' strokeWidth={desktopIconStroke} />
+              </button>
+            </Tooltip>
           </>
         )}
       </div>
@@ -410,28 +413,33 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
       <div ref={toolbarRef} className='app-titlebar__toolbar'>
         {layout?.isMobile && <div id='app-titlebar-actions-slot' className='app-titlebar__actions-slot' />}
         {IS_DISCONTINUED_BUILD && <MigrationInviteCapsule />}
-        <button
-          type='button'
-          className={classNames('app-titlebar__button', layout?.isMobile && 'app-titlebar__button--mobile')}
-          onClick={() => void openFeedback({ autoScreenshot: true, module: resolveFeedbackModule(location.pathname) })}
-          aria-label={feedbackTooltip}
-          title={feedbackTooltip}
-        >
-          <FeedbackIcon size={iconSize} strokeWidth={desktopIconStroke} />
-        </button>
-        {showWorkspaceButton && (
+        <Tooltip content={feedbackTooltip} position='bottom'>
           <button
             type='button'
             className={classNames('app-titlebar__button', layout?.isMobile && 'app-titlebar__button--mobile')}
-            onClick={handleWorkspaceToggle}
-            aria-label={workspaceTooltip}
+            onClick={() =>
+              void openFeedback({ autoScreenshot: true, module: resolveFeedbackModule(location.pathname) })
+            }
+            aria-label={feedbackTooltip}
           >
-            {workspaceCollapsed ? (
-              <ExpandRight theme='outline' size={iconSize} fill='currentColor' />
-            ) : (
-              <ExpandLeft theme='outline' size={iconSize} fill='currentColor' />
-            )}
+            <FeedbackIcon size={iconSize} strokeWidth={desktopIconStroke} />
           </button>
+        </Tooltip>
+        {showWorkspaceButton && (
+          <Tooltip content={workspaceTooltip} position='bottom'>
+            <button
+              type='button'
+              className={classNames('app-titlebar__button', layout?.isMobile && 'app-titlebar__button--mobile')}
+              onClick={handleWorkspaceToggle}
+              aria-label={workspaceTooltip}
+            >
+              {workspaceCollapsed ? (
+                <ExpandRight theme='outline' size={iconSize} fill='currentColor' />
+              ) : (
+                <ExpandLeft theme='outline' size={iconSize} fill='currentColor' />
+              )}
+            </button>
+          </Tooltip>
         )}
         {showWindowControls && <WindowControls />}
       </div>

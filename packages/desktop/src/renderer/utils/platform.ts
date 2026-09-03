@@ -92,3 +92,16 @@ export const openExternalUrl = async (url: string): Promise<void> => {
     window.open(url, '_blank', 'noopener,noreferrer');
   }
 };
+
+/**
+ * Strip the ` Electron/<version>` token from the current UA so webviews present
+ * as a normal Chrome instead of an Electron app. SSO flows (e.g. WeCom QR
+ * login) frequently reject or misbehave on Electron-tagged user agents, while
+ * they work fine in a plain browser. Returns the current UA unchanged if it has
+ * no Electron token.
+ *
+ * 移除 UA 中的 Electron 标记，让 webview 伪装成普通 Chrome —— 企业微信等扫码
+ * 登录会拒绝/异常处理带 Electron 标记的 UA。
+ */
+export const getChromeLikeUserAgent = (ua: string = navigator.userAgent): string =>
+  ua.replace(/\sElectron\/[\d.]+/i, '');

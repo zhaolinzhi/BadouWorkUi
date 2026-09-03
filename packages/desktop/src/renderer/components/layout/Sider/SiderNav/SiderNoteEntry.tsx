@@ -9,49 +9,34 @@ import { useTranslation } from 'react-i18next';
 import { Tooltip } from '@arco-design/web-react';
 import { Notes } from '@icon-park/react';
 import classNames from 'classnames';
-import type { SiderTooltipProps } from '@renderer/utils/ui/siderTooltip';
+import CollapsedRailTooltip from '../CollapsedRailTooltip';
 
 interface SiderNoteEntryProps {
   isMobile: boolean;
   isActive: boolean;
   collapsed: boolean;
-  siderTooltipProps: SiderTooltipProps;
   onClick: () => void;
 }
 
-const SiderNoteEntry: React.FC<SiderNoteEntryProps> = ({
-  isMobile,
-  isActive,
-  collapsed,
-  siderTooltipProps,
-  onClick,
-}) => {
+const SiderNoteEntry: React.FC<SiderNoteEntryProps> = ({ isMobile, isActive, collapsed, onClick }) => {
   const { t } = useTranslation();
 
   if (collapsed) {
     return (
-      <Tooltip {...siderTooltipProps} content={t('settings.notes')} position='right'>
-        <div
-          className={classNames(
-            'w-full h-34px flex items-center justify-center cursor-pointer transition-colors rd-8px text-t-primary',
-            isActive ? 'bg-fill-3' : 'hover:bg-fill-3 active:bg-fill-4'
-          )}
-          onClick={onClick}
-        >
-          <Notes
-            theme='outline'
-            size='20'
-            fill='currentColor'
-            className='block leading-none shrink-0'
-            style={{ lineHeight: 0 }}
-          />
-        </div>
-      </Tooltip>
+      <CollapsedRailTooltip label={t('settings.notes')} onClick={onClick} active={isActive}>
+        <Notes
+          theme='outline'
+          size='20'
+          fill='currentColor'
+          className='block leading-none shrink-0'
+          style={{ lineHeight: 0 }}
+        />
+      </CollapsedRailTooltip>
     );
   }
 
   return (
-    <Tooltip {...siderTooltipProps} content={t('settings.notes')} position='right'>
+    <Tooltip content={t('settings.notes')} position='right'>
       <div
         className={classNames(
           'box-border group h-34px w-full flex items-center justify-start gap-8px pl-10px pr-8px rd-0.5rem cursor-pointer shrink-0 transition-all text-t-primary',

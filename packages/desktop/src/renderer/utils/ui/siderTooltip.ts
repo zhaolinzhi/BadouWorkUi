@@ -1,17 +1,14 @@
 import type { TooltipProps } from '@arco-design/web-react';
 
 /**
- * 侧边栏内 Tooltip 的挂载容器：将 popup 挂到左侧边栏根节点，
- * 这样在收起/关闭侧边栏时 tooltip 会随侧边栏一起隐藏，避免残留在屏幕遮挡内容。
+ * 侧边栏内 Tooltip 的挂载容器：折叠态（48px 宽）popup 必须挂在 body 上，
+ * 否则会被 .layout-sider 的内部布局容器或 48px 宽度限制遮挡，导致图标悬停时
+ * 看不到 Tooltip。展开态下仍把 popup 挂到 body，与 issue #987 的"关闭侧栏时
+ * tooltip 残留"问题不冲突：cleanupSiderTooltips() 在 collapsed 状态变化时
+ * 会主动清理已挂的 tooltip 节点。
  * See: https://github.com/iOfficeAI/AionUi/issues/987
  */
-export const getSiderPopupContainer = (_node: HTMLElement): Element =>
-  document.querySelector('.layout-sider') || document.body;
-
-const isNoHoverDevice = (): boolean => {
-  if (typeof window === 'undefined') return false;
-  return window.matchMedia('(hover: none)').matches || window.matchMedia('(pointer: coarse)').matches;
-};
+export const getSiderPopupContainer = (_node: HTMLElement): Element => document.body;
 
 const SIDER_TOOLTIP_CLASS = 'sider-tooltip-popup';
 
@@ -26,15 +23,19 @@ export type SiderTooltipProps = Pick<
   'className' | 'trigger' | 'disabled' | 'unmountOnExit' | 'popupHoverStay' | 'popupVisible' | 'getPopupContainer'
 >;
 
+// Sider tooltip is only constructed when collapsed && !isMobile, so the
+// (hover: none) / (pointer: coarse) check would only ever mis-fire in dev
+// (e.g. a touch-enabled laptop reporting itself as coarse). Drop it — desktop
+// users always want the hover tooltip, and the mobile branch never reaches
+// here.
 export const getSiderTooltipProps = (enabled = false): SiderTooltipProps => {
-  const disabled = !enabled || isNoHoverDevice();
   return {
     className: SIDER_TOOLTIP_CLASS,
-    trigger: (disabled ? [] : 'hover') as 'hover' | 'hover'[],
-    disabled,
+    trigger: enabled ? 'hover' : [],
+    disabled: !enabled,
     unmountOnExit: true,
     popupHoverStay: false,
-    popupVisible: disabled ? false : undefined,
+    popupVisible: enabled ? undefined : false,
     getPopupContainer: getSiderPopupContainer,
   };
 };

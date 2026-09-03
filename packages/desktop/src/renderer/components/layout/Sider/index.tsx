@@ -246,7 +246,6 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
               isMobile={isMobile}
               isBatchMode={isBatchMode}
               collapsed={collapsed}
-              siderTooltipProps={siderTooltipProps}
               onNewChat={handleNewChat}
               onToggleBatchMode={() => setIsBatchMode((prev) => !prev)}
             />
@@ -266,7 +265,6 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
               isMobile={isMobile}
               isActive={pathname.startsWith('/assistants')}
               collapsed={collapsed}
-              siderTooltipProps={siderTooltipProps}
               onClick={handleAssistantClick}
             />
             {/* Knowledge base nav entry - fixed below Assistant */}
@@ -274,7 +272,6 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
               isMobile={isMobile}
               isActive={pathname.startsWith('/knowledge-base')}
               collapsed={collapsed}
-              siderTooltipProps={siderTooltipProps}
               onClick={handleKnowledgeClick}
             />
             {/* Notes nav entry - fixed below Knowledge base */}
@@ -282,7 +279,6 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
               isMobile={isMobile}
               isActive={pathname.startsWith('/notes')}
               collapsed={collapsed}
-              siderTooltipProps={siderTooltipProps}
               onClick={handleNoteClick}
             />
             {/* Workbench nav entry - opens external PM center in-app webview */}
@@ -290,7 +286,6 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
               isMobile={isMobile}
               isActive={pathname.startsWith('/workbench')}
               collapsed={collapsed}
-              siderTooltipProps={siderTooltipProps}
               onClick={handleWorkbenchClick}
             />
             {/* Task Center nav entry - native task list page */}
@@ -298,7 +293,6 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
               isMobile={isMobile}
               isActive={pathname.startsWith('/task-center')}
               collapsed={collapsed}
-              siderTooltipProps={siderTooltipProps}
               onClick={handleTaskCenterClick}
             />
             {/* Scheduled tasks nav entry - fixed above scroll */}
@@ -306,7 +300,6 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
               isMobile={isMobile}
               isActive={pathname === '/scheduled'}
               collapsed={collapsed}
-              siderTooltipProps={siderTooltipProps}
               onClick={handleScheduledClick}
             />
             {/* Divider between fixed top nav and scrollable content area */}
@@ -343,7 +336,6 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
         isSettings={isSettings}
         collapsed={collapsed}
         theme={theme}
-        siderTooltipProps={siderTooltipProps}
         onSettingsClick={handleSettingsClick}
         onThemeToggle={handleQuickThemeToggle}
         showLogout={showLogout}

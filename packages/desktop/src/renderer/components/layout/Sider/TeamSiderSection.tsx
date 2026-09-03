@@ -18,6 +18,7 @@ import { useTeamList } from '@renderer/pages/team/hooks/useTeamList';
 import { useSiderTeamBadges } from '@renderer/pages/team/hooks/useSiderTeamBadges';
 import TeamCreateModal from '@renderer/pages/team/components/TeamCreateModal';
 import { ipcBridge } from '@/common';
+import CollapsedRailTooltip from './CollapsedRailTooltip';
 import SiderItem from './SiderItem';
 import type { SiderMenuItem } from './SiderItem';
 import { useSiderTeamRunning } from './useSiderTeamRunning';
@@ -117,14 +118,13 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
               const isActive = pathname.startsWith(`/team/${team.id}`);
               const isRunning = isTeamRunning(team.id);
               return (
-                <Tooltip key={team.id} {...siderTooltipProps} content={team.name} position='right'>
+                <CollapsedRailTooltip key={team.id} label={team.name} onClick={() => handleTeamClick(team.id)}>
                   <div
                     data-testid={`collapsed-team-item-${team.id}`}
                     className={classNames(
                       'relative w-full h-40px flex items-center justify-center cursor-pointer transition-colors rd-8px',
                       isActive ? '!bg-active' : 'hover:bg-fill-3 active:bg-fill-4'
                     )}
-                    onClick={() => handleTeamClick(team.id)}
                   >
                     {isRunning ? (
                       <span
@@ -152,7 +152,7 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
                       </span>
                     )}
                   </div>
-                </Tooltip>
+                </CollapsedRailTooltip>
               );
             })}
           </div>
