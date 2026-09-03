@@ -650,6 +650,24 @@ function getTargetArchFromConfig(platform) {
   }
 }
 
+// Derive the Windows executable filename from electron-builder.yml. This is
+// the single source of truth for productName/executableName; the NSIS include
+// chain and the build script both read it from here so a product rename (for
+// example AionUi → BadouWork) does not leave hardcoded process names behind.
+function getWindowsExecutableNameFromConfig() {
+  const configPath = path.resolve(__dirname, '../packages/desktop/electron-builder.yml');
+  const content = fs.readFileSync(configPath, 'utf8');
+  const match = content.match(/^\s*executableName:\s*['"]?([^'"\s#]+)['"]?\s*$/m);
+  if (!match) {
+    throw new Error('executableName not found in packages/desktop/electron-builder.yml');
+  }
+  return match[1].trim();
+}
+
+const WINDOWS_EXECUTABLE_NAME = getWindowsExecutableNameFromConfig();
+const WINDOWS_EXECUTABLE_PATH = `${WINDOWS_EXECUTABLE_NAME}.exe`;
+const WINDOWS_UNINSTALLER_PATH = `Uninstall ${WINDOWS_EXECUTABLE_PATH}`;
+
 // Determine target architecture
 const buildMachineArch = process.arch;
 let targetArch;
@@ -844,14 +862,16 @@ try {
     const winUnpackedDir = path.join(outDir, 'win-unpacked');
     let cleaned = tryRemoveDir(winUnpackedDir);
     if (!cleaned) {
-      const aionRunning = isProcessRunningWindows('AionUi.exe');
+      const appRunning = isProcessRunningWindows(WINDOWS_EXECUTABLE_PATH);
       const electronRunning = isProcessRunningWindows('electron.exe');
-      if (aionRunning || electronRunning) {
-        console.log('⚠️  Detected running AionUi/Electron process. Attempting to close...');
-        killWindowsProcesses(['AionUi.exe', 'electron.exe']);
+      if (appRunning || electronRunning) {
+        console.log(`⚠️  Detected running ${WINDOWS_EXECUTABLE_NAME}/Electron process. Attempting to close...`);
+        killWindowsProcesses([WINDOWS_EXECUTABLE_PATH, 'electron.exe']);
         cleaned = tryRemoveDir(winUnpackedDir);
         if (!cleaned) {
-          console.log('⚠️  Directory still locked. Please close any running AionUi/Electron processes and retry.');
+          console.log(
+            `⚠️  Directory still locked. Please close any running ${WINDOWS_EXECUTABLE_NAME}/Electron processes and retry.`
+          );
         }
       }
     }
@@ -867,7 +887,7 @@ try {
   try {
     buildWithDmgRetry(builderCommand, targetArch);
   } catch (error) {
-    const winExePath = path.join(outDir, 'win-unpacked', 'AionUi.exe');
+    const winExePath = path.join(outDir, 'win-unpacked', WINDOWS_EXECUTABLE_PATH);
     const firstError = formatExecError(error);
     const canRetryWithoutExecutableEdit =
       process.platform === 'win32' && isWindowsBuild && process.env.CI !== 'true' && fs.existsSync(winExePath);
@@ -876,7 +896,7 @@ try {
       throw error;
     }
 
-    console.log('⚠️  Windows local build failed after AionUi.exe was produced.');
+    console.log(`⚠️  Windows local build failed after ${WINDOWS_EXECUTABLE_PATH} was produced.`);
     if (firstError) {
       console.log('   First failure summary:');
       console.log(
@@ -889,7 +909,7 @@ try {
     }
     console.log('   Retrying local build with win.signAndEditExecutable=false...');
     console.log('   This fallback is intended for transient rcedit / file-lock failures on developer machines.');
-    killWindowsProcesses(['AionUi.exe', 'electron.exe']);
+    killWindowsProcesses([WINDOWS_EXECUTABLE_PATH, 'electron.exe']);
     cleanupWindowsPackOutput();
 
     try {

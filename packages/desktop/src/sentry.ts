@@ -207,12 +207,17 @@ function getInstallPathKind(resourcesPath: unknown): string | undefined {
   if (!pathValue) return undefined;
 
   const normalized = pathValue.replace(/\//g, '\\').toLowerCase();
-  if (normalized.includes('\\appdata\\local\\programs\\aionui\\resources')) {
+  // Derive the per-user install folder name from Electron's app name rather
+  // than hardcoding the legacy product name. `app.getName()` returns the
+  // productName/executableName that electron-builder uses for the install
+  // folder, so the path segment matches regardless of any future rename.
+  const appDirName = safeAppDirName();
+  if (appDirName && normalized.includes(`\\appdata\\local\\programs\\${appDirName}\\resources`)) {
     return 'user_local_programs';
   }
   if (
-    normalized.includes('\\program files\\aionui\\resources') ||
-    normalized.includes('\\program files (x86)\\aionui\\resources')
+    (appDirName && normalized.includes(`\\program files\\${appDirName}\\resources`)) ||
+    (appDirName && normalized.includes(`\\program files (x86)\\${appDirName}\\resources`))
   ) {
     return 'program_files';
   }
@@ -223,6 +228,16 @@ function getInstallPathKind(resourcesPath: unknown): string | undefined {
     return 'linux_opt';
   }
   return 'custom';
+}
+
+function safeAppDirName(): string | undefined {
+  try {
+    const name = app.getName();
+    if (!name) return undefined;
+    return name.toLowerCase().replace(/[^a-z0-9]/g, '');
+  } catch {
+    return undefined;
+  }
 }
 
 function getSecondsSince(timestamp: string | undefined): string | undefined {
