@@ -1320,7 +1320,7 @@ const SendBoxInner = (
       message.warning(t('messages.conversationInProgress'));
       return;
     }
-    if (!input.trim() && domSnippets.length === 0) {
+    if (!input.trim() && domSnippets.length === 0 && !hasPendingAttachments) {
       return;
     }
     console.info('[sendbox]', {
@@ -1401,10 +1401,10 @@ const SendBoxInner = (
   );
   const { handleLiveTranscript } = useLiveTranscriptInsertion(speechDispatch.dispatch);
 
-  const hasDraftToSend = input.trim().length > 0 || domSnippets.length > 0;
+  const hasDraftToSend = input.trim().length > 0 || domSnippets.length > 0 || hasPendingAttachments;
 
   // Calculate button disabled state
-  const isButtonDisabled = disabled || isUploading || (!input.trim() && domSnippets.length === 0);
+  const isButtonDisabled = disabled || isUploading || (!input.trim() && domSnippets.length === 0 && !hasPendingAttachments);
 
   // Reusable send button component
   const sendButton = (
