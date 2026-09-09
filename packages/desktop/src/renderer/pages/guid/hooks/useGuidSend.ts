@@ -106,7 +106,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     if (!selectedAssistantId) {
       return;
     }
-    if (!input.trim() && files.length === 0) {
+    if (!input.trim()) {
       return;
     }
 
@@ -329,9 +329,9 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     t,
   ]);
 
-  // Calculate button disabled state — allow send when there are pending files
-// even with empty text (covers long-text paste-as-file chips and uploaded attachments).
-  const isButtonDisabled = loading || (!input.trim() && files.length === 0) || !selectedAssistantId;
+  // Calculate button disabled state — GUID is a "start task with instruction"
+// page; an empty prompt is invalid even with attachments.
+  const isButtonDisabled = loading || !input.trim() || !selectedAssistantId;
 
   return {
     handleSend,
