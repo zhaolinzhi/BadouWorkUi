@@ -81,7 +81,8 @@ export const usePasteService = ({
       return (
         <button
           type='button'
-          className='text-11px text-t-secondary underline cursor-pointer bg-transparent border-0 p-0 mt-6px inline-block'
+          className='text-11px text-t-secondary underline cursor-pointer bg-transparent border-0 p-0 inline-block text-left'
+          style={{ lineHeight: '16px' }}
           onClick={() => {
             forgetPastedOriginalText(filePath);
             onTextPasteRef.current?.(originalText);

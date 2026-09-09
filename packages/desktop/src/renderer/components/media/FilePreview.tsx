@@ -147,19 +147,19 @@ const FilePreview: React.FC<FilePreviewProps> = ({ path, onRemove, readonly = fa
   return withHint(
     <div className='relative inline-block mb-10px'>
       <div
-        className='h-60px flex items-center gap-12px px-12px rd-8px bg-bg-2 border border-solid'
+        className='min-h-60px flex items-center gap-12px px-12px py-8px rd-8px bg-bg-2 border border-solid'
         style={{ borderColor: 'var(--border-base)', boxShadow: '0 0 0 1px rgba(0,0,0,0.02)' }}
       >
         <div className='w-40px h-40px rd-8px flex items-center justify-center flex-shrink-0'>
           <img className='w-full h-full object-contain' src={fileIcon} alt='File Icon' />
         </div>
-        <div className='flex flex-col gap-2px min-w-0'>
-          <span className='text-14px text-t-primary max-w-150px truncate'>{file_name}</span>
-          <span className='text-12px text-t-secondary'>
+        <div className='flex flex-col gap-0px min-w-0 leading-snug'>
+          <span className='text-14px text-t-primary max-w-150px truncate lh-20px'>{file_name}</span>
+          <span className='text-12px text-t-secondary lh-18px'>
             {fileExt}: {fileSize || '...'}
           </span>
           {inlineAction && (
-            <div data-testid='file-preview-inline-action' className='mt-6px'>
+            <div data-testid='file-preview-inline-action' className='mt-2px'>
               {inlineAction}
             </div>
           )}
