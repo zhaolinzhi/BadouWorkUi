@@ -39,9 +39,11 @@ interface FilePreviewProps {
   readonly?: boolean;
   /** Optional tooltip shown on the chip (e.g. "sent as a file path"). */
   hint?: string;
+  /** Optional inline action rendered under the filename (e.g. "paste original text" link). */
+  inlineAction?: React.ReactNode;
 }
 
-const FilePreview: React.FC<FilePreviewProps> = ({ path, onRemove, readonly = false, hint }) => {
+const FilePreview: React.FC<FilePreviewProps> = ({ path, onRemove, readonly = false, hint, inlineAction }) => {
   // Defensive check: ensure path is a string
   if (typeof path !== 'string') {
     console.error('[FilePreview] Invalid path type:', typeof path, path);
@@ -156,6 +158,11 @@ const FilePreview: React.FC<FilePreviewProps> = ({ path, onRemove, readonly = fa
           <span className='text-12px text-t-secondary'>
             {fileExt}: {fileSize || '...'}
           </span>
+          {inlineAction && (
+            <div data-testid='file-preview-inline-action' className='mt-2px'>
+              {inlineAction}
+            </div>
+          )}
         </div>
       </div>
       {!readonly && (
