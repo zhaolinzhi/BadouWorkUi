@@ -243,7 +243,7 @@ const AionrsSendBox: React.FC<{
   );
 
   // Shared file handling logic
-  const { handleFilesAdded, clearFiles } = useSendBoxFiles({
+  const { handleFilesAdded, clearFiles, processMessageWithFiles } = useSendBoxFiles({
     atPath,
     uploadFile,
     setAtPath,
@@ -378,6 +378,11 @@ const AionrsSendBox: React.FC<{
   }, [conversation_id, current_model?.use_model, executeCommand]);
 
   const onSendHandler = async (message: string) => {
+    // Ensure content is non-empty when there are pending files — the backend
+    // rejects empty `content` even with files attached. Prepend file refs so
+    // the model sees what is being attached (mirrors `processMessageWithFiles`
+    // semantics used elsewhere).
+    const finalMessage = message.trim() ? message : processMessageWithFiles(message);
     const filesToSend = collectChatFileRefs(uploadFile, atPath);
     clearFiles();
     emitter.emit('aionrs.selected.file.clear');
@@ -389,11 +394,11 @@ const AionrsSendBox: React.FC<{
         hasPendingCommands,
       })
     ) {
-      enqueue({ input: message, files: filesToSend });
+      enqueue({ input: finalMessage, files: filesToSend });
       return;
     }
 
-    await executeCommand({ input: message, files: filesToSend });
+    await executeCommand({ input: finalMessage, files: filesToSend });
   };
 
   const handleEditQueuedCommand = useCallback(

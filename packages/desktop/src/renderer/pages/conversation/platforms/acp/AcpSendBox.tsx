@@ -233,7 +233,7 @@ const AcpSendBox: React.FC<{
   const { markSendStarted, markSendAccepted, markSendFailed } = runtimeView;
 
   // Shared file handling logic
-  const { handleFilesAdded, clearFiles } = useSendBoxFiles({
+  const { handleFilesAdded, clearFiles, processMessageWithFiles } = useSendBoxFiles({
     atPath,
     uploadFile,
     setAtPath,
@@ -424,6 +424,10 @@ Please check your local CLI tool authentication status`,
   });
 
   const onSendHandler = async (message: string) => {
+    // Backend rejects empty `content` even with files attached. When user
+    // sends only attachments (no text), prepend file refs so the model
+    // sees what is being attached (mirrors `processMessageWithFiles`).
+    const finalMessage = message.trim() ? message : processMessageWithFiles(message);
     const allFiles = collectChatFileRefs(uploadFile, atPath);
 
     clearFiles();
@@ -436,11 +440,11 @@ Please check your local CLI tool authentication status`,
         hasPendingCommands,
       })
     ) {
-      enqueue({ input: message, files: allFiles });
+      enqueue({ input: finalMessage, files: allFiles });
       return;
     }
 
-    await executeCommand({ input: message, files: allFiles });
+    await executeCommand({ input: finalMessage, files: allFiles });
   };
 
   const handleEditQueuedCommand = useCallback(
