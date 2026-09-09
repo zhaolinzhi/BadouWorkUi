@@ -288,13 +288,15 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
               collapsed={collapsed}
               onClick={handleWorkbenchClick}
             />
-            {/* Task Center nav entry - native task list page */}
-            <SiderTaskCenterEntry
-              isMobile={isMobile}
-              isActive={pathname.startsWith('/task-center')}
-              collapsed={collapsed}
-              onClick={handleTaskCenterClick}
-            />
+            {/* Task Center nav entry - native task list page (enterprise only) */}
+            {SiderTaskCenterEntry && (
+              <SiderTaskCenterEntry
+                isMobile={isMobile}
+                isActive={pathname.startsWith('/task-center')}
+                collapsed={collapsed}
+                onClick={handleTaskCenterClick}
+              />
+            )}
             {/* Scheduled tasks nav entry - fixed above scroll */}
             <SiderScheduledEntry
               isMobile={isMobile}
