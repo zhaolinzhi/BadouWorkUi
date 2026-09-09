@@ -159,7 +159,7 @@ const FilePreview: React.FC<FilePreviewProps> = ({ path, onRemove, readonly = fa
             {fileExt}: {fileSize || '...'}
           </span>
           {inlineAction && (
-            <div data-testid='file-preview-inline-action' className='mt-2px'>
+            <div data-testid='file-preview-inline-action' className='mt-6px'>
               {inlineAction}
             </div>
           )}
