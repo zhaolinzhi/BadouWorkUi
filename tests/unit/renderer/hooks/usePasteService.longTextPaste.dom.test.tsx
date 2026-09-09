@@ -7,7 +7,6 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import React from 'react';
-import React from 'react';
 
 // All mocked at module level so the hook sees the mocks on import.
 vi.mock('@/renderer/services/PasteService', () => ({
@@ -27,7 +26,7 @@ import { PasteService } from '@/renderer/services/PasteService';
 
 vi.mock('@/renderer/hooks/file/useUploadState', () => ({
   trackUpload: () => ({
-  onProgress: vi.fn(),
+    onProgress: vi.fn(),
     finish: vi.fn(),
   }),
 }));
@@ -54,7 +53,8 @@ vi.mock('react-i18next', () => ({
 const setUserAgent = (ua: string) => {
   Object.defineProperty(navigator, 'userAgent', { value: ua, configurable: true });
 };
-const DESKTOP_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+const DESKTOP_UA =
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
 describe('usePasteService — long text paste', () => {
   let onFilesAdded: ReturnType<typeof vi.fn>;

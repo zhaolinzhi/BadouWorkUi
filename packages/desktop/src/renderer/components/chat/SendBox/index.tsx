@@ -35,7 +35,16 @@ import { ArrowUp, CloseSmall, Plus, Quote } from '@icon-park/react';
 import { chatFileRefKey } from '@/common/types/chatFile';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import { buildSkillSlashCommands, mergeSlashCommands } from '@/common/chat/slash/mergeSlashCommands';
-import React, { useCallback, useDeferredValue, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useImperativeHandle,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { useCompositionInput } from '@renderer/hooks/chat/useCompositionInput';
@@ -1098,7 +1107,12 @@ const SendBoxInner = (
   const { compositionHandlers, isComposingState, createKeyDownHandler } = useCompositionInput();
 
   // 使用共享的PasteService集成
-  const { onPaste, onFocus: handlePasteFocus, getPastedTextInlineAction, forgetPastedOriginalText } = usePasteService({
+  const {
+    onPaste,
+    onFocus: handlePasteFocus,
+    getPastedTextInlineAction,
+    forgetPastedOriginalText,
+  } = usePasteService({
     supportedExts,
     onFilesAdded,
     conversation_id: conversationContext?.conversation_id,
