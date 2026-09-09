@@ -106,6 +106,9 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     if (!selectedAssistantId) {
       return;
     }
+    if (!input.trim() && files.length === 0) {
+      return;
+    }
 
     const isCustomWorkspace = !!dir;
     const finalWorkspace = dir || '';
@@ -326,8 +329,9 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     t,
   ]);
 
-  // Calculate button disabled state
-  const isButtonDisabled = loading || !input.trim() || !selectedAssistantId;
+  // Calculate button disabled state — allow send when there are pending files
+// even with empty text (covers long-text paste-as-file chips and uploaded attachments).
+  const isButtonDisabled = loading || (!input.trim() && files.length === 0) || !selectedAssistantId;
 
   return {
     handleSend,
