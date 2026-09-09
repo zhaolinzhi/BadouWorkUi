@@ -1404,7 +1404,8 @@ const SendBoxInner = (
   const hasDraftToSend = input.trim().length > 0 || domSnippets.length > 0 || hasPendingAttachments;
 
   // Calculate button disabled state
-  const isButtonDisabled = disabled || isUploading || (!input.trim() && domSnippets.length === 0 && !hasPendingAttachments);
+  const isButtonDisabled =
+    disabled || isUploading || (!input.trim() && domSnippets.length === 0 && !hasPendingAttachments);
 
   // Reusable send button component
   const sendButton = (
