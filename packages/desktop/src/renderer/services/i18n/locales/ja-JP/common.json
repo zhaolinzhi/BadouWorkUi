@@ -162,6 +162,7 @@
   "fileAttach.uploading": "アップロード中...",
   "fileAttach.uploadSuccess": "アップロード成功",
   "fileAttach.cancelUpload": "アップロードをキャンセル",
+  "fileAttach.tooLarge": "テキストが長すぎるため添付できません。短縮または分割してください。",
   "expand": "展開",
   "name": "名前",
   "added": "追加済み",

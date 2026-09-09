@@ -567,7 +567,8 @@
   },
   "sendbox": {
     "hint": "/ 로 명령, @ 로 파일 참조, ↑/↓ 로 메시지 기록 전환",
-    "mediaPathFallback": "이 에이전트는 이 파일 형식을 기본적으로 지원하지 않으므로 파일 경로로 전송됩니다."
+    "mediaPathFallback": "이 에이전트는 이 파일 형식을 기본적으로 지원하지 않으므로 파일 경로로 전송됩니다.",
+    "pasteOriginalText": "원본 텍스트를 입력 상자에 붙여넣기"
   },
   "agentTip": {
     "codes": {

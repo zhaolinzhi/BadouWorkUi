@@ -162,6 +162,7 @@
   "fileAttach.uploading": "Téléversement...",
   "fileAttach.uploadSuccess": "Téléversement réussi",
   "fileAttach.cancelUpload": "Annuler le téléchargement",
+  "fileAttach.tooLarge": "Texte trop volumineux pour être joint — veuillez le raccourcir ou le diviser.",
   "expand": "Développer",
   "name": "Nom",
   "added": "Ajouté",

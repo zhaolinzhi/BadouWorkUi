@@ -161,6 +161,7 @@
   "fileAttach.uploading": "Загрузка...",
   "fileAttach.uploadSuccess": "Загружено успешно",
   "fileAttach.cancelUpload": "Отменить загрузку",
+  "fileAttach.tooLarge": "Текст слишком длинный для вложения — сократите или разделите его.",
   "expand": "Развернуть",
   "name": "Имя",
   "added": "Добавлено",

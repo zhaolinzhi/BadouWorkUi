@@ -161,6 +161,7 @@
   "fileAttach.uploading": "Subiendo...",
   "fileAttach.uploadSuccess": "Subida exitosa",
   "fileAttach.cancelUpload": "Cancelar subida",
+  "fileAttach.tooLarge": "El texto es demasiado largo para adjuntarse — acórtelo o divídalo.",
   "expand": "Expandir",
   "name": "Nombre",
   "added": "Agregado",

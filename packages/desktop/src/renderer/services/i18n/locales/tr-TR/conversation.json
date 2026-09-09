@@ -569,7 +569,8 @@
   },
   "sendbox": {
     "hint": "Komutlar için /, dosya için @ yazın, ↑/↓ ile mesaj geçmişi",
-    "mediaPathFallback": "Bu ajan bu dosya türünü yerel olarak desteklemiyor; dosya yolu olarak gönderilecek."
+    "mediaPathFallback": "Bu ajan bu dosya türünü yerel olarak desteklemiyor; dosya yolu olarak gönderilecek.",
+    "pasteOriginalText": "Orijinal metni giriş kutusuna yapıştır"
   },
   "agentTip": {
     "codes": {

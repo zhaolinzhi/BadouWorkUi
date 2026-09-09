@@ -571,7 +571,8 @@
   },
   "sendbox": {
     "hint": "Type / for commands, @ to reference files, ↑/↓ for message history",
-    "mediaPathFallback": "This agent has no native support for this file type; it will be sent as a file path."
+    "mediaPathFallback": "This agent has no native support for this file type; it will be sent as a file path.",
+    "pasteOriginalText": "Paste original text to input box"
   },
   "agentTip": {
     "codes": {

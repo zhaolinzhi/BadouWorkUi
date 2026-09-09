@@ -163,6 +163,7 @@
   "fileAttach.uploading": "Завантаження...",
   "fileAttach.uploadSuccess": "Завантажено успішно",
   "fileAttach.cancelUpload": "Скасувати завантаження",
+  "fileAttach.tooLarge": "Текст занадто довгий для вкладення — скоротіть або розділіть його.",
   "expand": "Розгорнути",
   "name": "Ім'я",
   "added": "Додано",
