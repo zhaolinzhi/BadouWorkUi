@@ -61,6 +61,30 @@ const constVoid = (): void => undefined;
 const MAX_SINGLE_LINE_CHARACTERS = 800;
 const BTW_COMMAND_RE = /^\/btw(?:\s+([\s\S]*))?$/i;
 const AT_FILE_HIGHLIGHT_COLOR = 'var(--primary)';
+
+/**
+ * Insert `text` at the caret position of the currently focused textarea (which
+ * must belong to the SendBox instance that owns this `setInput` updater).
+ * Falls back to appending when no focused textarea is found. Used by both the
+ * default paste path and the "paste original text" recovery action on
+ * long-text paste chips.
+ */
+const insertTextAtCaret = (setInput: (value: string) => void, text: string): void => {
+  const textarea = document.activeElement;
+  if (textarea instanceof HTMLTextAreaElement) {
+    const start = textarea.selectionStart ?? textarea.value.length;
+    const end = textarea.selectionEnd ?? start;
+    const currentValue = textarea.value;
+    const newValue = currentValue.slice(0, start) + text + currentValue.slice(end);
+    setInput(newValue);
+    const caret = start + text.length;
+    setTimeout(() => {
+      textarea.setSelectionRange(caret, caret);
+    }, 0);
+  } else {
+    setInput(text);
+  }
+};
 // Max items shown in the `@` dropdown (both data sources); the result panel skin
 // is unbounded (streaming append) — this caps only the inline mention menu.
 const AT_FILE_MENTION_LIMIT = 8;
@@ -1056,23 +1080,7 @@ const SendBox: React.FC<{
     onFilesAdded,
     conversation_id: conversationContext?.conversation_id,
     onTextPaste: (text: string) => {
-      // 处理清理后的文本粘贴，在当前光标位置插入文本而不是替换整个内容
-      const textarea = document.activeElement as HTMLTextAreaElement;
-      if (textarea && textarea.tagName === 'TEXTAREA') {
-        const cursorPosition = textarea.selectionStart;
-        const current_value = textarea.value;
-        const start = textarea.selectionStart ?? textarea.value.length;
-        const end = textarea.selectionEnd ?? start;
-        const newValue = current_value.slice(0, start) + text + current_value.slice(end);
-        setInput(newValue);
-        // 设置光标到插入文本后的位置
-        setTimeout(() => {
-          textarea.setSelectionRange(cursorPosition + text.length, cursorPosition + text.length);
-        }, 0);
-      } else {
-        // 如果无法获取光标位置，回退到追加到末尾的行为
-        setInput(text);
-      }
+      insertTextAtCaret(setInput, text);
     },
   });
   const markMobileFocusIntent = useCallback(() => {
