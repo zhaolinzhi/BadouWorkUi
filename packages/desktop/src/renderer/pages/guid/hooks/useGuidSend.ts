@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import { type ChatFileRef, chatFileRefPath } from '@/common/types/chatFile';
+import { getCleanFileNames } from '@/renderer/services/FileService';
 import type { IMcpServer, TProviderWithModel } from '@/common/config/storage';
 import { toSessionMcpServer } from '@/renderer/hooks/mcp/catalog';
 import { emitter } from '@/renderer/utils/emitter';
@@ -112,7 +113,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     // Backend rejects empty `content` even with files attached. When user
     // sends only attachments (no text), prepend file refs so the model
     // sees what is being attached.
-    const finalInput = input.trim() ? input : files.map(chatFileRefPath).join(' ');
+    const finalInput = input.trim() ? input : getCleanFileNames(files.map(chatFileRefPath)).join(' ');
 
     const isCustomWorkspace = !!dir;
     const finalWorkspace = dir || '';
