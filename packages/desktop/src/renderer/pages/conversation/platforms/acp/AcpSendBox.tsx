@@ -11,7 +11,7 @@ import MobileActionSheet, {
   type MobileActionSheetOption,
   useAttachEntry,
 } from '@/renderer/components/chat/MobileActionSheet';
-import SendBox from '@/renderer/components/chat/SendBox';
+import SendBox, { type SendBoxHandle } from '@/renderer/components/chat/SendBox';
 import ThoughtDisplay from '@/renderer/components/chat/ThoughtDisplay';
 import FileAttachButton from '@/renderer/components/media/FileAttachButton';
 import { audioExts, getFileExtension, imageExts } from '@/renderer/services/FileService';
@@ -46,7 +46,7 @@ import { collectChatFileRefs, splitChatFileRefs } from '@/renderer/utils/file/me
 import type { ChatFileRef } from '@/common/types/chatFile';
 import { Message, Tag } from '@arco-design/web-react';
 import { Brain, MagicHat, Shield } from '@icon-park/react';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { classifyConversationBusyError } from '../conversationBusyError';
 import { buildSendFailureError } from './buildSendFailureError';
@@ -112,6 +112,7 @@ const AcpSendBox: React.FC<{
   teamSendMessage?: (payload: { input: string; files: ChatFileRef[] }) => Promise<void>;
   teamRuntime?: TeamSendBoxRuntime;
 }> = ({ conversation_id, backend, session_mode, agent_name, messageState, teamSendMessage, teamRuntime }) => {
+  const sendBoxRef = useRef<SendBoxHandle>(null);
   const {
     aiProcessing,
     setAiProcessing,
@@ -721,6 +722,7 @@ Please check your local CLI tool authentication status`,
       />
 
       <SendBox
+        ref={sendBoxRef}
         onMobilePlusClick={isMobile ? () => setIsMobileSheetOpen(true) : undefined}
         value={content}
         onChange={handleContentChange}
@@ -776,14 +778,22 @@ Please check your local CLI tool authentication status`,
           <>
             {uploadFile.length > 0 && (
               <HorizontalFileList>
-                {uploadFile.map((path) => (
-                  <FilePreview
-                    key={path}
-                    path={path}
-                    hint={mediaPathHintFor(path)}
-                    onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))}
-                  />
-                ))}
+                {uploadFile.map((path) => {
+                  const handleRemove = () => setUploadFile((prev) => prev.filter((v) => v !== path));
+                  const handleRemoveWithCleanup = () => {
+                    sendBoxRef.current?.forgetPastedOriginalText(path);
+                    handleRemove();
+                  };
+                  return (
+                    <FilePreview
+                      key={path}
+                      path={path}
+                      hint={mediaPathHintFor(path)}
+                      inlineAction={sendBoxRef.current?.getPastedTextInlineAction(path, handleRemoveWithCleanup)}
+                      onRemove={handleRemoveWithCleanup}
+                    />
+                  );
+                })}
               </HorizontalFileList>
             )}
             {atPath.some((item) => (typeof item === 'string' ? false : !item.isFile)) && (
