@@ -796,7 +796,17 @@ const GuidPage: React.FC = () => {
             activeShadow={activeShadow}
             dragHandlers={guidInput.dragHandlers}
             files={displayFilePaths}
-            onRemoveFile={guidInput.handleRemoveFile}
+            onRemoveFile={(path) => {
+              guidInput.forgetPastedOriginalText(path);
+              guidInput.handleRemoveFile(path);
+            }}
+            getInlineAction={(path, onRemove) => {
+              const handleRemoveWithCleanup = () => {
+                guidInput.forgetPastedOriginalText(path);
+                onRemove();
+              };
+              return guidInput.getPastedTextInlineAction(path, handleRemoveWithCleanup);
+            }}
             actionRow={actionRowNode}
             slashCommandMenu={slashCommandMenuNode}
             workspaceDir={guidInput.dir}

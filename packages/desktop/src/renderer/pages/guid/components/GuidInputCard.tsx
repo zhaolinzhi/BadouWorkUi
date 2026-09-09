@@ -36,6 +36,11 @@ type GuidInputCardProps = {
   // Files
   files: string[];
   onRemoveFile: (path: string) => void;
+  /**
+   * Per-file inline action rendered under the filename (e.g. "paste original
+   * text" link for long-text paste chips). Returns `undefined` for normal uploads.
+   */
+  getInlineAction?: (path: string, onRemove: () => void) => React.ReactNode | undefined;
 
   // Action row
   actionRow: React.ReactNode;
@@ -64,6 +69,7 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
   dragHandlers,
   files,
   onRemoveFile,
+  getInlineAction,
   actionRow,
   slashCommandMenu,
   workspaceDir,
@@ -142,7 +148,12 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
         {files.length > 0 && (
           <div className='flex flex-wrap items-center gap-8px mt-12px mb-12px'>
             {files.map((path) => (
-              <FilePreview key={path} path={path} onRemove={() => onRemoveFile(path)} />
+              <FilePreview
+                key={path}
+                path={path}
+                inlineAction={getInlineAction?.(path, () => onRemoveFile(path))}
+                onRemove={() => onRemoveFile(path)}
+              />
             ))}
           </div>
         )}
