@@ -281,13 +281,15 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
               collapsed={collapsed}
               onClick={handleNoteClick}
             />
-            {/* Workbench nav entry - opens external PM center in-app webview */}
-            <SiderWorkbenchEntry
-              isMobile={isMobile}
-              isActive={pathname.startsWith('/workbench')}
-              collapsed={collapsed}
-              onClick={handleWorkbenchClick}
-            />
+            {/* Workbench nav entry - opens external PM center in-app webview (enterprise only) */}
+            {SiderWorkbenchEntry && (
+              <SiderWorkbenchEntry
+                isMobile={isMobile}
+                isActive={pathname.startsWith('/workbench')}
+                collapsed={collapsed}
+                onClick={handleWorkbenchClick}
+              />
+            )}
             {/* Task Center nav entry - native task list page (enterprise only) */}
             {SiderTaskCenterEntry && (
               <SiderTaskCenterEntry
