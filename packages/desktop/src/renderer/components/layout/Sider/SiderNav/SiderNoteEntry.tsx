@@ -26,7 +26,7 @@ const SiderNoteEntry: React.FC<SiderNoteEntryProps> = ({ isMobile, isActive, col
       <CollapsedRailTooltip label={t('settings.notes')} onClick={onClick} active={isActive}>
         <Notes
           theme='outline'
-          size='20'
+          size='22'
           fill='currentColor'
           className='block leading-none shrink-0'
           style={{ lineHeight: 0 }}

@@ -26,7 +26,7 @@ const SiderWorkbenchEntry: React.FC<SiderWorkbenchEntryProps> = ({ isMobile, isA
       <CollapsedRailTooltip label={t('workbench.title')} onClick={onClick} active={isActive}>
         <Briefcase
           theme='outline'
-          size='20'
+          size='22'
           fill='currentColor'
           className='block leading-none shrink-0'
           style={{ lineHeight: 0 }}

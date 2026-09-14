@@ -38,7 +38,7 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
   const settingsIcon = isSettings ? (
     <ArrowCircleLeft
       theme='outline'
-      size='16'
+      size='20'
       fill='currentColor'
       className='block leading-none'
       style={{ lineHeight: 0 }}
@@ -46,7 +46,7 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
   ) : (
     <SettingTwo
       theme='outline'
-      size='16'
+      size='20'
       fill='currentColor'
       className='block leading-none'
       style={{ lineHeight: 0 }}
@@ -102,7 +102,7 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
               <span className='size-20px flex items-center justify-center shrink-0'>
                 <CloseOne
                   theme='outline'
-                  size='16'
+                  size='20'
                   fill={iconColors.primary}
                   className='block leading-none'
                   style={{ lineHeight: 0 }}

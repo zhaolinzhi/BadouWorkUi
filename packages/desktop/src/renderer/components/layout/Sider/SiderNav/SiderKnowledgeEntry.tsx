@@ -26,7 +26,7 @@ const SiderKnowledgeEntry: React.FC<SiderKnowledgeEntryProps> = ({ isMobile, isA
       <CollapsedRailTooltip label={t('settings.knowledgeBase')} onClick={onClick} active={isActive}>
         <Book
           theme='outline'
-          size='20'
+          size='22'
           fill='currentColor'
           className='block leading-none shrink-0'
           style={{ lineHeight: 0 }}
