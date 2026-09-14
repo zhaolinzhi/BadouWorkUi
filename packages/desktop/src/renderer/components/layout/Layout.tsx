@@ -10,7 +10,7 @@ import PwaPullToRefresh from '@/renderer/components/layout/PwaPullToRefresh';
 import Titlebar from '@/renderer/components/layout/Titlebar';
 import { Layout as ArcoLayout, Tooltip } from '@arco-design/web-react';
 import classNames from 'classnames';
-import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { setGlobalNavigate } from '@/renderer/utils/navigation';
@@ -29,6 +29,7 @@ import { MIN_PREVIEW_PANEL_PX } from '@renderer/pages/conversation/utils/layoutC
 import { PreviewPanel } from '@renderer/pages/conversation/Preview';
 import { ExpandLeft } from '@icon-park/react';
 import { LayoutContext } from '@renderer/hooks/context/LayoutContext';
+import { useSiderCollapsed } from '@renderer/hooks/ui/useSiderCollapsed';
 import { NavigationHistoryProvider } from '@renderer/hooks/context/NavigationHistoryContext';
 import { useDeepLink } from '@renderer/hooks/system/useDeepLink';
 import { useNotificationClick } from '@renderer/hooks/system/notification/useNotificationClick';
@@ -94,7 +95,7 @@ const useDebug = () => {
 const UpdateModal = React.lazy(() => import('@/renderer/components/settings/UpdateModal'));
 
 const DEFAULT_SIDER_WIDTH = 260;
-const DESKTOP_COLLAPSED_WIDTH = 48;
+const DESKTOP_COLLAPSED_WIDTH = 72;
 const SIDER_DRAG_SNAP_THRESHOLD = Math.round((DEFAULT_SIDER_WIDTH + DESKTOP_COLLAPSED_WIDTH) / 2);
 const SIDER_DRAG_HYSTERESIS = 6;
 const MOBILE_SIDER_WIDTH_RATIO = 0.67;
@@ -120,11 +121,11 @@ const Layout: React.FC<{
   sider: React.ReactNode;
   onSessionClick?: () => void;
 }> = ({ sider, onSessionClick: _onSessionClick }) => {
-  const [collapsed, setCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [viewportWidth, setViewportWidth] = useState<number>(() =>
     typeof window === 'undefined' ? 390 : window.innerWidth
   );
+  const { collapsed, setCollapsed } = useSiderCollapsed({ isMobile });
   const { onClick } = useDebug();
   useDeepLink();
   useNotificationClick();
@@ -135,8 +136,8 @@ const Layout: React.FC<{
   const workspaceAvailable =
     location.pathname.startsWith('/conversation/') || (TEAM_MODE_ENABLED && location.pathname.startsWith('/team/'));
   const toggleSider = useCallback(() => {
-    setCollapsed((previous) => !previous);
-  }, []);
+    setCollapsed(!collapsed);
+  }, [collapsed]);
   useConversationShortcuts({ navigate, toggleSider });
   // Expose navigate to code running outside the Router tree (e.g. the globally
   // mounted FeedbackReportModal's "via chat" action).
@@ -395,8 +396,17 @@ const Layout: React.FC<{
         overflow: 'visible' as const,
       };
 
+  // Stable `value` shape — without this memo the context value is a fresh
+  // object on every Layout render, defeating the entire point of context and
+  // forcing every `useLayoutContext` consumer (Sider, GroupedHistory, every
+  // ConversationRow, TeamSiderSection …) to re-render on any Layout commit.
+  const layoutContextValue = useMemo(
+    () => ({ isMobile, siderCollapsed: collapsed, setSiderCollapsed: setCollapsed }),
+    [isMobile, collapsed]
+  );
+
   return (
-    <LayoutContext.Provider value={{ isMobile, siderCollapsed: collapsed, setSiderCollapsed: setCollapsed }}>
+    <LayoutContext.Provider value={layoutContextValue}>
       <NavigationHistoryProvider>
         <div className='app-shell flex flex-col size-full min-h-0'>
           <Titlebar workspaceAvailable={workspaceAvailable} />
@@ -407,7 +417,7 @@ const Layout: React.FC<{
 
           <ArcoLayout className={'size-full layout flex-1 min-h-0'}>
             <ArcoLayout.Sider
-              collapsedWidth={isMobile ? 0 : 48}
+              collapsedWidth={isMobile ? 0 : 72}
               collapsed={collapsed}
               width={siderWidth}
               className={classNames('!bg-2 layout-sider', {
