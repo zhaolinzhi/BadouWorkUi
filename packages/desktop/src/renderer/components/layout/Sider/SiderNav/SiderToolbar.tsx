@@ -35,7 +35,7 @@ const SiderToolbar: React.FC<SiderToolbarProps> = ({
         <CollapsedRailTooltip label={t('conversation.welcome.newConversation')} onClick={onNewChat}>
           <Plus
             theme='outline'
-            size='16'
+            size='20'
             fill='currentColor'
             className={classNames('block leading-none', styles.newChatIcon)}
             style={{ lineHeight: 0 }}

@@ -567,7 +567,8 @@
   },
   "sendbox": {
     "hint": "輸入 / 喚起命令，@ 引用檔案，↑/↓ 切換歷史訊息",
-    "mediaPathFallback": "該 Agent 不原生支援此檔案類型，將以檔案路徑形式傳送。"
+    "mediaPathFallback": "該 Agent 不原生支援此檔案類型，將以檔案路徑形式傳送。",
+    "pasteOriginalText": "貼上原文至輸入框"
   },
   "agentTip": {
     "codes": {

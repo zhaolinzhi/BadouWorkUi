@@ -17,7 +17,7 @@ import { trackUpload, type UploadSource } from '@/renderer/hooks/file/useUploadS
  * Returns `null` when the upload is cancelled by the user (via the per-file
  * cancel button or a conversation switch); other errors propagate.
  */
-async function createTempFile(
+export async function createTempFile(
   file_name: string,
   data: Uint8Array,
   contentType: string,

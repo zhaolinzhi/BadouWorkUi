@@ -162,6 +162,7 @@
   "fileAttach.uploading": "در حال آپلود...",
   "fileAttach.uploadSuccess": "آپلود موفقیت‌آمیز بود",
   "fileAttach.cancelUpload": "لغو آپلود",
+  "fileAttach.tooLarge": "متن برای پیوست بسیار طولانی است — لطفاً آن را کوتاه‌تر یا تقسیم کنید.",
   "expand": "باز کردن",
   "name": "نام",
   "added": "افزوده شد",

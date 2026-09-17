@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import { type ChatFileRef, chatFileRefPath } from '@/common/types/chatFile';
+import { getCleanFileNames } from '@/renderer/services/FileService';
 import type { IMcpServer, TProviderWithModel } from '@/common/config/storage';
 import { toSessionMcpServer } from '@/renderer/hooks/mcp/catalog';
 import { emitter } from '@/renderer/utils/emitter';
@@ -106,6 +107,13 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     if (!selectedAssistantId) {
       return;
     }
+    if (!input.trim() && files.length === 0) {
+      return;
+    }
+    // Backend rejects empty `content` even with files attached. When user
+    // sends only attachments (no text), prepend file refs so the model
+    // sees what is being attached.
+    const finalInput = input.trim() ? input : getCleanFileNames(files.map(chatFileRefPath)).join(' ');
 
     const isCustomWorkspace = !!dir;
     const finalWorkspace = dir || '';
@@ -208,7 +216,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         emitter.emit('chat.history.refresh');
 
         const initialMessage = {
-          input,
+          input: finalInput,
           files: files.length > 0 ? files : undefined,
         };
         sessionStorage.setItem(`aionrs_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
@@ -257,7 +265,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       emitter.emit('chat.history.refresh');
 
       const initialMessage = {
-        input,
+        input: finalInput,
         files: files.length > 0 ? files : undefined,
       };
       sessionStorage.setItem(`acp_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
@@ -326,8 +334,9 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     t,
   ]);
 
-  // Calculate button disabled state
-  const isButtonDisabled = loading || !input.trim() || !selectedAssistantId;
+  // Calculate button disabled state — allow send when there are pending files
+  // even with empty text; the backend receives the file refs as content.
+  const isButtonDisabled = loading || (!input.trim() && files.length === 0) || !selectedAssistantId;
 
   return {
     handleSend,

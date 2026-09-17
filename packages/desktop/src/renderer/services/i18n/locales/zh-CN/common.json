@@ -162,6 +162,7 @@
   "fileAttach.uploading": "上传中...",
   "fileAttach.uploadSuccess": "上传成功",
   "fileAttach.cancelUpload": "取消上传",
+  "fileAttach.tooLarge": "文本过长无法作为附件，请缩短或分段发送。",
   "expand": "展开",
   "name": "名称",
   "added": "已添加",

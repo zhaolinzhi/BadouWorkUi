@@ -27,7 +27,7 @@ const SiderTaskCenterEntry: React.FC<SiderTaskCenterEntryProps> = ({ isMobile, i
       <CollapsedRailTooltip label={title} onClick={onClick} active={isActive}>
         <Clipboard
           theme='outline'
-          size='20'
+          size='22'
           fill='currentColor'
           className='block leading-none shrink-0'
           style={{ lineHeight: 0 }}

@@ -53,6 +53,13 @@ vi.mock('@/renderer/hooks/mcp/catalog', () => ({
   })),
 }));
 
+vi.mock('@/renderer/hooks/agent/useManagedAgents', () => ({
+  useManagedAgentRuntimeCatalog: () => [
+    { id: 'aionrs-agent', name: 'Badou CLI', agent_type: 'aionrs', backend: 'aionrs', status: 'online', enabled: true },
+    { id: 'agent-claude', name: 'Claude Code', agent_type: 'acp', backend: 'claude', status: 'online', enabled: true },
+  ],
+}));
+
 import { useAssistantEditor } from '@/renderer/hooks/assistant/useAssistantEditor';
 import { ipcBridge } from '@/common';
 import type { AssistantListItem } from '@/renderer/pages/settings/AssistantSettings/types';
@@ -713,5 +720,268 @@ describe('useAssistantEditor', () => {
     expect(ipcBridge.assistants.create.invoke).not.toHaveBeenCalled();
 
     consoleErrorSpy.mockRestore();
+  });
+
+  it('loads the plan mode prompt template from detail into editor state for aionrs agents', async () => {
+    (ipcBridge.assistants.get.invoke as any).mockResolvedValue({
+      ...mockAssistantDetail,
+      engine: {
+        agent_id: 'aionrs-agent',
+        agent: { type: 'aionrs', source: 'builtin' },
+      },
+      prompts: {
+        recommended: [],
+        recommended_i18n: {},
+        plan_mode_prompt_template: 'Prefer 3-step plans.',
+      },
+    });
+
+    const assistant: AssistantListItem = {
+      id: 'aionrs-1',
+      name: 'Badou CLI',
+      agent_id: 'aionrs-agent',
+      agent: { type: 'aionrs', source: 'builtin' },
+      sort_order: 1,
+      source: 'builtin',
+      enabled: true,
+    };
+
+    const { result } = renderHook(() =>
+      useAssistantEditor({
+        ...defaultParams,
+        activeAssistant: assistant,
+      })
+    );
+
+    await act(async () => {
+      await result.current.handleEdit(assistant);
+    });
+
+    await waitFor(() => expect(result.current.editPlanModePromptTemplate).toBe('Prefer 3-step plans.'));
+  });
+
+  it('treats a missing plan_mode_prompt_template as an empty string', async () => {
+    (ipcBridge.assistants.get.invoke as any).mockResolvedValue({
+      ...mockAssistantDetail,
+      engine: {
+        agent_id: 'aionrs-agent',
+        agent: { type: 'aionrs', source: 'builtin' },
+      },
+      prompts: {
+        recommended: [],
+        recommended_i18n: {},
+      },
+    });
+
+    const assistant: AssistantListItem = {
+      id: 'aionrs-1',
+      name: 'Badou CLI',
+      agent_id: 'aionrs-agent',
+      agent: { type: 'aionrs', source: 'builtin' },
+      sort_order: 1,
+      source: 'builtin',
+      enabled: true,
+    };
+
+    const { result } = renderHook(() =>
+      useAssistantEditor({
+        ...defaultParams,
+        activeAssistant: assistant,
+      })
+    );
+
+    await act(async () => {
+      await result.current.handleEdit(assistant);
+    });
+
+    await waitFor(() => expect(result.current.editPlanModePromptTemplate).toBe(''));
+  });
+
+  it('sends plan_mode_prompt_template when updating a builtin aionrs assistant', async () => {
+    (ipcBridge.assistants.get.invoke as any).mockResolvedValue({
+      ...mockAssistantDetail,
+      source: 'builtin',
+      engine: {
+        agent_id: 'aionrs-agent',
+        agent: { type: 'aionrs', source: 'builtin' },
+      },
+      prompts: {
+        recommended: [],
+        recommended_i18n: {},
+        plan_mode_prompt_template: 'Prefer 3-step plans.',
+      },
+    });
+    (ipcBridge.assistants.update.invoke as any).mockResolvedValue({ id: 'aionrs-builtin' });
+
+    const assistant: AssistantListItem = {
+      id: 'aionrs-builtin',
+      name: 'Badou CLI',
+      agent_id: 'aionrs-agent',
+      agent: { type: 'aionrs', source: 'builtin' },
+      sort_order: 1,
+      source: 'builtin',
+      enabled: true,
+    };
+
+    const { result } = renderHook(() =>
+      useAssistantEditor({
+        ...defaultParams,
+        activeAssistant: assistant,
+      })
+    );
+
+    await act(async () => {
+      await result.current.handleEdit(assistant);
+    });
+
+    act(() => {
+      result.current.setEditPlanModePromptTemplate('Updated plan prompt.');
+    });
+
+    await act(async () => {
+      await result.current.handleSave();
+    });
+
+    expect(ipcBridge.assistants.update.invoke).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'aionrs-builtin',
+        plan_mode_prompt_template: 'Updated plan prompt.',
+      })
+    );
+  });
+
+  it('sends plan_mode_prompt_template as an empty string to clear the override', async () => {
+    (ipcBridge.assistants.get.invoke as any).mockResolvedValue({
+      ...mockAssistantDetail,
+      source: 'user',
+      engine: {
+        agent_id: 'aionrs-agent',
+        agent: { type: 'aionrs', source: 'builtin' },
+      },
+      prompts: {
+        recommended: [],
+        recommended_i18n: {},
+        plan_mode_prompt_template: 'Existing override',
+      },
+    });
+    (ipcBridge.assistants.update.invoke as any).mockResolvedValue({ id: 'aionrs-user' });
+
+    const assistant: AssistantListItem = {
+      id: 'aionrs-user',
+      name: 'My Badou',
+      agent_id: 'aionrs-agent',
+      agent: { type: 'aionrs', source: 'builtin' },
+      sort_order: 1,
+      source: 'user',
+      enabled: true,
+    };
+
+    const { result } = renderHook(() =>
+      useAssistantEditor({
+        ...defaultParams,
+        activeAssistant: assistant,
+      })
+    );
+
+    await act(async () => {
+      await result.current.handleEdit(assistant);
+    });
+
+    act(() => {
+      result.current.setEditPlanModePromptTemplate('');
+    });
+
+    await act(async () => {
+      await result.current.handleSave();
+    });
+
+    expect(ipcBridge.assistants.update.invoke).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'aionrs-user',
+        plan_mode_prompt_template: '',
+      })
+    );
+  });
+
+  it('omits plan_mode_prompt_template when the assistant backend is not aionrs', async () => {
+    (ipcBridge.assistants.get.invoke as any).mockResolvedValue({
+      ...mockAssistantDetail,
+      source: 'user',
+      engine: {
+        agent_id: 'agent-claude',
+        agent: { type: 'acp', source: 'builtin', acp_backend: 'claude' },
+      },
+      prompts: {
+        recommended: [],
+        recommended_i18n: {},
+      },
+    });
+    (ipcBridge.assistants.update.invoke as any).mockResolvedValue({ id: 'claude-user' });
+
+    const assistant: AssistantListItem = {
+      id: 'claude-user',
+      name: 'Claude',
+      agent_id: 'agent-claude',
+      agent: { type: 'acp', source: 'builtin', acp_backend: 'claude' },
+      sort_order: 1,
+      source: 'user',
+      enabled: true,
+    };
+
+    const { result } = renderHook(() =>
+      useAssistantEditor({
+        ...defaultParams,
+        activeAssistant: assistant,
+      })
+    );
+
+    await act(async () => {
+      await result.current.handleEdit(assistant);
+    });
+
+    // Even if a stale value lingers, the non-aionrs assistant should not send
+    // it — the backend would reject the request with 400.
+    act(() => {
+      result.current.setEditPlanModePromptTemplate('This should not be sent');
+    });
+
+    await act(async () => {
+      await result.current.handleSave();
+    });
+
+    const updateArgs = (ipcBridge.assistants.update.invoke as any).mock.calls[0][0];
+    // The field is explicitly added to the request shape but resolved to
+    // undefined for non-aionrs backends so the IPC layer drops it on the
+    // wire. Verify the wire-level value, not just the key presence.
+    expect(updateArgs.plan_mode_prompt_template).toBeUndefined();
+  });
+
+  it('sends plan_mode_prompt_template when creating an assistant with aionrs backend', async () => {
+    (ipcBridge.assistants.create.invoke as any).mockResolvedValue({ id: 'new-aionrs' });
+
+    const { result } = renderHook(() =>
+      useAssistantEditor({
+        ...defaultParams,
+        loadAssistants: vi.fn(),
+        setActiveAssistantId: vi.fn(),
+      })
+    );
+
+    act(() => {
+      result.current.handleCreate();
+      result.current.setEditName('NewAionrs');
+      result.current.setEditAgent('aionrs-agent');
+      result.current.setEditPlanModePromptTemplate('Always emit a plan.');
+    });
+
+    await act(async () => {
+      await result.current.handleSave();
+    });
+
+    expect(ipcBridge.assistants.create.invoke).toHaveBeenCalledWith(
+      expect.objectContaining({
+        plan_mode_prompt_template: 'Always emit a plan.',
+      })
+    );
   });
 });

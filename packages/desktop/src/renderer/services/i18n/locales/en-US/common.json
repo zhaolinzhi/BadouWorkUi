@@ -162,6 +162,7 @@
   "fileAttach.uploading": "Uploading...",
   "fileAttach.uploadSuccess": "Upload successful",
   "fileAttach.cancelUpload": "Cancel upload",
+  "fileAttach.tooLarge": "Text too large to attach — please shorten or split it.",
   "expand": "Expand",
   "name": "Name",
   "added": "Added",

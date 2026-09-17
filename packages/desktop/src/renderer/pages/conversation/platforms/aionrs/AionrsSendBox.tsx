@@ -13,7 +13,7 @@ import MobileActionSheet, {
   type MobileActionSheetOption,
   useAttachEntry,
 } from '@/renderer/components/chat/MobileActionSheet';
-import SendBox from '@/renderer/components/chat/SendBox';
+import SendBox, { type SendBoxHandle } from '@/renderer/components/chat/SendBox';
 import ThoughtDisplay from '@/renderer/components/chat/ThoughtDisplay';
 import FileAttachButton from '@/renderer/components/media/FileAttachButton';
 import FilePreview from '@/renderer/components/media/FilePreview';
@@ -48,7 +48,7 @@ import { collectChatFileRefs, splitChatFileRefs } from '@/renderer/utils/file/me
 import type { AgentModeOption } from '@/renderer/utils/model/agentTypes';
 import { Message, Tag } from '@arco-design/web-react';
 import { Brain, MagicHat, Shield } from '@icon-park/react';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { classifyConversationBusyError } from '../conversationBusyError';
 import { useAionrsMessage } from './useAionrsMessage';
@@ -125,6 +125,7 @@ const AionrsSendBox: React.FC<{
   const [dynamicModes, setDynamicModes] = useState<AgentModeOption[]>([]);
   const [currentMode, setCurrentMode] = useState<string | undefined>(session_mode);
   const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
+  const sendBoxRef = useRef<SendBoxHandle>(null);
   const layout = useLayoutContext();
   const isMobile = Boolean(layout?.isMobile);
   const conversationContext = useConversationContextSafe();
@@ -242,7 +243,7 @@ const AionrsSendBox: React.FC<{
   );
 
   // Shared file handling logic
-  const { handleFilesAdded, clearFiles } = useSendBoxFiles({
+  const { handleFilesAdded, clearFiles, processMessageWithFiles } = useSendBoxFiles({
     atPath,
     uploadFile,
     setAtPath,
@@ -377,6 +378,11 @@ const AionrsSendBox: React.FC<{
   }, [conversation_id, current_model?.use_model, executeCommand]);
 
   const onSendHandler = async (message: string) => {
+    // Ensure content is non-empty when there are pending files — the backend
+    // rejects empty `content` even with files attached. Prepend file refs so
+    // the model sees what is being attached (mirrors `processMessageWithFiles`
+    // semantics used elsewhere).
+    const finalMessage = message.trim() ? message : processMessageWithFiles(message);
     const filesToSend = collectChatFileRefs(uploadFile, atPath);
     clearFiles();
     emitter.emit('aionrs.selected.file.clear');
@@ -388,11 +394,11 @@ const AionrsSendBox: React.FC<{
         hasPendingCommands,
       })
     ) {
-      enqueue({ input: message, files: filesToSend });
+      enqueue({ input: finalMessage, files: filesToSend });
       return;
     }
 
-    await executeCommand({ input: message, files: filesToSend });
+    await executeCommand({ input: finalMessage, files: filesToSend });
   };
 
   const handleEditQueuedCommand = useCallback(
@@ -700,6 +706,7 @@ const AionrsSendBox: React.FC<{
       />
 
       <SendBox
+        ref={sendBoxRef}
         data-testid='aionrs-sendbox'
         onMobilePlusClick={isMobile ? () => setIsMobileSheetOpen(true) : undefined}
         value={content}
@@ -758,14 +765,22 @@ const AionrsSendBox: React.FC<{
           <>
             {uploadFile.length > 0 && (
               <HorizontalFileList>
-                {uploadFile.map((path) => (
-                  <FilePreview
-                    key={path}
-                    data-testid={`aionrs-file-tag-${uploadFile.indexOf(path)}`}
-                    path={path}
-                    onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))}
-                  />
-                ))}
+                {uploadFile.map((path) => {
+                  const handleRemove = () => setUploadFile((prev) => prev.filter((v) => v !== path));
+                  const handleRemoveWithCleanup = () => {
+                    sendBoxRef.current?.forgetPastedOriginalText(path);
+                    handleRemove();
+                  };
+                  return (
+                    <FilePreview
+                      key={path}
+                      data-testid={`aionrs-file-tag-${uploadFile.indexOf(path)}`}
+                      path={path}
+                      inlineAction={sendBoxRef.current?.getPastedTextInlineAction(path, handleRemoveWithCleanup)}
+                      onRemove={handleRemoveWithCleanup}
+                    />
+                  );
+                })}
               </HorizontalFileList>
             )}
             {atPath.some((item) => (typeof item === 'string' ? false : !item.isFile)) && (

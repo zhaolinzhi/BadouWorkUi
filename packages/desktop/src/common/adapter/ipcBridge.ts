@@ -685,6 +685,7 @@ export const application = {
     'app.set-gpu-override'
   ),
   writeRendererLog: bridge.buildProvider<void, IRendererLogEntry>('app.write-renderer-log'),
+  writeRendererLogBatch: bridge.buildProvider<void, IRendererLogEntry[]>('app.write-renderer-log-batch'),
   logStream: bridge.buildEmitter<{ level: 'log' | 'warn' | 'error'; tag: string; message: string; data?: unknown }>(
     'app.log-stream'
   ),

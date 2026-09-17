@@ -162,6 +162,7 @@
   "fileAttach.uploading": "업로드 중...",
   "fileAttach.uploadSuccess": "업로드 성공",
   "fileAttach.cancelUpload": "업로드 취소",
+  "fileAttach.tooLarge": "텍스트가 너무 길어 첨부할 수 없습니다. 짧게 줄이거나 분할해 주세요.",
   "expand": "펼치기",
   "name": "이름",
   "added": "추가됨",

@@ -35,7 +35,16 @@ import { ArrowUp, CloseSmall, Plus, Quote } from '@icon-park/react';
 import { chatFileRefKey } from '@/common/types/chatFile';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import { buildSkillSlashCommands, mergeSlashCommands } from '@/common/chat/slash/mergeSlashCommands';
-import React, { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useImperativeHandle,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { useCompositionInput } from '@renderer/hooks/chat/useCompositionInput';
@@ -61,6 +70,30 @@ const constVoid = (): void => undefined;
 const MAX_SINGLE_LINE_CHARACTERS = 800;
 const BTW_COMMAND_RE = /^\/btw(?:\s+([\s\S]*))?$/i;
 const AT_FILE_HIGHLIGHT_COLOR = 'var(--primary)';
+
+/**
+ * Insert `text` at the caret position of the currently focused textarea (which
+ * must belong to the SendBox instance that owns this `setInput` updater).
+ * Falls back to appending when no focused textarea is found. Used by both the
+ * default paste path and the "paste original text" recovery action on
+ * long-text paste chips.
+ */
+const insertTextAtCaret = (setInput: (value: string) => void, text: string): void => {
+  const textarea = document.activeElement;
+  if (textarea instanceof HTMLTextAreaElement) {
+    const start = textarea.selectionStart ?? textarea.value.length;
+    const end = textarea.selectionEnd ?? start;
+    const currentValue = textarea.value;
+    const newValue = currentValue.slice(0, start) + text + currentValue.slice(end);
+    setInput(newValue);
+    const caret = start + text.length;
+    setTimeout(() => {
+      textarea.setSelectionRange(caret, caret);
+    }, 0);
+  } else {
+    setInput(text);
+  }
+};
 // Max items shown in the `@` dropdown (both data sources); the result panel skin
 // is unbounded (streaming append) — this caps only the inline mention menu.
 const AT_FILE_MENTION_LIMIT = 8;
@@ -175,7 +208,25 @@ function extractBtwQuestion(value: string): string | null {
   return match ? match[1] || '' : null;
 }
 
-const SendBox: React.FC<{
+/**
+ * Imperative handle exposed by SendBox via forwardRef. Lets platform wrappers
+ * (e.g. AionrsSendBox, AcpSendBox) reach into the SendBox-internal usePasteService
+ * to render per-chip inline actions for long-text paste recovery without
+ * coupling their own state to the hook's internals.
+ */
+export interface SendBoxHandle {
+  /**
+   * Returns a ReactNode for the "paste original text to input" inline action
+   * when `path` is a long-text paste file; otherwise returns undefined.
+   * Callers must wire `onRemove` to the chip's remove handler so the chip
+   * disappears when the link is clicked.
+   */
+  getPastedTextInlineAction: (path: string, onRemove: () => void) => React.ReactNode | undefined;
+  /** Drops the cached original text for a long-text paste file (e.g. on chip remove). */
+  forgetPastedOriginalText: (path: string) => void;
+}
+
+type SendBoxProps = {
   value?: string;
   onChange?: (value: string) => void;
   onSend: (message: string) => Promise<void>;
@@ -211,36 +262,41 @@ const SendBox: React.FC<{
   active?: boolean;
   /** Called when the textarea gains focus, so the team layer can sync tab selection. */
   onFocused?: () => void;
-}> = ({
-  onSend,
-  onStop,
-  prefix,
-  className,
-  loading,
-  tools,
-  rightTools,
-  disabled,
-  placeholder,
-  value: input = '',
-  onChange: setInput = constVoid,
-  onFilesAdded,
-  supportedExts = allSupportedExts,
-  defaultMultiLine = false,
-  lockMultiLine = false,
-  sendButtonPrefix,
-  slash_commands = [],
-  onSlashBuiltinCommand,
-  hasPendingAttachments = false,
-  enableBtw = false,
-  allowSendWhileLoading = false,
-  compactActions = false,
-  selectedWorkspaceItems,
-  onSelectedWorkspaceItemsChange,
-  bottomHint,
-  onMobilePlusClick,
-  active = true,
-  onFocused,
-}) => {
+};
+
+const SendBoxInner = (
+  {
+    onSend,
+    onStop,
+    prefix,
+    className,
+    loading,
+    tools,
+    rightTools,
+    disabled,
+    placeholder,
+    value: input = '',
+    onChange: setInput = constVoid,
+    onFilesAdded,
+    supportedExts = allSupportedExts,
+    defaultMultiLine = false,
+    lockMultiLine = false,
+    sendButtonPrefix,
+    slash_commands = [],
+    onSlashBuiltinCommand,
+    hasPendingAttachments = false,
+    enableBtw = false,
+    allowSendWhileLoading = false,
+    compactActions = false,
+    selectedWorkspaceItems,
+    onSelectedWorkspaceItemsChange,
+    bottomHint,
+    onMobilePlusClick,
+    active = true,
+    onFocused,
+  }: SendBoxProps,
+  ref: React.ForwardedRef<SendBoxHandle>
+): React.ReactElement => {
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
   // Mobile compact mode: parent supplies the `+` action sheet, which collapses
@@ -1051,28 +1107,17 @@ const SendBox: React.FC<{
   const { compositionHandlers, isComposingState, createKeyDownHandler } = useCompositionInput();
 
   // 使用共享的PasteService集成
-  const { onPaste, onFocus: handlePasteFocus } = usePasteService({
+  const {
+    onPaste,
+    onFocus: handlePasteFocus,
+    getPastedTextInlineAction,
+    forgetPastedOriginalText,
+  } = usePasteService({
     supportedExts,
     onFilesAdded,
     conversation_id: conversationContext?.conversation_id,
     onTextPaste: (text: string) => {
-      // 处理清理后的文本粘贴，在当前光标位置插入文本而不是替换整个内容
-      const textarea = document.activeElement as HTMLTextAreaElement;
-      if (textarea && textarea.tagName === 'TEXTAREA') {
-        const cursorPosition = textarea.selectionStart;
-        const current_value = textarea.value;
-        const start = textarea.selectionStart ?? textarea.value.length;
-        const end = textarea.selectionEnd ?? start;
-        const newValue = current_value.slice(0, start) + text + current_value.slice(end);
-        setInput(newValue);
-        // 设置光标到插入文本后的位置
-        setTimeout(() => {
-          textarea.setSelectionRange(cursorPosition + text.length, cursorPosition + text.length);
-        }, 0);
-      } else {
-        // 如果无法获取光标位置，回退到追加到末尾的行为
-        setInput(text);
-      }
+      insertTextAtCaret(setInput, text);
     },
   });
   const markMobileFocusIntent = useCallback(() => {
@@ -1275,7 +1320,7 @@ const SendBox: React.FC<{
       message.warning(t('messages.conversationInProgress'));
       return;
     }
-    if (!input.trim() && domSnippets.length === 0) {
+    if (!input.trim() && domSnippets.length === 0 && !hasPendingAttachments) {
       return;
     }
     console.info('[sendbox]', {
@@ -1356,10 +1401,11 @@ const SendBox: React.FC<{
   );
   const { handleLiveTranscript } = useLiveTranscriptInsertion(speechDispatch.dispatch);
 
-  const hasDraftToSend = input.trim().length > 0 || domSnippets.length > 0;
+  const hasDraftToSend = input.trim().length > 0 || domSnippets.length > 0 || hasPendingAttachments;
 
   // Calculate button disabled state
-  const isButtonDisabled = disabled || isUploading || (!input.trim() && domSnippets.length === 0);
+  const isButtonDisabled =
+    disabled || isUploading || (!input.trim() && domSnippets.length === 0 && !hasPendingAttachments);
 
   // Reusable send button component
   const sendButton = (
@@ -1464,6 +1510,17 @@ const SendBox: React.FC<{
 
     return segments;
   }, [allAtFileQueries, input]);
+
+  // Expose paste-text recovery helpers to platform wrappers via forwardRef.
+  // Placed after the last hook so React's hook-call order stays stable.
+  useImperativeHandle(
+    ref,
+    () => ({
+      getPastedTextInlineAction,
+      forgetPastedOriginalText,
+    }),
+    [getPastedTextInlineAction, forgetPastedOriginalText]
+  );
 
   return (
     <div className={className}>
@@ -1756,5 +1813,7 @@ const SendBox: React.FC<{
     </div>
   );
 };
+
+const SendBox = React.forwardRef<SendBoxHandle, SendBoxProps>(SendBoxInner);
 
 export default SendBox;

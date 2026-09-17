@@ -191,6 +191,14 @@ export async function httpRequest<T>(
     Object.assign(headers, options.headers);
   }
 
+  // Perf instrumentation: segment the fetch call so a slow `conversation.get`
+  // can be split into pre-fetch (renderer/queueing) vs in-flight (HTTP+server).
+  // Goes through the main-process console (which writes the daily log via
+  // electron-log) so we capture both sides without depending on the renderer
+  // perf module from this common package.
+  const startedAt = performance.now();
+  const safePath = path.replace(/\?.*$/, '');
+
   console.debug(
     `[httpBridge] ${method} ${path}`,
     body !== undefined ? JSON.stringify(redactForLog(body)).slice(0, 500) : '(no body)'
@@ -201,6 +209,10 @@ export async function httpRequest<T>(
     headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
+  const fetchEndedAt = performance.now();
+  console.debug(
+    `[httpBridge-perf] ${method} ${safePath} → ${response.status} fetchMs=${(fetchEndedAt - startedAt).toFixed(2)}`
+  );
 
   if (!response.ok) {
     // Response body can only be consumed once — read as text, then try JSON

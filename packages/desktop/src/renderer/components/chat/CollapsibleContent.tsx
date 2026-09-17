@@ -5,6 +5,7 @@
  */
 
 import { useThemeContext } from '@/renderer/hooks/context/ThemeContext';
+import { isSiderAnimating, SIDER_ANIMATION_WINDOW_MS } from '@/renderer/utils/ui/siderAnimation';
 import { Down, Up } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -98,11 +99,26 @@ export const CollapsibleContent: React.FC<CollapsibleContentProps> = ({
 
     // 检测内容高度的辅助函数 Helper function to check content height
     let rafId: number | null = null;
+    let settleTimerId: ReturnType<typeof setTimeout> | null = null;
+    const update = () => {
+      const contentHeight = element.scrollHeight;
+      setNeedsCollapse(contentHeight > maxHeight);
+    };
     const scheduleHeightCheck = () => {
-      const update = () => {
-        const contentHeight = element.scrollHeight;
-        setNeedsCollapse(contentHeight > maxHeight);
-      };
+      // While the sider width transition is in flight the column reflows every
+      // frame; measuring now would force a synchronous layout per frame and
+      // fight the animation (see siderAnimation.ts). The trailing
+      // ResizeObserver callbacks coalesce into one deferred measurement.
+      if (isSiderAnimating()) {
+        if (settleTimerId !== null) {
+          clearTimeout(settleTimerId);
+        }
+        settleTimerId = setTimeout(() => {
+          settleTimerId = null;
+          update();
+        }, SIDER_ANIMATION_WINDOW_MS);
+        return;
+      }
 
       if (typeof window !== 'undefined' && 'requestAnimationFrame' in window) {
         if (rafId !== null) {
@@ -132,6 +148,9 @@ export const CollapsibleContent: React.FC<CollapsibleContentProps> = ({
         if (rafId !== null) {
           cancelAnimationFrame(rafId);
         }
+        if (settleTimerId !== null) {
+          clearTimeout(settleTimerId);
+        }
         resizeObserver.disconnect();
       };
     } else {
@@ -142,6 +161,9 @@ export const CollapsibleContent: React.FC<CollapsibleContentProps> = ({
         clearTimeout(timer);
         if (rafId !== null) {
           cancelAnimationFrame(rafId);
+        }
+        if (settleTimerId !== null) {
+          clearTimeout(settleTimerId);
         }
       };
     }

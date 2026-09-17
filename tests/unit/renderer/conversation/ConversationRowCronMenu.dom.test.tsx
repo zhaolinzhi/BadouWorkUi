@@ -35,7 +35,6 @@ vi.mock('@/renderer/utils/model/agentLogo', () => ({
 
 vi.mock('@/renderer/utils/ui/siderTooltip', () => ({
   cleanupSiderTooltips: vi.fn(),
-  getSiderTooltipProps: () => ({ disabled: true }),
 }));
 
 import ConversationRow from '@/renderer/pages/conversation/GroupedHistory/ConversationRow';
@@ -55,8 +54,6 @@ const makeProps = (overrides: Partial<ConversationRowProps> = {}): ConversationR
   conversation,
   isGenerating: false,
   hasCompletionUnread: false,
-  collapsed: false,
-  tooltipEnabled: false,
   batchMode: false,
   checked: false,
   selected: false,

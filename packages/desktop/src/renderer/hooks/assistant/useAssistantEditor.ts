@@ -1,6 +1,11 @@
 import { ipcBridge } from '@/common';
 import type { IMcpServer } from '@/common/config/storage';
-import type { Assistant, CreateAssistantRequest, UpdateAssistantRequest } from '@/common/types/agent/assistantTypes';
+import {
+  isAionrsAssistant,
+  type Assistant,
+  type CreateAssistantRequest,
+  type UpdateAssistantRequest,
+} from '@/common/types/agent/assistantTypes';
 import type { Message } from '@arco-design/web-react';
 import type {
   AssistantListItem,
@@ -15,6 +20,7 @@ import { assistantOrderAfterToggle, selectableAssistants } from '@/renderer/util
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { mutate as swrMutate } from 'swr';
+import { useManagedAgentRuntimeCatalog } from '@/renderer/hooks/agent/useManagedAgents';
 
 type UseAssistantEditorParams = {
   localeKey: string;
@@ -77,6 +83,19 @@ export const useAssistantEditor = ({
 }: UseAssistantEditorParams) => {
   const { t } = useTranslation();
   const previousLocaleKeyRef = useRef(localeKey);
+  const managedAgentRuntimeCatalog = useManagedAgentRuntimeCatalog();
+  const resolveAgentRuntimeKey = useCallback(
+    (agentId: string | undefined) => {
+      if (!agentId) return '';
+      const match = managedAgentRuntimeCatalog.find((agent) => agent.id === agentId);
+      if (!match) return '';
+      // Prefer the explicit backend (e.g. an extension's `acp` runtime);
+      // fall back to the agent type so catalog entries without a backend
+      // still match the wire key that the backend will see.
+      return match.backend || match.agent_type || '';
+    },
+    [managedAgentRuntimeCatalog]
+  );
 
   const [editVisible, setEditVisible] = useState(false);
   const [editName, setEditName] = useState('');
@@ -86,6 +105,7 @@ export const useAssistantEditor = ({
   const [editAvatarPreview, setEditAvatarPreview] = useState<string | undefined>(undefined);
   const [editAgent, setEditAgentState] = useState<string>('');
   const [editRecommendedPromptsText, setEditRecommendedPromptsText] = useState('');
+  const [editPlanModePromptTemplate, setEditPlanModePromptTemplate] = useState('');
   const [defaultModelMode, setDefaultModelMode] = useState<AssistantScalarDefaultMode>('auto');
   const [defaultModelValue, setDefaultModelValue] = useState('');
   const [defaultPermissionMode, setDefaultPermissionMode] = useState<AssistantScalarDefaultMode>('auto');
@@ -171,6 +191,7 @@ export const useAssistantEditor = ({
         );
         setEditContext(detail.rules.content || '');
         setEditRecommendedPromptsText(resolveLocalizedRecommendedPrompts(detail, localeKey).join('\n'));
+        setEditPlanModePromptTemplate(detail.prompts.plan_mode_prompt_template ?? '');
       })
       .catch((error) => {
         console.error('Failed to refresh builtin assistant locale data:', error);
@@ -192,6 +213,7 @@ export const useAssistantEditor = ({
 
   const resetDefaultConfigState = useCallback(() => {
     setEditRecommendedPromptsText('');
+    setEditPlanModePromptTemplate('');
     setDefaultModelMode('auto');
     setDefaultModelValue('');
     setDefaultPermissionMode('auto');
@@ -255,6 +277,7 @@ export const useAssistantEditor = ({
       setEditAgent(detail.engine.agent_id || assistant.agent_id || '');
       setEditContext(detail.rules.content || '');
       setEditRecommendedPromptsText(resolveLocalizedRecommendedPrompts(detail, localeKey).join('\n'));
+      setEditPlanModePromptTemplate(detail.prompts.plan_mode_prompt_template ?? '');
       setDefaultModelMode(detail.defaults.model.mode === 'fixed' ? 'fixed' : 'auto');
       setDefaultModelValue(detail.defaults.model.value || '');
       setDefaultPermissionMode(detail.defaults.permission.mode === 'fixed' ? 'fixed' : 'auto');
@@ -328,6 +351,7 @@ export const useAssistantEditor = ({
       const { detail, skillsList, autoSkills, mcpServers } = await loadEditorResources(assistant.id);
       setEditContext(detail.rules.content || '');
       setEditRecommendedPromptsText(resolveLocalizedRecommendedPrompts(detail, localeKey).join('\n'));
+      setEditPlanModePromptTemplate(detail.prompts.plan_mode_prompt_template ?? '');
       setDefaultModelMode(detail.defaults.model.mode === 'fixed' ? 'fixed' : 'auto');
       setDefaultModelValue(detail.defaults.model.value || '');
       setDefaultPermissionMode(detail.defaults.permission.mode === 'fixed' ? 'fixed' : 'auto');
@@ -432,6 +456,17 @@ export const useAssistantEditor = ({
         .split('\n')
         .map((prompt) => prompt.trim())
         .filter(Boolean);
+      // The backend rejects `plan_mode_prompt_template` for non-aionrs agents
+      // (HTTP 400). Resolve the effective runtime for whichever path we're on —
+      // existing assistants carry their agent type on the assistant row, while
+      // a fresh create has to look the runtime up from the selected agent id.
+      const persistedAgentIsAionrs = Boolean(activeAssistant && isAionrsAssistant(activeAssistant));
+      const editingAgentIsAionrs = isCreating ? resolveAgentRuntimeKey(editAgent) === 'aionrs' : persistedAgentIsAionrs;
+      // Empty / whitespace strings mean "clear the override". Always send a
+      // string when the editing assistant targets aionrs so the user's edit
+      // (including intentional clears) is persisted; skip the field entirely
+      // for other backends so we don't trip the 400 guard.
+      const planModePromptTemplatePayload = editingAgentIsAionrs ? editPlanModePromptTemplate : undefined;
       const defaults = {
         model:
           defaultModelMode === 'fixed'
@@ -459,6 +494,7 @@ export const useAssistantEditor = ({
           custom_skill_names: finalCustomSkills,
           disabled_builtin_skills: disabledBuiltinSkills.length > 0 ? disabledBuiltinSkills : undefined,
           recommended_prompts: recommendedPrompts,
+          plan_mode_prompt_template: planModePromptTemplatePayload,
           defaults,
         };
         const created = await ipcBridge.assistants.create.invoke(createRequest);
@@ -489,6 +525,7 @@ export const useAssistantEditor = ({
                   ? { mode: 'fixed', value: defaultThoughtLevelValue.trim() }
                   : { mode: defaultThoughtLevelMode },
             },
+            plan_mode_prompt_template: planModePromptTemplatePayload,
           };
         } else if (isGeneratedAssistant(activeAssistant)) {
           updateRequest = {
@@ -498,6 +535,7 @@ export const useAssistantEditor = ({
             custom_skill_names: finalCustomSkills,
             disabled_builtin_skills: disabledBuiltinSkills.length > 0 ? disabledBuiltinSkills : undefined,
             recommended_prompts: recommendedPrompts,
+            plan_mode_prompt_template: planModePromptTemplatePayload,
             defaults,
           };
         } else {
@@ -511,6 +549,7 @@ export const useAssistantEditor = ({
             custom_skill_names: finalCustomSkills,
             disabled_builtin_skills: disabledBuiltinSkills.length > 0 ? disabledBuiltinSkills : undefined,
             recommended_prompts: recommendedPrompts,
+            plan_mode_prompt_template: planModePromptTemplatePayload,
             defaults,
           };
         }
@@ -621,6 +660,8 @@ export const useAssistantEditor = ({
     setEditAgent,
     editRecommendedPromptsText,
     setEditRecommendedPromptsText,
+    editPlanModePromptTemplate,
+    setEditPlanModePromptTemplate,
     defaultModelMode,
     setDefaultModelMode,
     defaultModelValue,

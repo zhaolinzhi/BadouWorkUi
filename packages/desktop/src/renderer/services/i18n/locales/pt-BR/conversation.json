@@ -573,7 +573,8 @@
   },
   "sendbox": {
     "hint": "Digite / para comandos, @ para referenciar arquivos, ↑/↓ para o histórico de mensagens",
-    "mediaPathFallback": "Este agente não tem suporte nativo para este tipo de arquivo; ele será enviado como um caminho de arquivo."
+    "mediaPathFallback": "Este agente não tem suporte nativo para este tipo de arquivo; ele será enviado como um caminho de arquivo.",
+    "pasteOriginalText": "Colar texto original na caixa de entrada"
   },
   "agentTip": {
     "codes": {

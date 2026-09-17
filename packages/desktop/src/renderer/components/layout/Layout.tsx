@@ -10,7 +10,7 @@ import PwaPullToRefresh from '@/renderer/components/layout/PwaPullToRefresh';
 import Titlebar from '@/renderer/components/layout/Titlebar';
 import { Layout as ArcoLayout, Tooltip } from '@arco-design/web-react';
 import classNames from 'classnames';
-import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { setGlobalNavigate } from '@/renderer/utils/navigation';
@@ -28,13 +28,15 @@ import { dispatchWorkspaceToggleEvent } from '@renderer/utils/workspace/workspac
 import { MIN_PREVIEW_PANEL_PX } from '@renderer/pages/conversation/utils/layoutCalc';
 import { PreviewPanel } from '@renderer/pages/conversation/Preview';
 import { ExpandLeft } from '@icon-park/react';
-import { LayoutContext } from '@renderer/hooks/context/LayoutContext';
+import { LayoutContext, SiderCollapsedContext } from '@renderer/hooks/context/LayoutContext';
+import { useSiderCollapsed } from '@renderer/hooks/ui/useSiderCollapsed';
 import { NavigationHistoryProvider } from '@renderer/hooks/context/NavigationHistoryContext';
 import { useDeepLink } from '@renderer/hooks/system/useDeepLink';
 import { useNotificationClick } from '@renderer/hooks/system/notification/useNotificationClick';
 import { useBrowserNotification } from '@renderer/hooks/system/notification/useBrowserNotification';
 import { useDesktopTurnNotification } from '@renderer/hooks/system/notification/useDesktopTurnNotification';
 import { cleanupSiderTooltips } from '@renderer/utils/ui/siderTooltip';
+import { SIDER_ANIMATING_CLASS, SIDER_ANIMATION_WINDOW_MS } from '@renderer/utils/ui/siderAnimation';
 import { useConversationShortcuts } from '@renderer/hooks/ui/useConversationShortcuts';
 import { isElectronDesktop } from '@renderer/utils/platform';
 import { IS_DISCONTINUED_BUILD } from '@/renderer/utils/discontinuedBuild';
@@ -94,7 +96,7 @@ const useDebug = () => {
 const UpdateModal = React.lazy(() => import('@/renderer/components/settings/UpdateModal'));
 
 const DEFAULT_SIDER_WIDTH = 260;
-const DESKTOP_COLLAPSED_WIDTH = 48;
+const DESKTOP_COLLAPSED_WIDTH = 64;
 const SIDER_DRAG_SNAP_THRESHOLD = Math.round((DEFAULT_SIDER_WIDTH + DESKTOP_COLLAPSED_WIDTH) / 2);
 const SIDER_DRAG_HYSTERESIS = 6;
 const MOBILE_SIDER_WIDTH_RATIO = 0.67;
@@ -120,11 +122,11 @@ const Layout: React.FC<{
   sider: React.ReactNode;
   onSessionClick?: () => void;
 }> = ({ sider, onSessionClick: _onSessionClick }) => {
-  const [collapsed, setCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [viewportWidth, setViewportWidth] = useState<number>(() =>
     typeof window === 'undefined' ? 390 : window.innerWidth
   );
+  const { collapsed, setCollapsed } = useSiderCollapsed({ isMobile });
   const { onClick } = useDebug();
   useDeepLink();
   useNotificationClick();
@@ -135,8 +137,17 @@ const Layout: React.FC<{
   const workspaceAvailable =
     location.pathname.startsWith('/conversation/') || (TEAM_MODE_ENABLED && location.pathname.startsWith('/team/'));
   const toggleSider = useCallback(() => {
-    setCollapsed((previous) => !previous);
-  }, []);
+    setCollapsed(!collapsed);
+  }, [collapsed]);
+  // Stable identity matters: this is passed to the sider via cloneElement on
+  // every Layout render. An inline arrow would give the sider (and through it
+  // the memoized conversation list) fresh props on every single render — which
+  // at 60fps during the width animation re-rendered the whole history list
+  // every frame.
+  const handleSiderSessionClick = useCallback(() => {
+    cleanupSiderTooltips();
+    if (isMobile) setCollapsed(true);
+  }, [isMobile, setCollapsed]);
   useConversationShortcuts({ navigate, toggleSider });
   // Expose navigate to code running outside the Router tree (e.g. the globally
   // mounted FeedbackReportModal's "via chat" action).
@@ -262,6 +273,27 @@ const Layout: React.FC<{
   useEffect(() => {
     cleanupSiderTooltips();
   }, [isMobile, collapsed, location.pathname, location.search, location.hash]);
+
+  // Flag the sider's width-transition window on <body> whenever `collapsed`
+  // flips. During that window every frame reflows the sider and the main
+  // content; CSS skips row-level padding/margin transitions and
+  // CollapsibleContent defers its measurements until the width settles.
+  // Skipped on mobile (no width transition there) and when `collapsed` did
+  // not actually change (e.g. an `isMobile` flip alone).
+  const prevCollapsedForAnimationRef = useRef(collapsed);
+  useLayoutEffect(() => {
+    const changed = prevCollapsedForAnimationRef.current !== collapsed;
+    prevCollapsedForAnimationRef.current = collapsed;
+    if (!changed || isMobile || typeof document === 'undefined') return undefined;
+    document.body.classList.add(SIDER_ANIMATING_CLASS);
+    const timer = setTimeout(() => {
+      document.body.classList.remove(SIDER_ANIMATING_CLASS);
+    }, SIDER_ANIMATION_WINDOW_MS);
+    return () => {
+      clearTimeout(timer);
+      document.body.classList.remove(SIDER_ANIMATING_CLASS);
+    };
+  }, [collapsed, isMobile]);
 
   // Bridge Main Process logs to F12 Console
   useEffect(() => {
@@ -395,239 +427,251 @@ const Layout: React.FC<{
         overflow: 'visible' as const,
       };
 
+  // Stable `value` shape — without this memo the context value is a fresh
+  // object on every Layout render, defeating the entire point of context and
+  // forcing every `useLayoutContext` consumer (Sider, GroupedHistory, every
+  // ConversationRow, TeamSiderSection …) to re-render on any Layout commit.
+  // `setSiderCollapsed` is itself a stable `useCallback([isMobile])`, so this
+  // memo's value only changes when `isMobile` flips.
+  const layoutContextValue = useMemo(() => ({ isMobile, setSiderCollapsed: setCollapsed }), [isMobile, setCollapsed]);
+  // Sider collapsed state lives in a second context so a toggle does not
+  // re-render the 30+ consumers that only need `isMobile` (SendBox, ShadowView
+  // per markdown message, model selectors, settings pages, …). Only Titlebar
+  // and `useVisibleConversationIds` subscribe here.
+  const siderCollapsedContextValue = useMemo(() => ({ siderCollapsed: collapsed }), [collapsed]);
+
   return (
-    <LayoutContext.Provider value={{ isMobile, siderCollapsed: collapsed, setSiderCollapsed: setCollapsed }}>
-      <NavigationHistoryProvider>
-        <div className='app-shell flex flex-col size-full min-h-0'>
-          <Titlebar workspaceAvailable={workspaceAvailable} />
-          {/* 移动端左侧边栏蒙板 / Mobile left sider backdrop */}
-          {isMobile && !collapsed && (
-            <div className='fixed inset-0 bg-black/30 z-90' onClick={() => setCollapsed(true)} aria-hidden='true' />
-          )}
+    <LayoutContext.Provider value={layoutContextValue}>
+      <SiderCollapsedContext.Provider value={siderCollapsedContextValue}>
+        <NavigationHistoryProvider>
+          <div className='app-shell flex flex-col size-full min-h-0'>
+            <Titlebar workspaceAvailable={workspaceAvailable} />
+            {/* 移动端左侧边栏蒙板 / Mobile left sider backdrop */}
+            {isMobile && !collapsed && (
+              <div className='fixed inset-0 bg-black/30 z-90' onClick={() => setCollapsed(true)} aria-hidden='true' />
+            )}
 
-          <ArcoLayout className={'size-full layout flex-1 min-h-0'}>
-            <ArcoLayout.Sider
-              collapsedWidth={isMobile ? 0 : 48}
-              collapsed={collapsed}
-              width={siderWidth}
-              className={classNames('!bg-2 layout-sider', {
-                collapsed: collapsed,
-              })}
-              style={siderStyle}
-            >
-              <ArcoLayout.Header
-                className={classNames(
-                  'flex items-center pt-8px pb-8px gap-12px layout-sider-header',
-                  collapsed ? 'justify-center pl-0 pr-0' : 'justify-start pl-18px pr-16px',
-                  isMobile && 'layout-sider-header--mobile',
-                  {
-                    'cursor-pointer group ': collapsed,
-                  }
-                )}
+            <ArcoLayout className={'size-full layout flex-1 min-h-0'}>
+              <ArcoLayout.Sider
+                collapsedWidth={isMobile ? 0 : 64}
+                collapsed={collapsed}
+                width={siderWidth}
+                className={classNames('!bg-2 layout-sider', {
+                  collapsed: collapsed,
+                })}
+                style={siderStyle}
               >
-                <div
-                  className={classNames('shrink-0 size-32px relative rd-0.5rem', {
-                    '!size-24px': collapsed,
-                  })}
-                  onClick={onClick}
+                <ArcoLayout.Header
+                  className={classNames(
+                    'flex items-center pt-8px pb-8px gap-12px layout-sider-header',
+                    collapsed ? 'justify-center pl-0 pr-0' : 'justify-start pl-18px pr-16px',
+                    isMobile && 'layout-sider-header--mobile',
+                    {
+                      'cursor-pointer group ': collapsed,
+                    }
+                  )}
                 >
-                  {/*<svg*/}
-                  {/*  className={classNames('w-5.5 h-5.5 absolute inset-0 m-auto', {*/}
-                  {/*    'scale-140': !collapsed,*/}
-                  {/*  })}*/}
-                  {/*  viewBox='0 0 80 80'*/}
-                  {/*  fill='none'*/}
-                  {/*>*/}
-                  {/*  <path*/}
-                  {/*    key='logo-path-1'*/}
-                  {/*    d='M40 20 Q38 22 25 40 Q23 42 26 42 L30 42 Q32 40 40 30 Q48 40 50 42 L54 42 Q57 42 55 40 Q42 22 40 20'*/}
-                  {/*    fill='white'*/}
-                  {/*  ></path>*/}
-                  {/*  <circle key='logo-circle' cx='40' cy='46' r='3' fill='white'></circle>*/}
-                  {/*  <path*/}
-                  {/*    key='logo-path-2'*/}
-                  {/*    d='M18 50 Q40 70 62 50'*/}
-                  {/*    stroke='white'*/}
-                  {/*    strokeWidth='3.5'*/}
-                  {/*    fill='none'*/}
-                  {/*    strokeLinecap='round'*/}
-                  {/*  ></path>*/}
-                  {/*</svg>*/}
-                  <img
-                    src={logoImage}
-                    alt='logo'
-                    className={classNames('w-5.5 h-5.5 absolute inset-0 m-auto object-contain app-img', {
-                      'scale-140': !collapsed,
+                  <div
+                    className={classNames('shrink-0 size-32px relative rd-0.5rem', {
+                      '!size-24px': collapsed,
                     })}
-                  />
-                </div>
-                {isSettingsRoute ? (
-                  <Tooltip content={t('common.back', { defaultValue: 'Back to Chat' })} position='bottom'>
-                    <div
-                      className='text-16px text-t-primary collapsed-hidden font-semibold cursor-pointer'
-                      role='button'
-                      tabIndex={0}
-                      aria-label={t('common.back', { defaultValue: 'Back to Chat' })}
-                      onClick={handleBrandHome}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter' || event.key === ' ') {
-                          event.preventDefault();
-                          handleBrandHome();
-                        }
-                      }}
-                    >
-                      BadouWork
-                    </div>
-                  </Tooltip>
-                ) : (
-                  <div className='text-16px text-t-primary collapsed-hidden font-semibold'>BadouWork</div>
-                )}
-                {isMobile && !collapsed && (
-                  <button
-                    type='button'
-                    className='app-titlebar__button app-titlebar__button--mobile'
-                    onClick={() => setCollapsed(true)}
-                    title='Collapse sidebar'
-                    aria-label='Collapse sidebar'
+                    onClick={onClick}
                   >
-                    <SidebarIcon size={18} strokeWidth={2.5} />
-                  </button>
+                    {/*<svg*/}
+                    {/*  className={classNames('w-5.5 h-5.5 absolute inset-0 m-auto', {*/}
+                    {/*    'scale-140': !collapsed,*/}
+                    {/*  })}*/}
+                    {/*  viewBox='0 0 80 80'*/}
+                    {/*  fill='none'*/}
+                    {/*>*/}
+                    {/*  <path*/}
+                    {/*    key='logo-path-1'*/}
+                    {/*    d='M40 20 Q38 22 25 40 Q23 42 26 42 L30 42 Q32 40 40 30 Q48 40 50 42 L54 42 Q57 42 55 40 Q42 22 40 20'*/}
+                    {/*    fill='white'*/}
+                    {/*  ></path>*/}
+                    {/*  <circle key='logo-circle' cx='40' cy='46' r='3' fill='white'></circle>*/}
+                    {/*  <path*/}
+                    {/*    key='logo-path-2'*/}
+                    {/*    d='M18 50 Q40 70 62 50'*/}
+                    {/*    stroke='white'*/}
+                    {/*    strokeWidth='3.5'*/}
+                    {/*    fill='none'*/}
+                    {/*    strokeLinecap='round'*/}
+                    {/*  ></path>*/}
+                    {/*</svg>*/}
+                    <img
+                      src={logoImage}
+                      alt='logo'
+                      className={classNames('w-5.5 h-5.5 absolute inset-0 m-auto object-contain app-img', {
+                        'scale-140': !collapsed,
+                      })}
+                    />
+                  </div>
+                  {isSettingsRoute ? (
+                    <Tooltip content={t('common.back', { defaultValue: 'Back to Chat' })} position='bottom'>
+                      <div
+                        className='text-16px text-t-primary collapsed-hidden font-semibold cursor-pointer'
+                        role='button'
+                        tabIndex={0}
+                        aria-label={t('common.back', { defaultValue: 'Back to Chat' })}
+                        onClick={handleBrandHome}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            handleBrandHome();
+                          }
+                        }}
+                      >
+                        BadouWork
+                      </div>
+                    </Tooltip>
+                  ) : (
+                    <div className='text-16px text-t-primary collapsed-hidden font-semibold'>BadouWork</div>
+                  )}
+                  {isMobile && !collapsed && (
+                    <button
+                      type='button'
+                      className='app-titlebar__button app-titlebar__button--mobile'
+                      onClick={() => setCollapsed(true)}
+                      title='Collapse sidebar'
+                      aria-label='Collapse sidebar'
+                    >
+                      <SidebarIcon size={18} strokeWidth={2.5} />
+                    </button>
+                  )}
+                  {/* 侧栏折叠改由标题栏统一控制 / Sidebar folding handled by Titlebar toggle */}
+                </ArcoLayout.Header>
+                <ArcoLayout.Content className='pt-0 px-8px pb-0 layout-sider-content'>
+                  {React.isValidElement(sider)
+                    ? React.cloneElement(sider, {
+                        onSessionClick: handleSiderSessionClick,
+                        collapsed,
+                      } as any)
+                    : sider}
+                </ArcoLayout.Content>
+                {!isMobile && (
+                  <div
+                    className='absolute top-0 h-full w-8px z-20 cursor-col-resize group'
+                    style={{ right: '-4px' }}
+                    onMouseDown={beginSiderResizeDrag}
+                    aria-hidden='true'
+                  >
+                    <div className='absolute top-0 left-1/2 h-full w-1px -translate-x-1/2 bg-transparent group-hover:bg-[var(--color-border-2)] transition-colors duration-150' />
+                  </div>
                 )}
-                {/* 侧栏折叠改由标题栏统一控制 / Sidebar folding handled by Titlebar toggle */}
-              </ArcoLayout.Header>
-              <ArcoLayout.Content className='pt-0 px-8px pb-0 layout-sider-content'>
-                {React.isValidElement(sider)
-                  ? React.cloneElement(sider, {
-                      onSessionClick: () => {
-                        cleanupSiderTooltips();
-                        if (isMobile) setCollapsed(true);
-                      },
-                      collapsed,
-                    } as any)
-                  : sider}
-              </ArcoLayout.Content>
-              {!isMobile && (
-                <div
-                  className='absolute top-0 h-full w-8px z-20 cursor-col-resize group'
-                  style={{ right: '-4px' }}
-                  onMouseDown={beginSiderResizeDrag}
-                  aria-hidden='true'
-                >
-                  <div className='absolute top-0 left-1/2 h-full w-1px -translate-x-1/2 bg-transparent group-hover:bg-[var(--color-border-2)] transition-colors duration-150' />
-                </div>
-              )}
-            </ArcoLayout.Sider>
+              </ArcoLayout.Sider>
 
-            {/* Content + project Explorer share one measured flex row (stage3
+              {/* Content + project Explorer share one measured flex row (stage3
                 FULL / P2). `mainRowRef` gives the [content|explorer] width for the
                 explorer clamp (independent of the split → non-circular). The
                 explorer column is a sibling of the route content, above the
                 per-conversation subtree → persists across same-project switches. */}
-            <div ref={mainRowRef} className='flex flex-1 min-h-0 overflow-hidden'>
-              <ArcoLayout.Content
-                className={'bg-1 layout-content flex flex-col min-h-0 flex-1'}
-                onClick={() => {
-                  if (isMobile && !collapsed) setCollapsed(true);
-                }}
-                style={
-                  isMobile
-                    ? {
-                        width: '100%',
-                      }
-                    : undefined
-                }
-              >
-                <Outlet />
-                <PwaPullToRefresh />
-                {/*<Suspense fallback={null}>*/}
-                {/*  <UpdateModal />*/}
-                {/*</Suspense>*/}
-                {IS_DISCONTINUED_BUILD && <UpdateMigrationDialog />}
-              </ArcoLayout.Content>
-              {/* Hoisted preview region (project conversations only). Structurally
+              <div ref={mainRowRef} className='flex flex-1 min-h-0 overflow-hidden'>
+                <ArcoLayout.Content
+                  className={'bg-1 layout-content flex flex-col min-h-0 flex-1'}
+                  onClick={() => {
+                    if (isMobile && !collapsed) setCollapsed(true);
+                  }}
+                  style={
+                    isMobile
+                      ? {
+                          width: '100%',
+                        }
+                      : undefined
+                  }
+                >
+                  <Outlet />
+                  <PwaPullToRefresh />
+                  {/*<Suspense fallback={null}>*/}
+                  {/*  <UpdateModal />*/}
+                  {/*</Suspense>*/}
+                  {IS_DISCONTINUED_BUILD && <UpdateMigrationDialog />}
+                </ArcoLayout.Content>
+                {/* Hoisted preview region (project conversations only). Structurally
                   persistent: lives above the per-conversation subtree, so a
                   same-project conversation switch does not remount it. */}
-              {previewRegionActive && (
-                <div
-                  data-project-preview-region
-                  className='preview-panel flex flex-col relative overflow-visible'
-                  style={{
-                    width: `${Math.round(previewWidthPx)}px`,
-                    flexGrow: 0,
-                    flexShrink: 0,
-                    // 只保留左边框作为与会话区的分界；上/右/下不留边距，
-                    // 否则窗口底色会从缝隙里透出来（深色模式下尤其突兀）。
-                    // Left border only, as the divider from the chat area. No outer
-                    // margins: any gap would expose the window's own background,
-                    // which is jarring in dark mode.
-                    borderLeft: '1px solid var(--bg-3)',
-                    minWidth: `${MIN_PREVIEW_PANEL_PX}px`,
-                    boxSizing: 'border-box',
-                  }}
-                >
-                  {createPreviewRegionDragHandle({
-                    className: 'absolute top-0 bottom-0 z-30',
-                    style: { width: '20px', left: '-20px' },
-                    reverse: true,
-                    linePlacement: 'end',
-                    lineClassName: 'opacity-30 group-hover:opacity-100 group-active:opacity-100',
-                    lineStyle: { width: '2px' },
-                  })}
-                  <div className='h-full w-full overflow-hidden'>
-                    <PreviewPanel />
+                {previewRegionActive && (
+                  <div
+                    data-project-preview-region
+                    className='preview-panel flex flex-col relative overflow-visible'
+                    style={{
+                      width: `${Math.round(previewWidthPx)}px`,
+                      flexGrow: 0,
+                      flexShrink: 0,
+                      // 只保留左边框作为与会话区的分界；上/右/下不留边距，
+                      // 否则窗口底色会从缝隙里透出来（深色模式下尤其突兀）。
+                      // Left border only, as the divider from the chat area. No outer
+                      // margins: any gap would expose the window's own background,
+                      // which is jarring in dark mode.
+                      borderLeft: '1px solid var(--bg-3)',
+                      minWidth: `${MIN_PREVIEW_PANEL_PX}px`,
+                      boxSizing: 'border-box',
+                    }}
+                  >
+                    {createPreviewRegionDragHandle({
+                      className: 'absolute top-0 bottom-0 z-30',
+                      style: { width: '20px', left: '-20px' },
+                      reverse: true,
+                      linePlacement: 'end',
+                      lineClassName: 'opacity-30 group-hover:opacity-100 group-active:opacity-100',
+                      lineStyle: { width: '2px' },
+                    })}
+                    <div className='h-full w-full overflow-hidden'>
+                      <PreviewPanel />
+                    </div>
                   </div>
-                </div>
+                )}
+                {!isMobile && (
+                  <ProjectPanelHost
+                    widthPx={explorerWidthPx}
+                    collapsed={explorerCollapsed}
+                    onToggle={toggleExplorer}
+                    showChevron={!isMacRuntime}
+                    dragHandle={createExplorerDragHandle({
+                      className: 'absolute left-0 top-0 bottom-0 z-20',
+                      reverse: true,
+                    })}
+                  />
+                )}
+              </div>
+
+              {/* Desktop expand button when the explorer is collapsed. Not on mac
+                (the Titlebar workspace button owns the toggle there). */}
+              {!isMobile && !isMacRuntime && Boolean(currentProject) && explorerCollapsed && (
+                <button
+                  type='button'
+                  className='workspace-toggle-floating fixed z-101 flex items-center justify-center'
+                  style={{
+                    top: '50%',
+                    right: '0px',
+                    transform: 'translateY(-50%)',
+                    width: '20px',
+                    height: '64px',
+                    borderTopLeftRadius: '10px',
+                    borderBottomLeftRadius: '10px',
+                    backgroundColor: 'var(--bg-2)',
+                    boxShadow: '0 8px 20px rgba(0, 0, 0, 0.12)',
+                  }}
+                  onClick={toggleExplorer}
+                  aria-label='Expand explorer'
+                >
+                  <ExpandLeft size={16} />
+                </button>
               )}
-              {!isMobile && (
-                <ProjectPanelHost
-                  widthPx={explorerWidthPx}
+
+              {/* Mobile overlay: backdrop + fixed panel + floating collapse handle. */}
+              {isMobile && Boolean(currentProject) && (
+                <ProjectPanelMobileOverlay
+                  projectId={currentProject as string}
                   collapsed={explorerCollapsed}
-                  onToggle={toggleExplorer}
-                  showChevron={!isMacRuntime}
-                  dragHandle={createExplorerDragHandle({
-                    className: 'absolute left-0 top-0 bottom-0 z-20',
-                    reverse: true,
-                  })}
+                  onCollapse={toggleExplorer}
+                  widthPx={explorerMobileWidthPx}
                 />
               )}
-            </div>
-
-            {/* Desktop expand button when the explorer is collapsed. Not on mac
-                (the Titlebar workspace button owns the toggle there). */}
-            {!isMobile && !isMacRuntime && Boolean(currentProject) && explorerCollapsed && (
-              <button
-                type='button'
-                className='workspace-toggle-floating fixed z-101 flex items-center justify-center'
-                style={{
-                  top: '50%',
-                  right: '0px',
-                  transform: 'translateY(-50%)',
-                  width: '20px',
-                  height: '64px',
-                  borderTopLeftRadius: '10px',
-                  borderBottomLeftRadius: '10px',
-                  backgroundColor: 'var(--bg-2)',
-                  boxShadow: '0 8px 20px rgba(0, 0, 0, 0.12)',
-                }}
-                onClick={toggleExplorer}
-                aria-label='Expand explorer'
-              >
-                <ExpandLeft size={16} />
-              </button>
-            )}
-
-            {/* Mobile overlay: backdrop + fixed panel + floating collapse handle. */}
-            {isMobile && Boolean(currentProject) && (
-              <ProjectPanelMobileOverlay
-                projectId={currentProject as string}
-                collapsed={explorerCollapsed}
-                onCollapse={toggleExplorer}
-                widthPx={explorerMobileWidthPx}
-              />
-            )}
-          </ArcoLayout>
-        </div>
-      </NavigationHistoryProvider>
+            </ArcoLayout>
+          </div>
+        </NavigationHistoryProvider>
+      </SiderCollapsedContext.Provider>
     </LayoutContext.Provider>
   );
 };

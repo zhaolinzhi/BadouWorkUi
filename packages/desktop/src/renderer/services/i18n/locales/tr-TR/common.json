@@ -162,6 +162,7 @@
   "fileAttach.uploading": "Yükleniyor...",
   "fileAttach.uploadSuccess": "Yükleme başarılı",
   "fileAttach.cancelUpload": "Yüklemeyi iptal et",
+  "fileAttach.tooLarge": "Metin eklenmek için çok uzun — lütfen kısaltın veya bölün.",
   "expand": "Genişlet",
   "name": "Ad",
   "added": "Eklendi",

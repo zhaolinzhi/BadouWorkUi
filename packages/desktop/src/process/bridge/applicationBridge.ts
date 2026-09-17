@@ -173,6 +173,34 @@ export function initApplicationBridge(): void {
     }
   });
 
+  // Batched counterpart of `writeRendererLog`. The renderer-side perf
+  // instrumentation accumulates many small entries and flushes them as one
+  // IPC call so the very act of measuring does not amplify the cost.
+  //
+  // The output format mirrors the single-entry provider line-for-line so a
+  // single grep on `[Renderer:` finds both shapes. `slice(-500)` is a safety
+  // cap: a malformed renderer must not be able to wedge the main process.
+  ipcBridge.application.writeRendererLogBatch.provider(async (entries) => {
+    if (!Array.isArray(entries) || entries.length === 0) return;
+    const safe = entries.slice(-500);
+    for (const entry of safe) {
+      if (!entry || typeof entry !== 'object') continue;
+      const { level, tag, message, data } = entry;
+      if (typeof tag !== 'string' || typeof message !== 'string') continue;
+      const prefix = `[Renderer:${tag}] ${message}`;
+      const args = data === undefined ? [prefix] : [prefix, data];
+      if (level === 'error') {
+        console.error(...args);
+      } else if (level === 'warn') {
+        console.warn(...args);
+      } else if (level === 'debug') {
+        console.debug(...args);
+      } else {
+        console.info(...args);
+      }
+    }
+  });
+
   // CDP status and configuration
   ipcBridge.application.getCdpStatus.provider(async () => {
     try {

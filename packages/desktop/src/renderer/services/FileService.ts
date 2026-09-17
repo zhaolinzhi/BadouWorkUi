@@ -183,6 +183,8 @@ export interface FileMetadata {
   size: number;
   type: string;
   lastModified: number;
+  /** Optional tag distinguishing the source. e.g. 'pasted-text' for long-text paste uploads. */
+  tag?: 'pasted-text';
 }
 
 /**

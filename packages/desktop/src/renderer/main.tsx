@@ -98,6 +98,7 @@ import Router from './components/layout/Router';
 import Sider from './components/layout/Sider';
 import { useAuth } from './hooks/context/AuthContext';
 import { ConversationHistoryProvider } from './hooks/context/ConversationHistoryContext';
+import { PerfProfiler, perfEnabled } from './utils/perf';
 import HOC from './utils/ui/HOC';
 import type { BackendStartupFailureInfo } from '@/common/types/platform/electron';
 import type { IRuntimeStatusEvent, RuntimeFailureKind } from '@/common/adapter/ipcBridge';
@@ -328,7 +329,9 @@ const Main = () => {
     <Router
       layout={
         <ConversationHistoryProvider>
-          <Layout sider={<Sider />} />
+          <PerfProfiler id='app.layout'>
+            <Layout sider={<Sider />} />
+          </PerfProfiler>
         </ConversationHistoryProvider>
       }
     />
@@ -445,6 +448,14 @@ const BackendStartupFailureDialog: React.FC<{ failure: BackendStartupFailureInfo
 };
 
 void registerPwa();
+
+if (perfEnabled()) {
+  // One-shot banner so the user can confirm perf instrumentation is on
+  // without digging through logs. Visible in DevTools Console + main process
+  // daily log via the console bridge.
+  // eslint-disable-next-line no-console -- intentional diagnostic
+  console.info('[perf-debug] enabled=true — entries will be written to ~/Library/Logs/AionUi/<date>/<date>.log');
+}
 
 const root = createRoot(document.getElementById('root')!);
 root.render(

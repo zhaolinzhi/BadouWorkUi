@@ -566,7 +566,8 @@
   },
   "sendbox": {
     "hint": "Tapez / pour les commandes, @ pour référencer des fichiers, ↑/↓ pour l'historique des messages",
-    "mediaPathFallback": "Cet agent ne prend pas en charge nativement ce type de fichier ; il sera envoyé sous forme de chemin de fichier."
+    "mediaPathFallback": "Cet agent ne prend pas en charge nativement ce type de fichier ; il sera envoyé sous forme de chemin de fichier.",
+    "pasteOriginalText": "Coller le texte original dans la zone de saisie"
   },
   "agentTip": {
     "codes": {

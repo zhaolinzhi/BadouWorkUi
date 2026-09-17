@@ -15,6 +15,7 @@ import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
 import { appendPromptToDraft } from '@/renderer/hooks/chat/useSendBoxDraft';
 import { getFuzzyMatchIndices, useSlashCommandController } from '@/renderer/hooks/chat/useSlashCommandController';
 import { openExternalUrl } from '@/renderer/utils/platform';
+import { mark, PerfProfiler } from '@/renderer/utils/perf';
 import SlashCommandMenu, { type SlashCommandMenuItem } from '@/renderer/components/chat/SlashCommandMenu';
 import AssistantSelectionArea from './components/AssistantSelectionArea';
 import GuidActionRow from './components/GuidActionRow';
@@ -348,6 +349,11 @@ const GuidPage: React.FC = () => {
   // --- Coordinated handlers (depend on multiple hooks) ---
   const handleInputChange = useCallback(
     (value: string) => {
+      // Fires once per keystroke / per controlled-value update. Cheap (perf
+      // logger batches 1/s, so even rapid typing contributes at most one
+      // aggregate line). Records length + delta so we can correlate input
+      // size with downstream commit cost.
+      mark('perf.guid.input', 'input_change', { length: value.length });
       guidInput.setInput(value);
     },
     [guidInput.setInput]
@@ -370,6 +376,10 @@ const GuidPage: React.FC = () => {
 
   const handleSelectAssistant = useCallback(
     (assistantId: string) => {
+      // Picking an assistant re-renders the suggestion list and may trigger
+      // additional fetches (skills/mcp defaults). Marked so the commit cost
+      // visible in `perf.app.layout.commit` right after this can be attributed.
+      mark('perf.guid.assistant', 'select_assistant', { assistantId });
       agentSelection.setSelectedAssistantId(assistantId);
     },
     [agentSelection.setSelectedAssistantId]
@@ -729,132 +739,144 @@ const GuidPage: React.FC = () => {
 
   return (
     <ConfigProvider getPopupContainer={() => guidContainerRef.current || document.body}>
-      <div ref={guidContainerRef} className={styles.guidContainer}>
-        <div className={styles.guidLayout}>
-          {/* 调试入口条：仅临时，正式入口由后续任务替换 */}
-          {/*<div className={styles.devEntryRow} data-testid='guid-dev-entry'>*/}
-          {/*  <button*/}
-          {/*    type='button'*/}
-          {/*    className={styles.devEntryChip}*/}
-          {/*    onClick={handleOpenBrowserDemo}*/}
-          {/*    title='打开应用内浏览器 Demo'*/}
-          {/*  >*/}
-          {/*    <Experiment theme='outline' size={14} />*/}
-          {/*    <span>浏览器 Demo</span>*/}
-          {/*  </button>*/}
-          {/*</div>*/}
+      <PerfProfiler id='guid'>
+        <div ref={guidContainerRef} className={styles.guidContainer}>
+          <div className={styles.guidLayout}>
+            {/* 调试入口条：仅临时，正式入口由后续任务替换 */}
+            {/*<div className={styles.devEntryRow} data-testid='guid-dev-entry'>*/}
+            {/*  <button*/}
+            {/*    type='button'*/}
+            {/*    className={styles.devEntryChip}*/}
+            {/*    onClick={handleOpenBrowserDemo}*/}
+            {/*    title='打开应用内浏览器 Demo'*/}
+            {/*  >*/}
+            {/*    <Experiment theme='outline' size={14} />*/}
+            {/*    <span>浏览器 Demo</span>*/}
+            {/*  </button>*/}
+            {/*</div>*/}
 
-          <div className={styles.heroHeader}>
-            <p className='text-2xl font-semibold mb-0 text-0 text-center'>
-              {t('conversation.welcome.title', { name: user?.username || '' })}
-            </p>
+            <div className={styles.heroHeader}>
+              <p className='text-2xl font-semibold mb-0 text-0 text-center'>
+                {t('conversation.welcome.title', { name: user?.username || '' })}
+              </p>
+            </div>
+
+            {presets.status === 'bound' && presets.binding && (
+              <BoundBadge binding={presets.binding} assistants={assistantOptions} onRebind={presets.rebind} />
+            )}
+
+            {projectId && requireBinding && presets.userDismissed && !presets.binding && (
+              <button
+                type='button'
+                className='bound-badge'
+                data-testid='reopen-binding-button'
+                onClick={presets.openModal}
+                style={{
+                  background: 'transparent',
+                  border: '1px dashed var(--color-border-2, #c9cdd4)',
+                  cursor: 'pointer',
+                }}
+              >
+                <span className='bound-badge__label'>{t('guid.projectBinding.unboundHint')}</span>
+                <span style={{ marginLeft: 8, color: 'var(--color-primary, #165dff)' }}>
+                  {t('guid.projectBinding.rebind')}
+                </span>
+              </button>
+            )}
+
+            <AssistantSelectionArea
+              selectedAssistantId={agentSelection.selectedAssistantId}
+              assistants={agentSelection.assistants}
+              localeKey={localeKey}
+              onSelectAssistant={handleSelectAssistant}
+            />
+
+            <GuidInputCard
+              focusRequestKey={navState?.focusPrefill && navState.prefillPrompt ? location.key : undefined}
+              input={guidInput.input}
+              onInputChange={handleInputChange}
+              onKeyDown={handleInputKeyDown}
+              onPaste={guidInput.onPaste}
+              onFocus={guidInput.handleTextareaFocus}
+              onBlur={guidInput.handleTextareaBlur}
+              placeholder={typewriterPlaceholder || t('conversation.welcome.placeholder')}
+              isInputActive={guidInput.isInputFocused}
+              isFileDragging={guidInput.isFileDragging}
+              activeBorderColor={activeBorderColor}
+              inactiveBorderColor={inactiveBorderColor}
+              activeShadow={activeShadow}
+              dragHandlers={guidInput.dragHandlers}
+              files={displayFilePaths}
+              onRemoveFile={(path) => {
+                guidInput.forgetPastedOriginalText(path);
+                guidInput.handleRemoveFile(path);
+              }}
+              getInlineAction={(path, onRemove) => {
+                const handleRemoveWithCleanup = () => {
+                  guidInput.forgetPastedOriginalText(path);
+                  onRemove();
+                };
+                return guidInput.getPastedTextInlineAction(path, handleRemoveWithCleanup);
+              }}
+              actionRow={actionRowNode}
+              slashCommandMenu={slashCommandMenuNode}
+              workspaceDir={guidInput.dir}
+              onSelectWorkspace={(dir) => guidInput.setDir(dir)}
+              onClearWorkspace={() => guidInput.setDir('')}
+            />
+
+            {selectedAssistantPrompts.length > 0 ? (
+              <div className='mt-18px w-full animate-fade-in pl-20px'>
+                <div className={`${styles.assistantPromptHint} mb-10px text-left`}>
+                  {t('guid.promptExamplesHint', { defaultValue: 'Try these example prompts:' })}
+                </div>
+                <div className='flex flex-col gap-9px'>
+                  {selectedAssistantPrompts.map((prompt, index) => (
+                    <Button
+                      key={`${index}-${prompt}`}
+                      type='text'
+                      className='group !h-auto !w-full !border-none !bg-transparent !px-0 !py-6px !text-left !text-12.5px !text-t-secondary !whitespace-normal !break-words transition-colors hover:!bg-transparent hover:!text-t-primary'
+                      onClick={() => {
+                        guidInput.setInput(prompt);
+                        guidInput.handleTextareaFocus();
+                      }}
+                    >
+                      <span>{prompt}</span>
+                      <ArrowRightUp
+                        theme='outline'
+                        size='13'
+                        className='ml-6px inline-flex flex-shrink-0 align-[-1px] text-t-primary opacity-0 transition-opacity group-hover:opacity-100'
+                      />
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
 
-          {presets.status === 'bound' && presets.binding && (
-            <BoundBadge binding={presets.binding} assistants={assistantOptions} onRebind={presets.rebind} />
-          )}
-
-          {projectId && requireBinding && presets.userDismissed && !presets.binding && (
-            <button
-              type='button'
-              className='bound-badge'
-              data-testid='reopen-binding-button'
-              onClick={presets.openModal}
-              style={{
-                background: 'transparent',
-                border: '1px dashed var(--color-border-2, #c9cdd4)',
-                cursor: 'pointer',
-              }}
-            >
-              <span className='bound-badge__label'>{t('guid.projectBinding.unboundHint')}</span>
-              <span style={{ marginLeft: 8, color: 'var(--color-primary, #165dff)' }}>
-                {t('guid.projectBinding.rebind')}
-              </span>
-            </button>
-          )}
-
-          <AssistantSelectionArea
-            selectedAssistantId={agentSelection.selectedAssistantId}
-            assistants={agentSelection.assistants}
-            localeKey={localeKey}
-            onSelectAssistant={handleSelectAssistant}
-          />
-
-          <GuidInputCard
-            focusRequestKey={navState?.focusPrefill && navState.prefillPrompt ? location.key : undefined}
-            input={guidInput.input}
-            onInputChange={handleInputChange}
-            onKeyDown={handleInputKeyDown}
-            onPaste={guidInput.onPaste}
-            onFocus={guidInput.handleTextareaFocus}
-            onBlur={guidInput.handleTextareaBlur}
-            placeholder={typewriterPlaceholder || t('conversation.welcome.placeholder')}
-            isInputActive={guidInput.isInputFocused}
-            isFileDragging={guidInput.isFileDragging}
-            activeBorderColor={activeBorderColor}
+          <QuickActionButtons
+            onOpenLink={openLink}
+            onOpenBugReport={() => setShowFeedbackModal(true)}
             inactiveBorderColor={inactiveBorderColor}
             activeShadow={activeShadow}
-            dragHandlers={guidInput.dragHandlers}
-            files={displayFilePaths}
-            onRemoveFile={guidInput.handleRemoveFile}
-            actionRow={actionRowNode}
-            slashCommandMenu={slashCommandMenuNode}
-            workspaceDir={guidInput.dir}
-            onSelectWorkspace={(dir) => guidInput.setDir(dir)}
-            onClearWorkspace={() => guidInput.setDir('')}
           />
-
-          {selectedAssistantPrompts.length > 0 ? (
-            <div className='mt-18px w-full animate-fade-in pl-20px'>
-              <div className={`${styles.assistantPromptHint} mb-10px text-left`}>
-                {t('guid.promptExamplesHint', { defaultValue: 'Try these example prompts:' })}
-              </div>
-              <div className='flex flex-col gap-9px'>
-                {selectedAssistantPrompts.map((prompt, index) => (
-                  <Button
-                    key={`${index}-${prompt}`}
-                    type='text'
-                    className='group !h-auto !w-full !border-none !bg-transparent !px-0 !py-6px !text-left !text-12.5px !text-t-secondary !whitespace-normal !break-words transition-colors hover:!bg-transparent hover:!text-t-primary'
-                    onClick={() => {
-                      guidInput.setInput(prompt);
-                      guidInput.handleTextareaFocus();
-                    }}
-                  >
-                    <span>{prompt}</span>
-                    <ArrowRightUp
-                      theme='outline'
-                      size='13'
-                      className='ml-6px inline-flex flex-shrink-0 align-[-1px] text-t-primary opacity-0 transition-opacity group-hover:opacity-100'
-                    />
-                  </Button>
-                ))}
-              </div>
-            </div>
-          ) : null}
+          <FeedbackReportModal visible={showFeedbackModal} onCancel={() => setShowFeedbackModal(false)} />
+          {projectId && (
+            <ProjectBindingModal
+              visible={presets.isModalOpen}
+              projectId={projectId}
+              projectName={navProjectName ?? projectId}
+              assistants={assistantOptions}
+              initialBinding={presets.binding}
+              saving={presets.saving}
+              saveError={presets.saveError}
+              onCancel={presets.closeModal}
+              onSubmit={handleBindingSubmit}
+              onBrowseFolder={handleBrowseFolder}
+            />
+          )}
         </div>
-
-        <QuickActionButtons
-          onOpenLink={openLink}
-          onOpenBugReport={() => setShowFeedbackModal(true)}
-          inactiveBorderColor={inactiveBorderColor}
-          activeShadow={activeShadow}
-        />
-        <FeedbackReportModal visible={showFeedbackModal} onCancel={() => setShowFeedbackModal(false)} />
-        {projectId && (
-          <ProjectBindingModal
-            visible={presets.isModalOpen}
-            projectId={projectId}
-            projectName={navProjectName ?? projectId}
-            assistants={assistantOptions}
-            initialBinding={presets.binding}
-            saving={presets.saving}
-            saveError={presets.saveError}
-            onCancel={presets.closeModal}
-            onSubmit={handleBindingSubmit}
-            onBrowseFolder={handleBrowseFolder}
-          />
-        )}
-      </div>
+      </PerfProfiler>
     </ConfigProvider>
   );
 };

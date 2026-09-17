@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { useConversationListSync } from '@/renderer/pages/conversation/GroupedHistory/hooks/useConversationListSync';
 import type { GroupedHistoryResult } from '@/renderer/pages/conversation/GroupedHistory/types';
 import { buildGroupedHistory } from '@/renderer/pages/conversation/GroupedHistory/utils/groupingHelpers';
+import { perfTime } from '@/renderer/utils/perf';
 
 export type ConversationHistoryContextValue = ReturnType<typeof useConversationListSync> & {
   groupedHistory: GroupedHistoryResult;
@@ -21,7 +22,17 @@ export const ConversationHistoryProvider: React.FC<React.PropsWithChildren> = ({
   const conversationListSync = useConversationListSync();
 
   const groupedHistory = useMemo(() => {
-    return buildGroupedHistory(conversationListSync.conversations, t);
+    // The group pass runs on every refresh — when `limit: 10000` lands with
+    // thousands of conversations, this becomes O(n) over a non-trivial slice
+    // and shows up as the second-largest slice after the HTTP fetch itself.
+    return perfTime(
+      {
+        tag: 'perf.chatHistory',
+        message: 'group',
+        data: { inputCount: conversationListSync.conversations.length },
+      },
+      () => buildGroupedHistory(conversationListSync.conversations, t)
+    );
   }, [conversationListSync.conversations, t]);
 
   const value = useMemo<ConversationHistoryContextValue>(() => {

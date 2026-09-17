@@ -17,6 +17,7 @@ import {
 } from '@/common/chat/chatLib';
 import { useCallback, useEffect, useRef } from 'react';
 import { createContext } from '@renderer/utils/ui/createContext';
+import { mark, perfTimeAsync } from '@/renderer/utils/perf';
 import {
   DEFAULT_MESSAGE_PAGE_LIMIT,
   loadConversationAnchorWindow,
@@ -932,11 +933,16 @@ export const useMessageLstCache = (key: string) => {
   const setLoading = useUpdateMessageListLoading();
   const setPagination = useUpdateMessagePaginationState();
   const loadMessages = useCallback(async (): Promise<TMessage[]> => {
-    const result = await loadLatestConversationMessages(key, {
-      limit: DEFAULT_MESSAGE_PAGE_LIMIT,
-      contentMode: 'compact',
-    });
+    const result = await perfTimeAsync(
+      { tag: 'perf.conversation', message: 'load_messages', data: { conversationId: key } },
+      () =>
+        loadLatestConversationMessages(key, {
+          limit: DEFAULT_MESSAGE_PAGE_LIMIT,
+          contentMode: 'compact',
+        })
+    );
     const messages = result?.items?.map(normalizeDbMessage);
+    mark('perf.conversation', 'load_messages_loaded', { conversationId: key, count: messages?.length ?? 0 });
     if (messages && Array.isArray(messages)) {
       update((currentList) => mergeLoadedPageWithCurrent(key, messages, currentList));
       setPagination({

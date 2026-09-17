@@ -25,7 +25,7 @@ const SiderAssistantEntry: React.FC<SiderAssistantEntryProps> = ({ isMobile, isA
       <CollapsedRailTooltip label={t('settings.assistants')} onClick={onClick} active={isActive}>
         <Ghost
           theme='outline'
-          size='20'
+          size='22'
           fill='currentColor'
           className='block leading-none shrink-0'
           style={{ lineHeight: 0 }}

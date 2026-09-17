@@ -9,7 +9,7 @@ import { useDragUpload } from '@/renderer/hooks/file/useDragUpload';
 import { usePasteService } from '@/renderer/hooks/file/usePasteService';
 import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileService';
 import { measureCaretTop, scrollCaretToLastLine } from '../utils/caretUtils';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
 export type GuidInputResult = {
   input: string;
@@ -32,6 +32,14 @@ export type GuidInputResult = {
   onPaste: ReturnType<typeof usePasteService>['onPaste'];
   isFileDragging: boolean;
   dragHandlers: ReturnType<typeof useDragUpload>['dragHandlers'];
+  /**
+   * Returns the "paste original text to input" inline action for a long-text
+   * paste file chip, or `undefined` for normal uploads. `onRemove` is the
+   * caller-supplied callback that drops the chip from `files` state.
+   */
+  getPastedTextInlineAction: (path: string, onRemove: () => void) => ReactNode | undefined;
+  /** Drops the cached original text for a long-text paste file (e.g. on chip remove). */
+  forgetPastedOriginalText: (path: string) => void;
 };
 
 type UseGuidInputOptions = {
@@ -87,7 +95,7 @@ export const useGuidInput = ({ locationState }: UseGuidInputOptions): GuidInputR
   });
 
   // Use shared PasteService integration (paste appends to existing files)
-  const { onPaste, onFocus } = usePasteService({
+  const { onPaste, onFocus, getPastedTextInlineAction, forgetPastedOriginalText } = usePasteService({
     supportedExts: allSupportedExts,
     onFilesAdded: handleFilesPasted,
     onTextPaste: (text: string) => {
@@ -139,5 +147,7 @@ export const useGuidInput = ({ locationState }: UseGuidInputOptions): GuidInputR
     onPaste,
     isFileDragging,
     dragHandlers,
+    getPastedTextInlineAction,
+    forgetPastedOriginalText,
   };
 };

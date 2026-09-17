@@ -138,7 +138,42 @@ function subscribeConversationSetStatus(
 const ensureRuntimeConfigOptions: AcpConfigOptionsLoader = async (conversation_id: string) =>
   (await ensureConversationRuntime(conversation_id)).config_options;
 
+/**
+ * Window after which the dedup short-circuit expires and a stale `ensureRuntime`
+ * may be re-issued. Long enough to absorb the `mount -> setConfigOption` race
+ * that drove the "switching agents feels slow" report (reload from useEffect
+ * settles, then user clicks within a second), short enough that an idle tab
+ * re-warms when the user comes back.
+ */
+const ENSURED_AT_TTL_MS = 5_000;
+
 const configOptionsInFlight = new Map<string, Promise<AcpConfigOptionDto[] | null>>();
+
+/** Tracks the last time each conversation's runtime was ensured in this
+ *  renderer session. `setConfigOption` consults this map to skip the
+ *  redundant `fetchConfigOptionsOnce` that would otherwise re-warm the agent
+ *  every time the user changes a model/thought-level. The Map is module-scoped
+ *  (matches `configOptionsInFlight` and `ensureRuntimeByConversation`) so it
+ *  survives hook remounts. Cleared only when the user actively disables the
+ *  hook or the conversation is deleted (see `forgetEnsuredConversation`). */
+const ensuredAt = new Map<string, number>();
+
+/** Forget the dedup memory for a conversation. Exposed so callers that
+ *  swap to a different agent on the same conversation (rare today, but a
+ *  future API surface) can force a re-warm. */
+export function forgetEnsuredConversation(conversation_id: string): void {
+  ensuredAt.delete(conversation_id);
+}
+
+function isRecentlyEnsured(conversation_id: string): boolean {
+  const lastAt = ensuredAt.get(conversation_id);
+  if (lastAt === undefined) return false;
+  return Date.now() - lastAt < ENSURED_AT_TTL_MS;
+}
+
+function markEnsured(conversation_id: string): void {
+  ensuredAt.set(conversation_id, Date.now());
+}
 
 function fetchConfigOptionsOnce(
   key: AcpConfigOptionsKey,
@@ -149,7 +184,10 @@ function fetchConfigOptionsOnce(
   if (existing) return existing;
 
   const promise = loadConfigOptions(conversation_id)
-    .then((options) => options ?? null)
+    .then((options) => {
+      markEnsured(conversation_id);
+      return options ?? null;
+    })
     .finally(() => {
       if (configOptionsInFlight.get(conversation_id) === promise) {
         configOptionsInFlight.delete(conversation_id);
@@ -228,8 +266,15 @@ export function useAcpConfigOptions({
       setConversationSetStatus(conversation_id, { state: 'setting', optionId, requestedValue: value });
       try {
         await (prepareSetRuntime ?? prepareRuntime)?.();
-        const beforeSet = await fetchConfigOptionsOnce(key, loadConfigOptions);
-        if (beforeSet) replaceSnapshot(beforeSet);
+        // The `setConfigOption` backend response carries the observed
+        // `config_options`, so the pre-fetch only matters when the runtime
+        // has not been ensured recently. Without this guard every model /
+        // mode / thought-level click re-warms the agent process — the
+        // "switching agents feels slow" bug.
+        if (!isRecentlyEnsured(conversation_id)) {
+          const beforeSet = await fetchConfigOptionsOnce(key, loadConfigOptions);
+          if (beforeSet) replaceSnapshot(beforeSet);
+        }
         const response = await ipcBridge.acpConversation.setConfigOption.invoke({
           conversation_id,
           option_id: optionId,
@@ -239,6 +284,9 @@ export function useAcpConfigOptions({
         if (!hasObservedValue(response, optionId, value)) {
           throw new Error(confirmation === 'command_ack' ? 'command_ack' : 'config_not_observed');
         }
+        // The server response is the source of truth — record the ensure
+        // timestamp so the NEXT setConfigOption skips its pre-fetch.
+        markEnsured(conversation_id);
         replaceSnapshot(response.config_options);
         return response.config_options;
       } finally {

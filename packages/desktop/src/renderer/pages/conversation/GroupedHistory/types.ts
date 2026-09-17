@@ -45,8 +45,6 @@ export type ConversationRowProps = {
   conversation: TChatConversation;
   isGenerating: boolean;
   hasCompletionUnread: boolean;
-  collapsed: boolean;
-  tooltipEnabled: boolean;
   batchMode: boolean;
   checked: boolean;
   selected: boolean;

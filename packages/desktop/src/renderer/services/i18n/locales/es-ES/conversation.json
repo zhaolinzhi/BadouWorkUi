@@ -568,7 +568,8 @@
   },
   "sendbox": {
     "hint": "Escribe / para comandos, @ para referenciar archivos y ↑/↓ para el historial de mensajes",
-    "mediaPathFallback": "Este agente no admite este tipo de archivo de forma nativa; se enviará como ruta de archivo."
+    "mediaPathFallback": "Este agente no admite este tipo de archivo de forma nativa; se enviará como ruta de archivo.",
+    "pasteOriginalText": "Pegar texto original en el cuadro de entrada"
   },
   "agentTip": {
     "codes": {

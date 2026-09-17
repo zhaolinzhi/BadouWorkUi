@@ -82,6 +82,8 @@ export type AssistantEditorViewModel = {
   prompts: {
     text: string;
     setText: (value: string) => void;
+    planModePromptTemplate: string;
+    setPlanModePromptTemplate: (value: string) => void;
   };
   defaults: {
     model: {
