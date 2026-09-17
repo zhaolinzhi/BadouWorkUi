@@ -20,7 +20,7 @@ interface ExternalAuthPayload {
   username: string;
 }
 
-export type TokenExpiredSource = 'task-center' | 'kb-chat';
+export type TokenExpiredSource = 'task-center' | 'kb-chat' | 'knowledge-base';
 
 interface AuthContextValue {
   ready: boolean;
