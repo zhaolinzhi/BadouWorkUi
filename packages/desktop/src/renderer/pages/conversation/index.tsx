@@ -12,6 +12,7 @@ import { setCurrentConversation } from '@/renderer/pages/conversation/explorer/c
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { getSnapshotConversationProjectId } from '@/renderer/pages/conversation/GroupedHistory/hooks/useConversationListSync';
+import { PerfProfiler, perfTimeAsync } from '@/renderer/utils/perf';
 
 const ChatConversationIndex: React.FC = () => {
   const { id } = useParams();
@@ -23,7 +24,11 @@ const ChatConversationIndex: React.FC = () => {
   const defaultConversationTitle = t('conversation.welcome.newConversation');
 
   const { data, isLoading, mutate } = useSWR(id ? `conversation/${id}` : null, () => {
-    return getConversationOrNull(id!);
+    // Cold-path only — SWR caches repeat hits, so this measures the actual
+    // first-time IPC wait when switching into a conversation.
+    return perfTimeAsync({ tag: 'perf.conversation', message: 'get', data: { conversationId: id! } }, () =>
+      getConversationOrNull(id!)
+    );
   });
 
   // Close preview only when the isolation scope changes, not on every
@@ -107,7 +112,11 @@ const ChatConversationIndex: React.FC = () => {
   }, [id, isLoading, data, navigate, t]);
 
   if (isLoading) return <Spin loading></Spin>;
-  return <ChatConversation conversation={data ?? undefined}></ChatConversation>;
+  return (
+    <PerfProfiler id='conversation'>
+      <ChatConversation conversation={data ?? undefined} />
+    </PerfProfiler>
+  );
 };
 
 export default ChatConversationIndex;

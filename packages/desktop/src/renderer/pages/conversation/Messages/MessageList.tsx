@@ -14,6 +14,7 @@ import { CHAT_MESSAGE_JUMP_EVENT, type ChatMessageJumpDetail } from '@/renderer/
 import { collectAiCopyRows, type TurnCopyItem } from '@/renderer/utils/chat/turnCopy';
 import { Image } from '@arco-design/web-react';
 import { Down } from '@icon-park/react';
+import { PerfProfiler } from '@/renderer/utils/perf';
 import MessageAcpPermission from '@renderer/pages/conversation/Messages/acp/MessageAcpPermission';
 import MessageQuestion from './MessageQuestion';
 import MessagePermission from './components/MessagePermission';
@@ -329,7 +330,7 @@ const MessageItem: React.FC<{
         (prev.turnTexts ?? []).every((segment, i) => segment === next.turnTexts?.[i])))
 );
 
-const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }> = ({ emptySlot }) => {
+const MessageListInner: React.FC<{ className?: string; emptySlot?: React.ReactNode }> = ({ emptySlot }) => {
   const list = useMessageList();
   const isMessageListLoading = useMessageListLoading();
   const pagination = useMessagePaginationState();
@@ -779,5 +780,15 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
     </div>
   );
 };
+
+// Wrap the inner component in a Profiler so every commit during streaming
+// (where the list re-renders often) is captured under one stable id. Wrapping
+// here means the three callers (`AionrsChat`, `AcpChat`, `LegacyReadOnly…`)
+// need no changes.
+const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }> = (props) => (
+  <PerfProfiler id='messageList'>
+    <MessageListInner {...props} />
+  </PerfProfiler>
+);
 
 export default MessageList;

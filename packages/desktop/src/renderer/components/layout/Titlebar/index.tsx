@@ -12,7 +12,7 @@ import MobileConversationBrand from './MobileConversationBrand';
 import WindowControls from '../WindowControls';
 import { WORKSPACE_STATE_EVENT, dispatchWorkspaceToggleEvent } from '@renderer/utils/workspace/workspaceEvents';
 import type { WorkspaceStateDetail } from '@renderer/utils/workspace/workspaceEvents';
-import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
+import { useLayoutContext, useSiderCollapsedContext } from '@/renderer/hooks/context/LayoutContext';
 import { useNavigationHistory } from '@/renderer/hooks/context/NavigationHistoryContext';
 import { useFeedback } from '@/renderer/hooks/context/FeedbackContext';
 import { resolveFeedbackModule } from '@/renderer/services/feedback/resolveFeedbackModule';
@@ -104,6 +104,7 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
   const [mobileCenterTitle, setMobileCenterTitle] = useState(appTitle);
   const [mobileCenterOffset, setMobileCenterOffset] = useState(0);
   const layout = useLayoutContext();
+  const siderCollapsed = useSiderCollapsedContext()?.siderCollapsed ?? false;
   const navigationHistory = useNavigationHistory();
   const { openFeedback } = useFeedback();
   const location = useLocation();
@@ -150,7 +151,7 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
   // 统一在标题栏左侧展示主侧栏开关 / Always expose sidebar toggle on titlebar left side
   const showSiderToggle = Boolean(layout?.setSiderCollapsed) && !(layout?.isMobile && isSettingsRoute);
   const showBackToChatButton = Boolean(layout?.isMobile && isSettingsRoute);
-  const siderTooltip = layout?.siderCollapsed
+  const siderTooltip = siderCollapsed
     ? t('common.expandMore', { defaultValue: 'Expand sidebar' })
     : t('common.collapse', { defaultValue: 'Collapse sidebar' });
   // 前进/后退仅在桌面端显示（移动端空间有限，保留原有的返回到聊天按钮）
@@ -166,7 +167,7 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
 
   const handleSiderToggle = () => {
     if (!showSiderToggle || !layout?.setSiderCollapsed) return;
-    layout.setSiderCollapsed(!layout.siderCollapsed);
+    layout.setSiderCollapsed(!siderCollapsed);
   };
 
   const handleWorkspaceToggle = () => {

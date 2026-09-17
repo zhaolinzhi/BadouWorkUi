@@ -80,6 +80,13 @@ export interface AssistantRules {
 export interface AssistantPrompts {
   recommended: string[];
   recommended_i18n: Record<string, string[]>;
+  /**
+   * Per-assistant plan-mode system prompt override for aionrs agents.
+   * `undefined` (missing on the wire) and `null` both mean "use the upstream
+   * aionrs default"; a non-empty string is a user-provided override. An empty
+   * string is normalised to `null` on the server side after trim.
+   */
+  plan_mode_prompt_template?: string | null;
 }
 
 export interface AssistantDefaultScalar {
@@ -157,6 +164,11 @@ export interface CreateAssistantRequest {
   prompts_i18n?: Record<string, string[]>;
   recommended_prompts?: string[];
   recommended_prompts_i18n?: Record<string, string[]>;
+  /**
+   * aionrs-only: per-assistant plan-mode system prompt override. Empty / whitespace
+   * values are interpreted as "clear the override" by the backend.
+   */
+  plan_mode_prompt_template?: string;
   defaults?: AssistantDefaultsRequest;
 }
 

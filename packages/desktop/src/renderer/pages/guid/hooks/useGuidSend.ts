@@ -335,7 +335,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
   ]);
 
   // Calculate button disabled state — allow send when there are pending files
-// even with empty text; the backend receives the file refs as content.
+  // even with empty text; the backend receives the file refs as content.
   const isButtonDisabled = loading || (!input.trim() && files.length === 0) || !selectedAssistantId;
 
   return {

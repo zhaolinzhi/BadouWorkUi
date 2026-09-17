@@ -86,6 +86,17 @@
     background-color 0.2s ease;
 }
 
+/* While the sider width transition is in flight (`body.sider-animating`, set by
+   Layout.tsx — see utils/ui/siderAnimation.ts), row-level padding/margin
+   transitions are layout animations of their own; running them on every
+   conversation row on top of the width animation blows the frame budget. Keep
+   only the background-colour transition so hover still reads if the pointer
+   sits over the list mid-animation. */
+body.sider-animating .chat-history__item,
+body.sider-animating .settings-sider__item {
+  transition-property: background-color;
+}
+
 .chat-history__item-name,
 .chat-history__item-editor,
 .settings-sider__item-label {
@@ -136,6 +147,51 @@
 .settings-sider--collapsed .settings-sider__item-label {
   opacity: 0;
   transform: translateX(-8px);
+}
+
+/* Unified conversation row layout (GroupedHistory).
+   The row renders the same tree in both states; the `.collapsed` ancestor
+   class drives the icon-rail layout so React.memo can skip per-row work on
+   sider toggle (no subtree unmount/mount). */
+.chat-history__item {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  padding-left: 10px;
+  padding-right: 16px;
+  width: 100%;
+}
+.chat-history__item[data-dim-icon='true'] {
+  padding-left: 34px;
+}
+.collapsed .chat-history__item {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+  gap: 0;
+}
+/* Collapsed-rail hover popup (desktop, 64px sider). Pure CSS — no React
+   state, so the row can render identically in both states and React.memo
+   can skip per-row work on sider toggle. The `data-name` attribute is set
+   on the row by ConversationRow. */
+.collapsed .chat-history__item:hover::after {
+  content: attr(data-name);
+  position: absolute;
+  left: calc(100% + 4px);
+  top: 50%;
+  transform: translateY(-50%);
+  display: block;
+  pointer-events: none;
+  white-space: nowrap;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--color-tooltip-bg);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
+  z-index: 1000;
 }
 
 @media (prefers-reduced-motion: reduce) {

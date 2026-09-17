@@ -29,10 +29,75 @@ import type { ManagedAgent } from '@/renderer/utils/model/agentTypes';
 import { resolveBackendAssetUrl } from '@/renderer/utils/platform';
 import useSWR from 'swr';
 
-/** Map of lowercased backend id -> logo URL. */
+/** Map of lowercased backend id -> logo URL.
+ *
+ * After {@link prefetchAgentLogos} runs (called automatically by
+ * {@link useAgentLogos}), the values are `blob:` URLs so subsequent `<img>`
+ * tags never hit the network again. Without that pre-warm step, every
+ * AgentCard mount triggered one HTTP request per logo — mounting the
+ * Agent Settings page once fired ~30 concurrent requests.
+ */
 export type AgentLogoMap = Record<string, string>;
 
 export const AGENT_LOGOS_SWR_KEY = 'agents.logos';
+
+/** Module-level cache: original URL -> resolved blob URL.
+ *
+ * Keyed by URL so duplicate entries across the agent map (one logo often
+ * covers 3-4 backend ids) only get fetched once. Entries survive component
+ * unmount/remount so navigating away and back does not re-fetch.
+ */
+const blobCache = new Map<string, string>();
+
+/**
+ * Best-effort prefetch of every HTTP URL in the logo map. Each unique URL is
+ * fetched exactly once and replaced with a `blob:` URL in the returned map.
+ * Failed fetches leave the original URL in place — the browser will retry
+ * the `<img>` request, but only one per URL, not one per consumer.
+ */
+export async function prefetchAgentLogos(map: AgentLogoMap): Promise<AgentLogoMap> {
+  // Collect unique URLs that still need fetching.
+  const pending: Array<{ url: string; key: string }> = [];
+  for (const [key, url] of Object.entries(map)) {
+    if (!url || url.startsWith('blob:') || url.startsWith('data:')) continue;
+    if (blobCache.has(url)) continue;
+    pending.push({ url, key });
+  }
+  if (pending.length === 0) return map;
+
+  // Deduplicate by URL — multiple map keys share the same logo URL.
+  const uniqueUrls = Array.from(new Set(pending.map((p) => p.url)));
+  const results = await Promise.allSettled(
+    uniqueUrls.map(async (url) => {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`logo fetch ${url} -> ${response.status}`);
+      const blob = await response.blob();
+      return { url, blobUrl: URL.createObjectURL(blob) };
+    })
+  );
+  for (const result of results) {
+    if (result.status === 'fulfilled') {
+      blobCache.set(result.value.url, result.value.blobUrl);
+    }
+  }
+
+  // Rewrite every map entry to its blob URL (or keep the original on failure).
+  const prefetched: AgentLogoMap = {};
+  for (const [key, url] of Object.entries(map)) {
+    prefetched[key] = blobCache.get(url) ?? url;
+  }
+  return prefetched;
+}
+
+/** Returns the cached blob URL for `url`, or `undefined` if not prefetched.
+ *
+ * Used by the `<img>` renderer so we always serve from memory when possible.
+ */
+export function getCachedLogoUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  if (url.startsWith('blob:') || url.startsWith('data:')) return url;
+  return blobCache.get(url) ?? null;
+}
 
 function collectManagedAgentLogoKeys(agent: ManagedAgent): string[] {
   const keys = [agent.backend, agent.agent_type, agent.id, agent.custom_agent_id];
@@ -56,7 +121,9 @@ export async function fetchAgentLogos(): Promise<AgentLogoMap> {
           map[key] = logo;
         }
       }
-      return map;
+      // Warm the browser-level cache immediately so every AgentCard that
+      // mounts in the next paint cycle can render from memory.
+      return await prefetchAgentLogos(map);
     }
   } catch {
     // fall through to empty map

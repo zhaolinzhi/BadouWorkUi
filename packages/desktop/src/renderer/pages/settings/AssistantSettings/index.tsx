@@ -126,6 +126,8 @@ const AssistantSettings: React.FC = () => {
     prompts: {
       text: editor.editRecommendedPromptsText,
       setText: editor.setEditRecommendedPromptsText,
+      planModePromptTemplate: editor.editPlanModePromptTemplate,
+      setPlanModePromptTemplate: editor.setEditPlanModePromptTemplate,
     },
     defaults: {
       model: {

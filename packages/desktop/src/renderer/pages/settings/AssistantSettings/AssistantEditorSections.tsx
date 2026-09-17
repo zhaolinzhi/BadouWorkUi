@@ -21,6 +21,7 @@ import IdentitySection from './editor/IdentitySection';
 import PromptsSection from './editor/PromptsSection';
 import DefaultsSection from './editor/DefaultsSection';
 import RulesSection from './editor/RulesSection';
+import PlanModePromptSection from './editor/PlanModePromptSection';
 
 export type AssistantEditorSectionsProps = {
   editor: AssistantEditorViewModel;
@@ -53,6 +54,12 @@ const AssistantEditorSections: React.FC<AssistantEditorSectionsProps> = ({ edito
   const editAgent = agent.value;
   const setEditAgent = agent.setValue;
   const availableBackends = agent.availableBackends;
+  // The plan-mode prompt is only relevant for aionrs agents. In edit mode
+  // the persisted row tells us directly; in create mode the user is still
+  // picking the backend so we look it up in `availableBackends` by id.
+  const isEditingAionrsAssistant = isCreating
+    ? availableBackends.some((option) => option.id === editAgent && option.runtimeKey === 'aionrs')
+    : activeAssistant?.agent?.type === 'aionrs';
 
   // Agent search, matching the model picker's in-dropdown box: the trigger keeps
   // showing the selection while a fixed search field sits above the list. Shown
@@ -92,6 +99,8 @@ const AssistantEditorSections: React.FC<AssistantEditorSectionsProps> = ({ edito
   };
   const editRecommendedPromptsText = prompts.text;
   const setEditRecommendedPromptsText = prompts.setText;
+  const editPlanModePromptTemplate = prompts.planModePromptTemplate;
+  const setEditPlanModePromptTemplate = prompts.setPlanModePromptTemplate;
   const defaultModelMode = defaults.model.mode;
   const setDefaultModelMode = defaults.model.setMode;
   const defaultModelValue = defaults.model.value;
@@ -419,6 +428,14 @@ const AssistantEditorSections: React.FC<AssistantEditorSectionsProps> = ({ edito
         onBeginPromptEdit={handleBeginPromptEdit}
         onSavePromptEdit={handleSavePromptEdit}
         onDeletePrompt={handleDeletePrompt}
+        readOnlyLabel={readOnlyLabel}
+      />
+
+      <PlanModePromptSection
+        isVisible={isEditingAionrsAssistant}
+        isReadOnly={isReadOnlyAssistant}
+        value={editPlanModePromptTemplate}
+        onChange={setEditPlanModePromptTemplate}
         readOnlyLabel={readOnlyLabel}
       />
 

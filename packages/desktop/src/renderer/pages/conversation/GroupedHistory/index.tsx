@@ -13,8 +13,8 @@ import { DndContext, closestCenter } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Button, Dropdown, Empty, Input, Menu, Modal, Tooltip } from '@arco-design/web-react';
 import { Delete, MoreOne, Plus, Right } from '@icon-park/react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import classNames from 'classnames';
-import React, { useCallback, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 
@@ -26,6 +26,7 @@ import { useConversationActions } from './hooks/useConversationActions';
 import { useConversations } from './hooks/useConversations';
 import { useDragAndDrop } from './hooks/useDragAndDrop';
 import type { ConversationRowProps, WorkspaceGroupedHistoryProps } from './types';
+import { buildConversationRowPropsSignature } from './utils/rowPropsCache';
 
 const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
   onSessionClick,
@@ -157,8 +158,6 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       conversation,
       isGenerating: isConversationGenerating(conversation.id),
       hasCompletionUnread: hasCompletionUnread(conversation.id),
-      collapsed,
-      tooltipEnabled,
       batchMode,
       checked: selectedConversationIds.has(conversation.id),
       selected: id === conversation.id,
@@ -175,8 +174,6 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       resolveConversationName,
     }),
     [
-      collapsed,
-      tooltipEnabled,
       batchMode,
       isConversationGenerating,
       hasCompletionUnread,
@@ -196,8 +193,54 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     ]
   );
 
+  /**
+   * Memoize props per conversation object so `ConversationRow`'s `React.memo`
+   * can short-circuit. `getConversationRowProps` returns a fresh object every
+   * call (objects in, objects out), so without this cache the shallow-equality
+   * check inside `React.memo` always fails and every row re-renders.
+   *
+   * Cache key: the `conversation` object itself (WeakMap → GC when the row is
+   * unmounted). The signature covers only the value-bearing fields that
+   * affect the row's rendered output. Sider-collapsed state is NOT one of
+   * them — the row renders the same tree in both states and the `.collapsed`
+   * ancestor class drives the visible layout, so a sider toggle reuses the
+   * cached props and React.memo skips the row entirely (no 10000-row storm).
+   */
+  const rowPropsCache = useRef<WeakMap<TChatConversation, { sig: string; props: ConversationRowProps }>>(new WeakMap());
+  const getStableRowProps = useCallback(
+    (conversation: TChatConversation): ConversationRowProps => {
+      const isGenerating = isConversationGenerating(conversation.id);
+      const hasCompletionUnreadFlag = hasCompletionUnread(conversation.id);
+      const selected = id === conversation.id;
+      const menuVisible = dropdownVisibleId !== null && dropdownVisibleId === conversation.id;
+      const checked = selectedConversationIds.has(conversation.id);
+      const sig = buildConversationRowPropsSignature({
+        batchMode,
+        isGenerating,
+        hasCompletionUnread: hasCompletionUnreadFlag,
+        selected,
+        menuVisible,
+        checked,
+      });
+      const cached = rowPropsCache.current.get(conversation);
+      if (cached && cached.sig === sig) return cached.props;
+      const props = getConversationRowProps(conversation);
+      rowPropsCache.current.set(conversation, { sig, props });
+      return props;
+    },
+    [
+      getConversationRowProps,
+      isConversationGenerating,
+      hasCompletionUnread,
+      id,
+      dropdownVisibleId,
+      selectedConversationIds,
+      batchMode,
+    ]
+  );
+
   const renderConversation = (conversation: TChatConversation, dimIcon = false) => {
-    const rowProps = getConversationRowProps(conversation);
+    const rowProps = getStableRowProps(conversation);
     return <ConversationRow key={conversation.id} {...rowProps} dimIcon={dimIcon} />;
   };
 
@@ -382,7 +425,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                 <SortableContext items={pinnedIds} strategy={verticalListSortingStrategy}>
                   <div className='min-w-0'>
                     {pinnedConversations.map((conversation) => {
-                      const props = getConversationRowProps(conversation);
+                      const props = getStableRowProps(conversation);
                       return isDragEnabled ? (
                         <SortableConversationRow key={conversation.id} {...props} />
                       ) : (
@@ -517,4 +560,8 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
   );
 };
 
-export default WorkspaceGroupedHistory;
+// Memo-wrap the heavy list. All props come from `useMemo` sites in
+// `Sider/index.tsx` (workspaceHistoryProps + groupedHistoryAfterPinned), so
+// the memo actually pays off: a closePreview no longer drags the entire
+// historical sidebar tree through a re-render.
+export default React.memo(WorkspaceGroupedHistory);

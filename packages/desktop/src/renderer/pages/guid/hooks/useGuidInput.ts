@@ -95,12 +95,7 @@ export const useGuidInput = ({ locationState }: UseGuidInputOptions): GuidInputR
   });
 
   // Use shared PasteService integration (paste appends to existing files)
-  const {
-    onPaste,
-    onFocus,
-    getPastedTextInlineAction,
-    forgetPastedOriginalText,
-  } = usePasteService({
+  const { onPaste, onFocus, getPastedTextInlineAction, forgetPastedOriginalText } = usePasteService({
     supportedExts: allSupportedExts,
     onFilesAdded: handleFilesPasted,
     onTextPaste: (text: string) => {

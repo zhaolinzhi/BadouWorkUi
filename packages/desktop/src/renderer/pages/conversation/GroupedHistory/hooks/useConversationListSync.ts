@@ -7,7 +7,8 @@
 import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/config/storage';
 import { addEventListener } from '@/renderer/utils/emitter';
-import { useCallback, useEffect, useSyncExternalStore } from 'react';
+import { mark, perfTimeAsync } from '@/renderer/utils/perf';
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
 
 /**
  * Whitelist of message types that indicate content generation is in progress.
@@ -184,11 +185,51 @@ export const setConversationProjectMapForTest = (entries: Array<[string, string 
   projectIdByIdState = new Map(entries);
 };
 
-const refreshConversations = () => {
-  void ipcBridge.database.getUserConversations
-    .invoke({ limit: 10000 })
+/**
+ * In-flight deduplication for `refreshConversations`.
+ *
+ * 16+ emitters across the app fire `chat.history.refresh` and three backend
+ * listeners (`listChanged`, `responseStream`, `turnCompleted`) also call into
+ * us. Profiler data (2026-09-10) showed a single user action producing two
+ * HTTP round-trips 4ms apart — the second was almost always redundant.
+ *
+ * Two guards:
+ *  1. While a fetch is in flight, every concurrent caller awaits the same
+ *     promise instead of issuing a second request.
+ *  2. After a successful (or failed) fetch, calls within `COOLDOWN_MS` are
+ *     skipped — the previous response is already the freshest snapshot the
+ *     store will hold. Cooldown is reset by any explicit `force: true`
+ *     call (currently unused — kept as the escape hatch for future callers
+ *     that genuinely need a re-fetch, e.g. after a confirmed mutation).
+ */
+const COOLDOWN_MS = 100;
+let inflightRefresh: Promise<void> | null = null;
+let lastRefreshFinishedAt = 0;
+
+/**
+ * Stable-function trick for `isConversationGenerating` / `hasCompletionUnread`.
+ *
+ * Both depend on module-level Sets that are replaced wholesale on every store
+ * change. A naive `useCallback(fn, [set])` gives a new reference every time,
+ * defeating `ConversationRow`'s `React.memo` and forcing every row to re-render
+ * on any unrelated store mutation (the worst offender was `chat.history.refresh`
+ * which fires on every send — 16+ emitter sites across the app). Hoisting
+ * them to module-level functions that read the latest Set on each call makes
+ * their reference identity stable forever, so the row memo can short-circuit.
+ */
+const isConversationGeneratingFn = (conversation_id: string): boolean =>
+  generatingConversationIdsState.has(conversation_id);
+
+const hasCompletionUnreadFn = (conversation_id: string): boolean =>
+  completionUnreadConversationIdsState.has(conversation_id);
+
+const doRefresh = (): Promise<void> =>
+  perfTimeAsync({ tag: 'perf.chatHistory', message: 'refresh_fetch' }, () =>
+    ipcBridge.database.getUserConversations.invoke({ limit: 10000 })
+  )
     .then((result) => {
       const items = result?.items;
+      mark('perf.chatHistory.refresh', 'refresh_fetched', { count: Array.isArray(items) ? items.length : 0 });
       if (items && Array.isArray(items)) {
         const filteredData = items.filter((conv) => {
           // Legacy rows from the pre-provider-probe health check flow are hidden
@@ -219,7 +260,30 @@ const refreshConversations = () => {
       conversation_idsState = new Set();
       projectIdByIdState = new Map();
       emitStoreChange();
+    })
+    .finally(() => {
+      inflightRefresh = null;
+      lastRefreshFinishedAt = Date.now();
     });
+
+const refreshConversations = (options: { force?: boolean } = {}) => {
+  // In-flight: every concurrent caller awaits the same promise. This collapses
+  // bursts like `emit('chat.history.refresh')` + `listChanged` within a few ms
+  // into one HTTP request — verified by perf data on 2026-09-10.
+  if (inflightRefresh) {
+    void inflightRefresh;
+    return;
+  }
+
+  // Cooldown: a refresh that just finished is still the freshest snapshot the
+  // store will see; a second request 4ms later returns effectively the same
+  // payload. Forced refreshes bypass this (escape hatch).
+  if (!options.force && Date.now() - lastRefreshFinishedAt < COOLDOWN_MS) {
+    mark('perf.chatHistory.refresh', 'refresh_cooldown_skip');
+    return;
+  }
+
+  inflightRefresh = doRefresh();
 };
 
 const markGenerating = (conversation_id: string) => {
@@ -308,7 +372,13 @@ const initializeConversationListSyncStore = () => {
   isStoreInitialized = true;
   refreshConversations();
 
-  addEventListener('chat.history.refresh', refreshConversations);
+  // Single funnel for every `chat.history.refresh` emitter (~20 sites across
+  // the app). Tagging here means callers stay untouched yet every refresh is
+  // traceable end-to-end against the `refresh_fetch` span that follows.
+  addEventListener('chat.history.refresh', () => {
+    mark('perf.chatHistory.refresh', 'refresh_triggered');
+    refreshConversations();
+  });
   ipcBridge.conversation.listChanged.on((event) => {
     if (event.action === 'deleted') {
       clearGenerating(event.conversation_id);
@@ -382,25 +452,25 @@ export const useConversationListSync = () => {
     setActiveConversationState(conversation_id);
   }, []);
 
-  const isConversationGenerating = useCallback(
-    (conversation_id: string) => {
-      return generatingConversationIds.has(conversation_id);
-    },
-    [generatingConversationIds]
-  );
+  // Stable-function trick: instead of `useCallback(fn, [Set])` (which gives a
+  // new reference every time the store replaces the Set), keep one module-level
+  // function that reads the latest Set on every call. The reference is the
+  // same forever, so `ConversationRow`'s `React.memo` actually short-circuits
+  // when only unrelated store state changes (e.g. `chat.history.refresh`).
+  const isConversationGenerating = isConversationGeneratingFn;
+  const hasCompletionUnread = hasCompletionUnreadFn;
 
-  const hasCompletionUnread = useCallback(
-    (conversation_id: string) => {
-      return completionUnreadConversationIds.has(conversation_id);
-    },
-    [completionUnreadConversationIds]
+  // Stable return shape — a new object literal each render would defeat the
+  // `useMemo` in `ConversationHistoryContext` and re-render every history
+  // consumer on any store change.
+  return useMemo(
+    () => ({
+      conversations,
+      isConversationGenerating,
+      hasCompletionUnread,
+      clearCompletionUnread,
+      setActiveConversation,
+    }),
+    [conversations, clearCompletionUnread, setActiveConversation]
   );
-
-  return {
-    conversations,
-    isConversationGenerating,
-    hasCompletionUnread,
-    clearCompletionUnread,
-    setActiveConversation,
-  };
 };

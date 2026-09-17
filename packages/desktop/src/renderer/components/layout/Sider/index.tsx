@@ -1,8 +1,9 @@
 import classNames from 'classnames';
-import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { usePreviewContext } from '@renderer/pages/conversation/Preview/context/PreviewContext';
 import { cleanupSiderTooltips, getSiderTooltipProps } from '@renderer/utils/ui/siderTooltip';
+import { PerfProfiler, mark } from '@renderer/utils/perf';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
 import { useLayoutContext } from '@renderer/hooks/context/LayoutContext';
 import { blurActiveElement } from '@renderer/utils/ui/focus';
@@ -36,7 +37,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   const { pathname, search, hash } = location;
 
   const navigate = useNavigate();
-  const { closePreview, clearPreviewForScope } = usePreviewContext();
+  const { closePreview, clearPreviewForScope, isOpen: previewIsOpen } = usePreviewContext();
   const { logout, status } = useAuth();
   const { theme, setTheme } = useThemeContext();
   const [isBatchMode, setIsBatchMode] = useState(false);
@@ -52,6 +53,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   }, [pathname, search, hash]);
 
   const handleNewChat = () => {
+    mark('perf.nav.click', 'nav_click', { target: '/guid', previewOpen: previewIsOpen });
     cleanupSiderTooltips();
     blurActiveElement();
     closePreview();
@@ -65,6 +67,10 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   };
 
   const handleSettingsClick = () => {
+    mark('perf.settings.click', 'settings_click', {
+      isSettings,
+      target: isSettings ? lastNonSettingsPathRef.current || '/guid' : '/settings/agent',
+    });
     cleanupSiderTooltips();
     blurActiveElement();
     if (isSettings) {
@@ -93,6 +99,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   };
 
   const handleScheduledClick = () => {
+    mark('perf.nav.click', 'nav_click', { target: '/scheduled', previewOpen: previewIsOpen });
     cleanupSiderTooltips();
     blurActiveElement();
     closePreview();
@@ -106,6 +113,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   };
 
   const handleAssistantClick = () => {
+    mark('perf.nav.click', 'nav_click', { target: '/assistants', previewOpen: previewIsOpen });
     cleanupSiderTooltips();
     blurActiveElement();
     closePreview();
@@ -119,6 +127,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   };
 
   const handleKnowledgeClick = () => {
+    mark('perf.nav.click', 'nav_click', { target: '/knowledge-base', previewOpen: previewIsOpen });
     cleanupSiderTooltips();
     blurActiveElement();
     closePreview();
@@ -132,6 +141,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   };
 
   const handleNoteClick = () => {
+    mark('perf.nav.click', 'nav_click', { target: '/notes', previewOpen: previewIsOpen });
     cleanupSiderTooltips();
     blurActiveElement();
     closePreview();
@@ -145,6 +155,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   };
 
   const handleWorkbenchClick = () => {
+    mark('perf.nav.click', 'nav_click', { target: '/workbench', previewOpen: previewIsOpen });
     cleanupSiderTooltips();
     blurActiveElement();
     closePreview();
@@ -158,6 +169,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   };
 
   const handleTaskCenterClick = () => {
+    mark('perf.nav.click', 'nav_click', { target: '/task-center', previewOpen: previewIsOpen });
     cleanupSiderTooltips();
     blurActiveElement();
     closePreview();
@@ -222,15 +234,36 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   }, [handleLogout, showLogout]);
 
   const tooltipEnabled = collapsed && !isMobile;
-  const siderTooltipProps = getSiderTooltipProps(tooltipEnabled);
+  // Memoized: `getSiderTooltipProps` returns a fresh object on every call,
+  // which used to invalidate the `groupedHistoryAfterPinned` memo below and
+  // hand new props to the history list on every render.
+  const siderTooltipProps = useMemo(() => getSiderTooltipProps(tooltipEnabled), [tooltipEnabled]);
 
-  const workspaceHistoryProps = {
-    collapsed,
-    tooltipEnabled,
-    onSessionClick,
-    batchMode: isBatchMode,
-    onBatchModeChange: setIsBatchMode,
-  };
+  // Stable props for WorkspaceGroupedHistory — every prop is a fresh reference
+  // on each render today, which defeats any future memo on the child. Memoizing
+  // here so a downstream `React.memo` actually pays off.
+  const workspaceHistoryProps = useMemo(
+    () => ({
+      collapsed,
+      tooltipEnabled,
+      onSessionClick,
+      batchMode: isBatchMode,
+      onBatchModeChange: setIsBatchMode,
+    }),
+    [collapsed, tooltipEnabled, onSessionClick, isBatchMode]
+  );
+
+  const groupedHistoryAfterPinned = useMemo(
+    () => (
+      <TeamSiderSection
+        collapsed={collapsed}
+        pathname={pathname}
+        siderTooltipProps={siderTooltipProps}
+        onSessionClick={onSessionClick}
+      />
+    ),
+    [collapsed, pathname, siderTooltipProps, onSessionClick]
+  );
 
   return (
     <div className='size-full flex flex-col'>
@@ -316,19 +349,9 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
             {/* Scrollable content: pinned → team (slot) → projects → conversations */}
             <div className={classNames('flex-1 min-h-0 overflow-y-auto', siderStyles.scrollArea)}>
               <Suspense fallback={<div className='min-h-200px' />}>
-                <WorkspaceGroupedHistory
-                  {...workspaceHistoryProps}
-                  afterPinnedContent={
-                    <>
-                      <TeamSiderSection
-                        collapsed={collapsed}
-                        pathname={pathname}
-                        siderTooltipProps={siderTooltipProps}
-                        onSessionClick={onSessionClick}
-                      />
-                    </>
-                  }
-                />
+                <PerfProfiler id='groupedHistory'>
+                  <WorkspaceGroupedHistory {...workspaceHistoryProps} afterPinnedContent={groupedHistoryAfterPinned} />
+                </PerfProfiler>
               </Suspense>
             </div>
           </div>
@@ -349,4 +372,9 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   );
 };
 
-export default Sider;
+// Memo-wrapped: Layout re-renders frequently (e.g. the `mainRow` ResizeObserver
+// updates during the sider width animation), and it passes props through
+// cloneElement. With a stable `onSessionClick` (useCallback on the Layout side)
+// the shallow compare skips this entire subtree — including the conversation
+// history list — on unrelated Layout renders.
+export default React.memo(Sider);

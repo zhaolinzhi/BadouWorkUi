@@ -182,7 +182,7 @@ const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, cla
     <SettingsViewModeProvider value='page'>
       <SettingsTabNavigateProvider value={navigateToTab}>
         <div className={containerClass}>
-          {isMobile && (
+          {isMobile &&
             <div className='settings-mobile-top-nav'>
               {menuItems.map((item) => {
                 const active = pathname.includes(`/settings/${item.path}`);
