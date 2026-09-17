@@ -80,7 +80,7 @@ const mapPersonalRemoteRowToItem = (row: PersonalKnowledgeBaseRemoteRow): Knowle
  * parallel on mount and on `loadKnowledgeBases()`.
  */
 export const useKnowledgeBaseList = () => {
-  const { user } = useAuth();
+  const { user, notifyTokenExpired } = useAuth();
   const token = user?.token;
 
   const [personalItems, setPersonalItems] = useState<KnowledgeBaseItem[]>([]);
@@ -109,10 +109,24 @@ export const useKnowledgeBaseList = () => {
         },
         credentials: 'include',
       });
+      if (response.status === 401) {
+        notifyTokenExpired('knowledge-base');
+        return;
+      }
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
-      const data = (await response.json()) as ListEnvelope<TRow>;
+      const text = await response.text();
+      if (text.trim() === '') {
+        notifyTokenExpired('knowledge-base');
+        return;
+      }
+      let data: ListEnvelope<TRow>;
+      try {
+        data = JSON.parse(text) as ListEnvelope<TRow>;
+      } catch (parseError) {
+        throw new Error(parseError instanceof Error ? parseError.message : 'Invalid JSON response');
+      }
       const rows = Array.isArray(data?.Rows) ? data.Rows : [];
       setItems(rows.map(map));
     } catch (error) {
