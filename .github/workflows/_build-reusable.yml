@@ -241,13 +241,15 @@ jobs:
 
           for name in SENTRY_AUTH_TOKEN SENTRY_ORG SENTRY_PROJECT SENTRY_RELEASE; do
             if [ -z "${!name:-}" ]; then
-              echo "::error title=Sentry configuration missing::$name is required for desktop source map uploads"
               missing=1
+              echo "::warning title=Sentry configuration missing::$name is not set; source map upload will be skipped"
             fi
           done
 
           if [ "$missing" -ne 0 ]; then
-            exit 1
+            echo "::notice title=Sentry upload disabled::Sentry secrets are not configured in this environment; linux-x64 will build without uploading source maps."
+            echo "SENTRY_UPLOAD_SOURCE_MAPS=false" >> "$GITHUB_ENV"
+            exit 0
           fi
 
           echo "Sentry source map upload configured for $SENTRY_ORG/$SENTRY_PROJECT ($SENTRY_RELEASE)"
