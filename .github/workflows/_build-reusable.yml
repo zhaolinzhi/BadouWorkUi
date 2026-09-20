@@ -334,11 +334,15 @@ jobs:
             Write-Host ""
             Write-Host "[Step 2] prebuild-install didn't produce binary, trying electron-rebuild..."
             try {
-              # Pass --electron-version so node-gyp downloads the correct Electron headers
-              # (not the host Node headers, which 404 on this disturl).
-              # Pass --only to avoid walking transitive native deps (e.g. lzma-native)
-              # that lack arm64 prebuilds and fail to cross-compile.
-              bunx electron-rebuild -f --only better-sqlite3 -w better-sqlite3 --electron-version $electronVer --arch $arch
+              # Use the project's pinned @electron/rebuild@4.x (which depends on node-gyp@12
+              # and correctly resolves Electron headers via npm_config_target).
+              # 'bunx electron-rebuild' would pull the registry's @latest, which drags
+              # in node-gyp@9 — that version ignores --electron-version and falls back
+              # to process.versions.node, so it 404s on the disturl (Electron headers
+              # don't exist for raw Node versions).
+              # --only keeps the rebuild scope to better-sqlite3 so transitive native
+              # modules (lzma-native, etc.) without arm64 prebuilds aren't pulled in.
+              bunx --no-install @electron/rebuild -f --only better-sqlite3 -w better-sqlite3 --electron-version $electronVer --arch $arch
               if ($LASTEXITCODE -eq 0) {
                 Write-Host "✅ electron-rebuild succeeded"
                 $success = $true
