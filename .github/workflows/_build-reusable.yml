@@ -241,13 +241,15 @@ jobs:
 
           for name in SENTRY_AUTH_TOKEN SENTRY_ORG SENTRY_PROJECT SENTRY_RELEASE; do
             if [ -z "${!name:-}" ]; then
-              echo "::error title=Sentry configuration missing::$name is required for desktop source map uploads"
               missing=1
+              echo "::warning title=Sentry configuration missing::$name is not set; source map upload will be skipped"
             fi
           done
 
           if [ "$missing" -ne 0 ]; then
-            exit 1
+            echo "::notice title=Sentry upload disabled::Sentry secrets are not configured in this environment; linux-x64 will build without uploading source maps."
+            echo "SENTRY_UPLOAD_SOURCE_MAPS=false" >> "$GITHUB_ENV"
+            exit 0
           fi
 
           echo "Sentry source map upload configured for $SENTRY_ORG/$SENTRY_PROJECT ($SENTRY_RELEASE)"
@@ -332,7 +334,11 @@ jobs:
             Write-Host ""
             Write-Host "[Step 2] prebuild-install didn't produce binary, trying electron-rebuild..."
             try {
-              bunx electron-rebuild -f -w better-sqlite3
+              # Pass --electron-version so node-gyp downloads the correct Electron headers
+              # (not the host Node headers, which 404 on this disturl).
+              # Pass --only to avoid walking transitive native deps (e.g. lzma-native)
+              # that lack arm64 prebuilds and fail to cross-compile.
+              bunx electron-rebuild -f --only better-sqlite3 -w better-sqlite3 --electron-version $electronVer --arch $arch
               if ($LASTEXITCODE -eq 0) {
                 Write-Host "✅ electron-rebuild succeeded"
                 $success = $true
