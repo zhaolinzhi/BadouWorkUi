@@ -206,6 +206,7 @@
     "@types/ws": "^8.18.1",
     "@types/yauzl": "^2.10.3",
     "@vitest/coverage-v8": "^4.0.18",
+    "@electron/rebuild": "^4.2.0",
     "builder-util": "26.15.0",
     "cross-env": "^7.0.3",
     "dotenv": "^17.2.1",
