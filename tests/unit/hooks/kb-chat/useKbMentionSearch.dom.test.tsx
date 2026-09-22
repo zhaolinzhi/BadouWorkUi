@@ -105,4 +105,38 @@ describe('useKbMentionSearch', () => {
     expect(result.current.items).toEqual([]);
     expect(result.current.active).toBe(false);
   });
+
+  it('reports loading while menu open and list is loading', () => {
+    list.mockReturnValue({
+      personalItems: [],
+      sharedItems: [],
+      personalLoading: true,
+      sharedLoading: false,
+    });
+    const { result } = renderHook(() => useKbMentionSearch({ query: '', isOpen: true, limit: 8 }));
+    expect(result.current.loading).toBe(true);
+  });
+
+  it('does not report loading when menu is closed', () => {
+    list.mockReturnValue({
+      personalItems: [],
+      sharedItems: [],
+      personalLoading: true,
+      sharedLoading: true,
+    });
+    const { result } = renderHook(() => useKbMentionSearch({ query: '', isOpen: false, limit: 8 }));
+    expect(result.current.loading).toBe(false);
+  });
+
+  it('treats whitespace-only query as empty', () => {
+    list.mockReturnValue({
+      personalItems: [
+        { id: '1', name: 'Alpha docs', isShared: false },
+        { id: '2', name: 'Beta notes', isShared: false },
+      ],
+      sharedItems: [],
+    });
+    const { result } = renderHook(() => useKbMentionSearch({ query: '   ', isOpen: true, limit: 8 }));
+    expect(result.current.items).toHaveLength(2);
+  });
 });
