@@ -1,3 +1,4 @@
+import type { AtMentionKind } from '@/common/types/atMention';
 import type { ChatFileRef } from '@/common/types/chatFile';
 
 export type FileOrFolderItem = {
@@ -18,5 +19,5 @@ export type FileOrFolderItem = {
    * workspace path; `kb` routes through the KB streaming endpoint. Defaults to
    * `file` when omitted for backward compatibility.
    */
-  kind?: 'file' | 'kb';
+  kind?: AtMentionKind;
 };
