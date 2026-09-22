@@ -28,9 +28,14 @@ export type KbInlineAnswerState = {
 };
 
 export type KbInlineAnswerController = {
+  /**
+   * Begin streaming a new answer. Calling `start` while a previous answer is
+   * still streaming silently overwrites the prior state — callers should call
+   * `abort()` or wait for `finish()` on the previous request first.
+   */
   start: (source: KbInlineAnswerSource, requestId: string) => void;
   appendChunk: (content: string) => void;
-  finish: (reason: 'done' | 'aborted' | 'error', error?: KbInlineAnswerError) => void;
+  finish: (reason: Exclude<KbInlineAnswerStatus, 'streaming'>, error?: KbInlineAnswerError) => void;
   clear: () => void;
 };
 
@@ -56,8 +61,14 @@ const subscribe = (conversationId: string, listener: Listener): (() => void) => 
   set.add(listener);
   return () => {
     set!.delete(listener);
+    if (set!.size === 0) {
+      listeners.delete(conversationId);
+    }
   };
 };
+
+const SERVER_SNAPSHOT: null = null;
+const getServerSnapshot = (): null => SERVER_SNAPSHOT;
 
 /**
  * Subscribe a React component to the conversation's inline KB answer state.
@@ -70,7 +81,7 @@ export const useKbInlineAnswer = (conversationId: string): KbInlineAnswerControl
   useSyncExternalStore(
     (listener) => subscribe(conversationId, listener),
     () => getSnapshot(conversationId),
-    (): KbInlineAnswerState | null => null
+    getServerSnapshot
   );
 
   return {
