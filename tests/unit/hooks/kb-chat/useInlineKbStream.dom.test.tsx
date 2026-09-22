@@ -11,6 +11,8 @@ const endListeners: Array<(p: { requestId: string; reason: 'done' | 'aborted' | 
 const errorListeners: Array<(p: { requestId: string; code: string; message: string }) => void> = [];
 const notifyTokenExpired = vi.fn();
 
+const sharedSource = { kbId: '42', name: 'Docs', isShared: false };
+
 vi.mock('@/common', () => {
   return {
     ipcBridge: {
@@ -73,16 +75,9 @@ describe('useInlineKbStream', () => {
   afterEach(clearListeners);
 
   it('streams chunks and finishes done', async () => {
-    const { result } = renderHook(() =>
-      useInlineKbStream({
-        conversationId: 'c1',
-        kbId: '42',
-        name: 'Docs',
-        isShared: false,
-      })
-    );
+    const { result } = renderHook(() => useInlineKbStream({ conversationId: 'c1' }));
     await act(async () => {
-      await result.current.send('what is X?');
+      await result.current.startSend('what is X?', '42', sharedSource);
     });
     const lastCallArg = vi.mocked((await import('@/common')).ipcBridge.kbChat.send.invoke).mock.calls.at(-1)?.[0] as {
       kbId: string;
@@ -102,11 +97,9 @@ describe('useInlineKbStream', () => {
   });
 
   it('records errors and notifies on token_expired', async () => {
-    const { result } = renderHook(() =>
-      useInlineKbStream({ conversationId: 'c1', kbId: '42', name: 'Docs', isShared: false })
-    );
+    const { result } = renderHook(() => useInlineKbStream({ conversationId: 'c1' }));
     await act(async () => {
-      await result.current.send('q');
+      await result.current.startSend('q', '42', sharedSource);
     });
     const invoke = vi.mocked((await import('@/common')).ipcBridge.kbChat.send.invoke);
     const lastArg = invoke.mock.calls.at(-1)?.[0] as { requestId: string };
@@ -123,11 +116,9 @@ describe('useInlineKbStream', () => {
   });
 
   it('aborts and marks aborted', async () => {
-    const { result } = renderHook(() =>
-      useInlineKbStream({ conversationId: 'c1', kbId: '42', name: 'Docs', isShared: false })
-    );
+    const { result } = renderHook(() => useInlineKbStream({ conversationId: 'c1' }));
     await act(async () => {
-      await result.current.send('q');
+      await result.current.startSend('q', '42', sharedSource);
     });
     const invoke = vi.mocked((await import('@/common')).ipcBridge.kbChat.send.invoke);
     const lastArg = invoke.mock.calls.at(-1)?.[0] as { requestId: string };
@@ -145,11 +136,9 @@ describe('useInlineKbStream', () => {
     }));
     vi.resetModules();
     const mod = await import('@renderer/hooks/kb-chat/useInlineKbStream');
-    const { result } = renderHook(() =>
-      mod.useInlineKbStream({ conversationId: 'c1', kbId: '42', name: 'Docs', isShared: false })
-    );
+    const { result } = renderHook(() => mod.useInlineKbStream({ conversationId: 'c1' }));
     await act(async () => {
-      await result.current.send('q');
+      await result.current.startSend('q', '42', sharedSource);
     });
     expect(result.current.status).toBe('error');
     expect(result.current.error?.code).toBe('no_token');

@@ -15,6 +15,9 @@ import {
 
 export type InlineKbStreamOptions = {
   conversationId: string;
+};
+
+export type KbMentionSource = {
   kbId: string;
   name: string;
   isShared: boolean;
@@ -24,7 +27,7 @@ export type InlineKbStreamResult = {
   status: 'idle' | 'streaming' | 'done' | 'aborted' | 'error';
   content: string;
   error?: KbInlineAnswerError;
-  send: (question: string) => Promise<void>;
+  startSend: (question: string, kbId: string, source: KbMentionSource) => Promise<void>;
   abort: () => void;
 };
 
@@ -33,25 +36,23 @@ const newRequestId = (): string => {
   return `kb-inline-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 };
 
-export const useInlineKbStream = ({
-  conversationId,
-  kbId,
-  name,
-  isShared,
-}: InlineKbStreamOptions): InlineKbStreamResult => {
+export const useInlineKbStream = ({ conversationId }: InlineKbStreamOptions): InlineKbStreamResult => {
   const { user, notifyTokenExpired } = useAuth();
   const controller = useKbInlineAnswer(conversationId);
+  // Local state mirrors the store so the active caller gets synchronous
+  // reads (without waiting for the next subscription tick). The store is
+  // the canonical source for any other consumer (e.g. the overlay in Task 10).
   const [status, setStatus] = useState<InlineKbStreamResult['status']>('idle');
   const [content, setContent] = useState('');
   const [error, setError] = useState<KbInlineAnswerError | undefined>(undefined);
   const requestIdRef = useRef<string | null>(null);
-  // Keep latest values accessible from the long-lived IPC listeners without
-  // re-subscribing on every render (the controller object identity changes
-  // each render, so depending on it directly would re-register listeners).
+  // Keep the latest controller accessible from the long-lived IPC listeners
+  // without re-subscribing on every render (the controller object identity
+  // changes each render, so depending on it directly would re-register
+  // listeners). `notifyTokenExpired` is already memoized in AuthContext so it
+  // can be referenced directly.
   const controllerRef = useRef<KbInlineAnswerController | null>(controller);
   controllerRef.current = controller;
-  const notifyTokenExpiredRef = useRef(notifyTokenExpired);
-  notifyTokenExpiredRef.current = notifyTokenExpired;
 
   useEffect(() => {
     const offChunk = ipcBridge.kbChat.streamChunk.on((p: unknown) => {
@@ -67,7 +68,7 @@ export const useInlineKbStream = ({
       setError(err);
       setStatus('error');
       controllerRef.current?.finish('error', err);
-      if (payload.code === 'token_expired') notifyTokenExpiredRef.current('kb-chat');
+      if (payload.code === 'token_expired') notifyTokenExpired('kb-chat');
     });
     const offEnd = ipcBridge.kbChat.streamEnd.on((p: unknown) => {
       const payload = p as { requestId: string; reason: 'done' | 'aborted' | 'error' };
@@ -85,10 +86,10 @@ export const useInlineKbStream = ({
       offError();
       offEnd();
     };
-  }, []);
+  }, [notifyTokenExpired]);
 
-  const send = useCallback(
-    async (question: string) => {
+  const startSend = useCallback(
+    async (question: string, kbId: string, source: KbMentionSource) => {
       const trimmed = question.trim();
       if (!trimmed) return;
       const token = user?.token ?? null;
@@ -106,7 +107,7 @@ export const useInlineKbStream = ({
       setContent('');
       setError(undefined);
       setStatus('streaming');
-      controller?.start({ kbId, name, isShared }, requestId);
+      controller?.start(source, requestId);
 
       const result = await ipcBridge.kbChat.send.invoke({
         requestId,
@@ -125,7 +126,7 @@ export const useInlineKbStream = ({
         controller?.finish('error', err);
       }
     },
-    [controller, conversationId, isShared, kbId, name, user?.token]
+    [controller, conversationId, user?.token]
   );
 
   const abort = useCallback(() => {
@@ -142,5 +143,5 @@ export const useInlineKbStream = ({
     []
   );
 
-  return { status, content, error, send, abort };
+  return { status, content, error, startSend, abort };
 };
