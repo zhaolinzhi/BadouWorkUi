@@ -125,6 +125,14 @@ export function getAllAtFileQueries(value: string): ActiveAtFileQuery[] {
 }
 
 export function buildAtFileInsertion(item: FileOrFolderItem): string | null {
+  if (item.kind === 'kb') {
+    // KB items carry `path: 'kb:<id>'` from useKbMentionSearch.
+    const kbId = item.path.startsWith('kb:') ? item.path.slice(3) : item.path;
+    if (!kbId) {
+      return null;
+    }
+    return `@kb:${kbId}`;
+  }
   const path = item.relativePath || item.path;
   if (!path) {
     return null;
