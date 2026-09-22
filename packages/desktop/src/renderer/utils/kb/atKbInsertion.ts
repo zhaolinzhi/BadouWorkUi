@@ -20,8 +20,6 @@ export type KbMentionToken = {
 /** Same boundary rules as workspace `@`-mentions in `utils/chat/atFileQuery.ts`. */
 const BOUNDARY_RE = /[\s,;!?()[\]{}]/;
 
-const isBoundary = (char: string | undefined): boolean => char === undefined || BOUNDARY_RE.test(char);
-
 export const buildKbInsertion = (kb: Pick<KnowledgeBaseItem, 'id' | 'name' | 'isShared'>): string =>
   `${KB_TOKEN_PREFIX}${kb.id}`;
 
@@ -37,7 +35,8 @@ export const findAllKbTokens = (input: string): KbMentionToken[] => {
   if (!input) return out;
   for (let i = 0; i < input.length; i += 1) {
     if (input[i] !== '@' || input[i + 1] !== 'k' || input[i + 2] !== 'b' || input[i + 3] !== ':') continue;
-    if (!isBoundary(input[i - 1])) continue;
+    const prev = input[i - 1];
+    if (prev !== undefined && !BOUNDARY_RE.test(prev)) continue;
     let end = input.length;
     for (let j = i + KB_TOKEN_PREFIX.length; j < input.length; j += 1) {
       if (BOUNDARY_RE.test(input[j])) {

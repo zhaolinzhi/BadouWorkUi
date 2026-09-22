@@ -37,7 +37,7 @@ describe('atKbInsertion', () => {
     expect(KB_TOKEN_PREFIX).toBe('@kb:');
   });
 
-  it('returns empty array for empty or undefined-like input', () => {
+  it('returns empty array for empty input', () => {
     expect(findAllKbTokens('')).toEqual([]);
   });
 
