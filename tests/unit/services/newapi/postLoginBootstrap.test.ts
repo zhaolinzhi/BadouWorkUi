@@ -18,9 +18,8 @@ vi.mock('@/renderer/api/config', () => ({
   AIPAAS_BASE_URL: 'http://aipaas.test',
 }));
 
-const { NEWAPI_PROVIDER_ID, NEWAPI_BASE_URL, NEWAPI_DEFAULT_MODEL } = await import(
-  '@/renderer/services/newapi/postLoginBootstrap.constants'
-);
+const { NEWAPI_PROVIDER_ID, NEWAPI_BASE_URL, NEWAPI_DEFAULT_MODEL } =
+  await import('@/renderer/services/newapi/postLoginBootstrap.constants');
 
 // 用 NUL-padded 模拟 aipaas 加密,保证 decryptNewapiKey 能解出原明文
 const SECRET = 'izMNRXR9Cx96fTiE';
@@ -41,7 +40,7 @@ function aipaasLikeEncrypt(plain: string): string {
   return CryptoJS.enc.Base64.stringify(cipher.ciphertext);
 }
 
-let runNewapiPostLogin: typeof import('@/renderer/services/newapi/postLoginBootstrap')['runNewapiPostLogin'];
+let runNewapiPostLogin: (typeof import('@/renderer/services/newapi/postLoginBootstrap'))['runNewapiPostLogin'];
 
 beforeEach(async () => {
   vi.resetModules();
@@ -158,7 +157,14 @@ describe('runNewapiPostLogin — skip paths', () => {
     stubFetchOnce({ hasOk: true, message: 'ok', bean: { enc } });
     listProvidersInvoke.mockResolvedValue([
       { id: 'other', api_key: 'sk-other', platform: 'new-api', name: 'X', base_url: 'x', models: [] },
-      { id: NEWAPI_PROVIDER_ID, api_key: plain, platform: 'new-api', name: 'NewAPI', base_url: NEWAPI_BASE_URL, models: [NEWAPI_DEFAULT_MODEL] },
+      {
+        id: NEWAPI_PROVIDER_ID,
+        api_key: plain,
+        platform: 'new-api',
+        name: 'NewAPI',
+        base_url: NEWAPI_BASE_URL,
+        models: [NEWAPI_DEFAULT_MODEL],
+      },
     ]);
 
     await runNewapiPostLogin('T');
