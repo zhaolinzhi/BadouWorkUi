@@ -4,12 +4,14 @@ import { BackendHttpError } from '@/common/adapter/httpBridge';
 
 const listProvidersInvoke = vi.fn();
 const createProviderInvoke = vi.fn();
+const updateProviderInvoke = vi.fn();
 
 vi.mock('@/common', () => ({
   ipcBridge: {
     mode: {
       listProviders: { invoke: listProvidersInvoke },
       createProvider: { invoke: createProviderInvoke },
+      updateProvider: { invoke: updateProviderInvoke },
     },
   },
 }));
@@ -46,6 +48,7 @@ beforeEach(async () => {
   vi.resetModules();
   listProvidersInvoke.mockReset();
   createProviderInvoke.mockReset();
+  updateProviderInvoke.mockReset();
   vi.unstubAllGlobals();
   const mod = await import('@/renderer/services/newapi/postLoginBootstrap');
   runNewapiPostLogin = mod.runNewapiPostLogin;
@@ -188,7 +191,7 @@ describe('runNewapiPostLogin — skip paths', () => {
     expect(createProviderInvoke).not.toHaveBeenCalled();
   });
 
-  it('skips when an existing provider already has the same api_key (idempotency)', async () => {
+  it('skips when the newapi-default provider already has the same api_key (idempotency)', async () => {
     const plain = 'sk-dup-1234567890abcdef';
     const enc = aipaasLikeEncrypt(plain);
     stubFetchOnce({ hasOk: true, message: 'ok', bean: { enc } });
@@ -207,6 +210,99 @@ describe('runNewapiPostLogin — skip paths', () => {
     await runNewapiPostLogin('T');
 
     expect(createProviderInvoke).not.toHaveBeenCalled();
+    expect(updateProviderInvoke).not.toHaveBeenCalled();
+  });
+
+  it('updates the newapi-default provider when its stored api_key differs from the freshly decrypted one', async () => {
+    const newPlain = 'sk-new-rotated-key-12345';
+    const enc = aipaasLikeEncrypt(newPlain);
+    stubFetchOnce({ hasOk: true, message: 'ok', bean: { enc } });
+    listProvidersInvoke.mockResolvedValue([
+      {
+        id: NEWAPI_PROVIDER_ID,
+        api_key: 'sk-old-stale-key-9999',
+        platform: 'new-api',
+        name: '默认token',
+        base_url: NEWAPI_BASE_URL,
+        models: [NEWAPI_DEFAULT_MODEL],
+      },
+    ]);
+    updateProviderInvoke.mockResolvedValue({ id: NEWAPI_PROVIDER_ID });
+
+    await runNewapiPostLogin('T');
+
+    expect(createProviderInvoke).not.toHaveBeenCalled();
+    expect(updateProviderInvoke).toHaveBeenCalledTimes(1);
+    expect(updateProviderInvoke).toHaveBeenCalledWith({
+      id: NEWAPI_PROVIDER_ID,
+      api_key: newPlain,
+    });
+  });
+
+  it('creates a new provider when none with id=newapi-default exists (first login or user deleted it)', async () => {
+    const plain = 'sk-fresh-1234567890abcdef';
+    const enc = aipaasLikeEncrypt(plain);
+    stubFetchOnce({ hasOk: true, message: 'ok', bean: { enc } });
+    // 列表里有其它 provider,但没有 id='newapi-default'
+    listProvidersInvoke.mockResolvedValue([
+      {
+        id: 'openai',
+        api_key: 'sk-openai',
+        platform: 'openai',
+        name: 'OpenAI',
+        base_url: 'https://api.openai.com/v1',
+        models: [],
+      },
+      {
+        id: 'anthropic',
+        api_key: 'sk-anth',
+        platform: 'anthropic',
+        name: 'Anthropic',
+        base_url: 'https://api.anthropic.com',
+        models: [],
+      },
+    ]);
+    createProviderInvoke.mockResolvedValue({ id: NEWAPI_PROVIDER_ID });
+
+    await runNewapiPostLogin('T');
+
+    expect(createProviderInvoke).toHaveBeenCalledTimes(1);
+    expect(createProviderInvoke).toHaveBeenCalledWith({
+      id: NEWAPI_PROVIDER_ID,
+      platform: 'new-api',
+      name: '默认token',
+      base_url: NEWAPI_BASE_URL,
+      api_key: plain,
+      models: [NEWAPI_DEFAULT_MODEL],
+      enabled: true,
+      is_full_url: true,
+    });
+    expect(updateProviderInvoke).not.toHaveBeenCalled();
+  });
+
+  it('prepends "sk-" prefix when decrypted key does not already start with "sk-" (existing provider needs update too)', async () => {
+    const rawPlain = 'abc-rotated-no-prefix';
+    const expectedStoredKey = `sk-${rawPlain}`;
+    const enc = aipaasLikeEncrypt(rawPlain);
+    stubFetchOnce({ hasOk: true, message: 'ok', bean: { enc } });
+    listProvidersInvoke.mockResolvedValue([
+      {
+        id: NEWAPI_PROVIDER_ID,
+        api_key: 'sk-old-stale',
+        platform: 'new-api',
+        name: '默认token',
+        base_url: NEWAPI_BASE_URL,
+        models: [NEWAPI_DEFAULT_MODEL],
+      },
+    ]);
+    updateProviderInvoke.mockResolvedValue({ id: NEWAPI_PROVIDER_ID });
+
+    await runNewapiPostLogin('T');
+
+    expect(createProviderInvoke).not.toHaveBeenCalled();
+    expect(updateProviderInvoke).toHaveBeenCalledTimes(1);
+    const callArg = updateProviderInvoke.mock.calls[0][0] as { api_key: string };
+    expect(callArg.api_key).toBe(expectedStoredKey);
   });
 });
 
