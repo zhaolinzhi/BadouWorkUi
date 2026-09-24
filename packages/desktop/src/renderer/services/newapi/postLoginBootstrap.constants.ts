@@ -9,7 +9,7 @@ export const NEWAPI_MASK_FOR_CURRENT_PATH = '/project/newapi/newapikeyqueryactio
 export const NEWAPI_PROVIDER_ID = 'newapi-default';
 
 /** Provider 展示名。 */
-export const NEWAPI_PROVIDER_NAME = 'NewAPI';
+export const NEWAPI_PROVIDER_NAME = '默认token';
 
 /** NewAPI 兼容 OpenAI 协议的 base url(完整路径,含 /v1)。 */
 export const NEWAPI_BASE_URL = 'https://qw.badousoft.com/ai-proxy/v1';

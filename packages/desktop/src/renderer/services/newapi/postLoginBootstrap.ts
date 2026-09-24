@@ -48,9 +48,18 @@ function hasSameKey(providers: ReadonlyArray<ProviderLike>, plainKey: string): b
 }
 
 /**
+ * 给 NewAPI key 补 `sk-` 前缀(若已存在则不重复加)。
+ * 之所以补前缀:NewAPI 兼容 OpenAI,`Authorization: Bearer sk-xxx` 协议要求 `sk-` 前缀。
+ * aipaas 后端解密出来的明文可能不带这个前缀,这里补齐再保存。
+ */
+function ensureSkPrefix(rawKey: string): string {
+  return rawKey.startsWith('sk-') ? rawKey : `sk-${rawKey}`;
+}
+
+/**
  * 登录后自动建 NewAPI provider 的编排函数。
  *
- * 流程:fetch 密文 → 解密 → 与本地 provider 列表比对(同 key 跳过)→ 创建骨架。
+ * 流程:fetch 密文 → 解密 → 补 `sk-` 前缀 → 与本地 provider 列表比对(同 key 跳过)→ 创建骨架。
  * 任意步骤失败一律 console.warn,不抛、不弹 UI。
  *
  * 该函数应当以 fire-and-forget 方式被调用(不 await)。
@@ -60,11 +69,13 @@ export async function runNewapiPostLogin(token: string): Promise<void> {
     const enc = await fetchMaskForCurrent(token);
     if (!enc) return;
 
-    const plainKey = decryptNewapiKey(enc);
-    if (!plainKey) return;
+    const rawKey = decryptNewapiKey(enc);
+    if (!rawKey) return;
+
+    const apiKey = ensureSkPrefix(rawKey);
 
     const providers = (await ipcBridge.mode.listProviders.invoke()) as ReadonlyArray<ProviderLike>;
-    if (hasSameKey(providers, plainKey)) return;
+    if (hasSameKey(providers, apiKey)) return;
 
     try {
       await ipcBridge.mode.createProvider.invoke({
@@ -72,7 +83,7 @@ export async function runNewapiPostLogin(token: string): Promise<void> {
         platform: 'new-api',
         name: NEWAPI_PROVIDER_NAME,
         base_url: NEWAPI_BASE_URL,
-        api_key: plainKey,
+        api_key: apiKey,
         models: [NEWAPI_DEFAULT_MODEL],
         enabled: true,
         is_full_url: true,

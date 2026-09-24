@@ -84,13 +84,50 @@ describe('runNewapiPostLogin — happy path', () => {
     expect(createProviderInvoke).toHaveBeenCalledWith({
       id: NEWAPI_PROVIDER_ID,
       platform: 'new-api',
-      name: 'NewAPI',
+      name: '默认token',
       base_url: NEWAPI_BASE_URL,
       api_key: plain,
       models: [NEWAPI_DEFAULT_MODEL],
       enabled: true,
       is_full_url: true,
     });
+  });
+
+  it('prepends "sk-" prefix when decrypted key does not already start with "sk-"', async () => {
+    const rawPlain = 'abc-1234567890-no-prefix';
+    const expectedStoredKey = `sk-${rawPlain}`;
+    const enc = aipaasLikeEncrypt(rawPlain);
+    stubFetchOnce({ hasOk: true, message: 'ok', bean: { enc } });
+    listProvidersInvoke.mockResolvedValue([]);
+    createProviderInvoke.mockResolvedValue({ id: NEWAPI_PROVIDER_ID });
+
+    await runNewapiPostLogin('TOKEN');
+
+    expect(createProviderInvoke).toHaveBeenCalledTimes(1);
+    const callArg = createProviderInvoke.mock.calls[0][0] as { api_key: string };
+    expect(callArg.api_key).toBe(expectedStoredKey);
+  });
+
+  it('skips when existing provider already has the prefixed sk- form (idempotency on sk-prefixed match)', async () => {
+    const rawPlain = 'abc-1234567890-no-prefix';
+    const expectedStoredKey = `sk-${rawPlain}`;
+    const enc = aipaasLikeEncrypt(rawPlain);
+    stubFetchOnce({ hasOk: true, message: 'ok', bean: { enc } });
+    listProvidersInvoke.mockResolvedValue([
+      { id: 'other', api_key: 'sk-other', platform: 'new-api', name: 'X', base_url: 'x', models: [] },
+      {
+        id: NEWAPI_PROVIDER_ID,
+        api_key: expectedStoredKey,
+        platform: 'new-api',
+        name: '默认token',
+        base_url: NEWAPI_BASE_URL,
+        models: [NEWAPI_DEFAULT_MODEL],
+      },
+    ]);
+
+    await runNewapiPostLogin('T');
+
+    expect(createProviderInvoke).not.toHaveBeenCalled();
   });
 
   it('sends Token header and credentials: include on the aipaas fetch', async () => {
@@ -161,7 +198,7 @@ describe('runNewapiPostLogin — skip paths', () => {
         id: NEWAPI_PROVIDER_ID,
         api_key: plain,
         platform: 'new-api',
-        name: 'NewAPI',
+        name: '默认token',
         base_url: NEWAPI_BASE_URL,
         models: [NEWAPI_DEFAULT_MODEL],
       },
