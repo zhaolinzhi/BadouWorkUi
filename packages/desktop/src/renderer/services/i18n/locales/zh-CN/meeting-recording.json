@@ -6,6 +6,8 @@
   "empty": "暂无录音",
   "placeholderName": "录音 {{date}}",
   "transcriptionPending": "等待转写",
+  "transcriptionFailed": "转写失败",
+  "chunkLabel": "片段 {{index}}",
   "deleteConfirm": "确认删除此录音?删除后无法恢复。",
   "errors": {
     "permissionDenied": "麦克风权限被拒绝",

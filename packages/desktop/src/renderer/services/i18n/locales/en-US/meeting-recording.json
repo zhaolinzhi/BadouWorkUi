@@ -6,6 +6,8 @@
   "empty": "No recordings yet",
   "placeholderName": "Recording {{date}}",
   "transcriptionPending": "Transcription pending",
+  "transcriptionFailed": "Transcription failed",
+  "chunkLabel": "Chunk {{index}}",
   "deleteConfirm": "Delete this recording? This cannot be undone.",
   "errors": {
     "permissionDenied": "Microphone access denied",
