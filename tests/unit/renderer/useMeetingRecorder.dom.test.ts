@@ -35,7 +35,10 @@ const mocks = vi.hoisted(() => {
   };
 
   class FakeMediaRecorder {
-    constructor(public stream: MediaStream, _opts: MediaRecorderOptions) {
+    constructor(
+      public stream: MediaStream,
+      _opts: MediaRecorderOptions
+    ) {
       // The recorder starts in 'inactive' state; the test's start() mock flips
       // it to 'recording'. The constructor must NOT clobber that flip after
       // the hook has called start() — only reset bookkeeping between tests.
@@ -135,9 +138,7 @@ describe('useMeetingRecorder', () => {
   });
 
   it('surfaces permission errors as error status', async () => {
-    mocks.getUserMedia.mockRejectedValueOnce(
-      Object.assign(new DOMException('denied', 'NotAllowedError'), {})
-    );
+    mocks.getUserMedia.mockRejectedValueOnce(Object.assign(new DOMException('denied', 'NotAllowedError'), {}));
     const { result } = renderHook(() => useMeetingRecorder());
     await act(async () => {
       await result.current.start();

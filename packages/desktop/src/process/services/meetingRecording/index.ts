@@ -88,10 +88,7 @@ export const createMeetingRecordingService = () => ({
     const meta = await readMeta(dir);
     if (!meta) throw new Error(`Recording not found: ${id}`);
     const transcription = `[Placeholder transcription for ${meta.name}]`;
-    await fs.writeFile(
-      path.join(dir, 'meta.json'),
-      JSON.stringify({ ...meta, transcription }, null, 2)
-    );
+    await fs.writeFile(path.join(dir, 'meta.json'), JSON.stringify({ ...meta, transcription }, null, 2));
     return { id, transcription };
   },
 });

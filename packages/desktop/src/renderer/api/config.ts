@@ -14,9 +14,10 @@ import { FLAVOR } from '@/common/config/flavor';
  * localhost:8081。修改集中在此处，调用方无需关心当前 flavor。
  */
 export const AIPAAS_BASE_URL =
-  FLAVOR === 'enterprise' ? 'http://devops.badousoft.com/aipaas-service'
+  FLAVOR === 'enterprise'
+    ? 'http://devops.badousoft.com/aipaas-service'
     : 'https://devops.badousoft.com/aipublic-platform';
-   // : 'http://localhost:8081';
+// : 'http://localhost:8081';
 
 /** External login page URL base. The system browser loads this URL during
  *  the external login flow. `aipaas-front` reads the `from` query flag and
@@ -26,9 +27,10 @@ export const AIPAAS_BASE_URL =
  *  public flavor 指向本地 aipaas-front，默认 `http://localhost:8000`。
  */
 export const EXTERNAL_LOGIN_URL_BASE =
-  FLAVOR === 'enterprise' ? 'https://devops.badousoft.com/aipaas-front/'
+  FLAVOR === 'enterprise'
+    ? 'https://devops.badousoft.com/aipaas-front/'
     : 'https://devops.badousoft.com/aipaas-public/';
-    //: 'http://localhost:8910/';
+//: 'http://localhost:8910/';
 
 /** Query string appended to the external login URL so `aipaas-front` knows
  *  to deep-link back t Ro AionUi after SSO instead of staying on its own
