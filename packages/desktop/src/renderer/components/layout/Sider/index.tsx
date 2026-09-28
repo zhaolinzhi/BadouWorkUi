@@ -15,6 +15,7 @@ import {
   SiderAssistantEntry,
   SiderKnowledgeEntry,
   SiderNoteEntry,
+  SiderMeetingRecordingEntry,
   SiderWorkbenchEntry,
   SiderTaskCenterEntry,
 } from './SiderNav';
@@ -147,6 +148,20 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
     closePreview();
     setIsBatchMode(false);
     Promise.resolve(navigate('/notes')).catch((error) => {
+      console.error('Navigation failed:', error);
+    });
+    if (onSessionClick) {
+      onSessionClick();
+    }
+  };
+
+  const handleMeetingRecordingClick = () => {
+    mark('perf.nav.click', 'nav_click', { target: '/meeting-recording', previewOpen: previewIsOpen });
+    cleanupSiderTooltips();
+    blurActiveElement();
+    closePreview();
+    setIsBatchMode(false);
+    Promise.resolve(navigate('/meeting-recording')).catch((error) => {
       console.error('Navigation failed:', error);
     });
     if (onSessionClick) {
@@ -313,6 +328,13 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
               isActive={pathname.startsWith('/notes')}
               collapsed={collapsed}
               onClick={handleNoteClick}
+            />
+            {/* Meeting recording nav entry - fixed below Notes */}
+            <SiderMeetingRecordingEntry
+              isMobile={isMobile}
+              isActive={pathname.startsWith('/meeting-recording')}
+              collapsed={collapsed}
+              onClick={handleMeetingRecordingClick}
             />
             {/* Workbench nav entry - opens external PM center in-app webview (enterprise only) */}
             {SiderWorkbenchEntry && (
