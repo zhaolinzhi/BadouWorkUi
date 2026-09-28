@@ -99,12 +99,19 @@ beforeEach(() => {
     id: 'uuid-1',
     name: 'r',
     createdAt: 0,
-    durationMs: 0,
+    durationMs: 1000,
     mimeType: 'audio/webm',
-    audioUrl: '/tmp/uuid-1/audio.webm',
-    transcription: '',
+    chunks: [
+      {
+        index: 0,
+        durationMs: 1000,
+        audioUrl: '/tmp/uuid-1/chunks/000.webm',
+        transcription: '',
+        status: 'pending',
+      },
+    ],
   });
-  mocks.ipcMock.meetingRecording.transcribe.invoke.mockResolvedValue({ id: 'uuid-1', transcription: 'placeholder' });
+  mocks.ipcMock.meetingRecording.transcribe.invoke.mockResolvedValue({ id: 'uuid-1' });
 });
 
 afterEach(() => {
@@ -112,7 +119,7 @@ afterEach(() => {
 });
 
 describe('useMeetingRecorder', () => {
-  it('transitions idle → recording → idle when start() then stop() resolve', async () => {
+  it('saves chunks + fires transcribe without blocking on transcription', async () => {
     const { result } = renderHook(() => useMeetingRecorder());
     expect(result.current.status).toBe('idle');
 
@@ -121,20 +128,25 @@ describe('useMeetingRecorder', () => {
     });
     expect(result.current.status).toBe('recording');
 
-    let saved: { id: string } | undefined;
+    let saved: { id: string; chunks: { index: number }[] } | undefined;
     await act(async () => {
       saved = await result.current.stop();
     });
-    // Drain any pending microtasks (FileReader + IPC invoke are async).
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 0));
-    });
-    // Drain any pending microtasks (FileReader + IPC invoke are async).
+    // Drain pending microtasks (FileReader + IPC invoke are async).
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
     });
     expect(result.current.status).toBe('idle');
     expect(saved?.id).toBe('uuid-1');
+    expect(saved?.chunks.length).toBeGreaterThanOrEqual(1);
+
+    expect(mocks.ipcMock.meetingRecording.save.invoke).toHaveBeenCalledTimes(1);
+    const saveArg = mocks.ipcMock.meetingRecording.save.invoke.mock.calls[0][0];
+    expect(Array.isArray(saveArg.chunks)).toBe(true);
+    expect(saveArg.chunks.length).toBeGreaterThanOrEqual(1);
+
+    expect(mocks.ipcMock.meetingRecording.transcribe.invoke).toHaveBeenCalledTimes(1);
+    expect(mocks.ipcMock.meetingRecording.transcribe.invoke).toHaveBeenCalledWith({ id: 'uuid-1' });
   });
 
   it('surfaces permission errors as error status', async () => {

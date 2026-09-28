@@ -5,43 +5,83 @@
  */
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (k: string) => k }),
+  useTranslation: () => ({
+    t: (k: string, opts?: Record<string, unknown>) =>
+      opts ? `${k}:${JSON.stringify(opts)}` : k,
+  }),
 }));
 
 import RecordingListItem from '@/renderer/components/meeting-recording/RecordingListItem';
 import type { MeetingRecording } from '@/common/types/meetingRecording';
 
-const sample: MeetingRecording = {
+const baseRecording: MeetingRecording = {
   id: 'rec-1',
-  name: 'Test Recording',
+  name: 'Test',
   createdAt: 1700000000000,
-  durationMs: 65000,
   mimeType: 'audio/webm',
-  audioUrl: '/tmp/rec-1/audio.webm',
-  transcription: 'Hello world',
+  durationMs: 90000,
+  chunks: [
+    {
+      index: 0,
+      durationMs: 50000,
+      audioUrl: '/tmp/rec-1/chunks/000.webm',
+      transcription: '第一段',
+      status: 'transcribed',
+    },
+    {
+      index: 1,
+      durationMs: 40000,
+      audioUrl: '/tmp/rec-1/chunks/001.webm',
+      transcription: '',
+      status: 'pending',
+    },
+    {
+      index: 2,
+      durationMs: 30000,
+      audioUrl: '/tmp/rec-1/chunks/002.webm',
+      transcription: '',
+      status: 'failed',
+    },
+  ],
 };
 
-describe('RecordingListItem', () => {
-  it('shows transcription when present', () => {
-    render(<RecordingListItem recording={sample} onDelete={() => {}} />);
-    expect(screen.getByText('Hello world')).toBeTruthy();
+describe('RecordingListItem (chunked)', () => {
+  it('renders all chunks with appropriate status text', () => {
+    render(<RecordingListItem recording={baseRecording} onDelete={() => {}} />);
+    expect(screen.getByText('第一段')).toBeTruthy();
+    expect(screen.getByText('meeting-recording.transcriptionPending')).toBeTruthy();
+    expect(screen.getByText('meeting-recording.transcriptionFailed')).toBeTruthy();
   });
 
-  it('shows transcriptionPending when transcription is empty', () => {
-    render(<RecordingListItem recording={{ ...sample, transcription: '' }} onDelete={() => {}} />);
-    expect(screen.getByText('meeting-recording.transcriptionPending')).toBeTruthy();
+  it('shows chunk label with 1-based index', () => {
+    render(<RecordingListItem recording={baseRecording} onDelete={() => {}} />);
+    expect(screen.getByText('meeting-recording.chunkLabel:{"index":1}')).toBeTruthy();
+    expect(screen.getByText('meeting-recording.chunkLabel:{"index":3}')).toBeTruthy();
   });
 
   it('invokes onDelete when Popconfirm OK is clicked', async () => {
     const onDelete = vi.fn();
-    render(<RecordingListItem recording={sample} onDelete={onDelete} />);
+    render(<RecordingListItem recording={baseRecording} onDelete={onDelete} />);
     const trigger = screen.getByLabelText('Delete');
     trigger.click();
     const okButton = await screen.findByText('OK');
     okButton.click();
     expect(onDelete).toHaveBeenCalledWith('rec-1');
+  });
+
+  it('toggles an inline <audio> for the clicked chunk', () => {
+    render(<RecordingListItem recording={baseRecording} onDelete={() => {}} />);
+    expect(screen.queryByTestId('audio-rec-1-0')).toBeNull();
+    const toggle = screen
+      .getAllByRole('button')
+      .find((b) => b.getAttribute('aria-controls') === 'audio-rec-1-0');
+    expect(toggle).toBeTruthy();
+    act(() => {
+      toggle!.click();
+    });
+    expect(screen.getByTestId('audio-rec-1-0')).toBeTruthy();
   });
 });
