@@ -28,13 +28,35 @@ Audio bytes travel as `audioBase64` because the IPC channel is JSON-encoded
 
 ```
 <userData>/meeting-recordings/<uuid>/
-  audio.webm | audio.mp4 | audio.ogg
-  meta.json       # id, name, createdAt, durationMs, mimeType, transcription
+  meta.json              # id, name, createdAt, durationMs, mimeType, chunks[]
+  chunks/
+    000.webm | 000.mp4 | 000.ogg
+    001.webm
+    ...
 ```
 
-## Replacing the placeholder transcription
+Each entry in `chunks[]` has its own `status` (`pending` / `transcribed` /
+`failed`) and `transcription`. The list UI renders one row per recording and
+expands to show each chunk's status and inline `<audio>` player.
 
-The `transcribe` provider in
-`packages/desktop/src/process/services/meetingRecording/index.ts` currently
-writes a stub string. Swap its body for an HTTP call to the desired STT API
-and persist the real text into `meta.json`. The IPC shape stays the same.
+## Transcription
+
+Recording audio is split into ≤50 s chunks at the browser via
+`MediaRecorder.start(50_000)`. Each chunk is POSTed to the STT endpoint
+sequentially from the main process:
+
+```
+POST http://extranet.badousoft.com:28021/v1/audio/transcriptions
+multipart/form-data:
+  file:           <chunk-XXX.webm>
+  model:          whisper-large-v3
+  language:       zh
+  prompt:         <chinese-stt-prompt>
+```
+
+Chunk results are persisted into `meta.json` and pushed to the UI as
+`chunkTranscribed` events. A failed chunk leaves the rest of the recording
+intact — the UI shows that single chunk as "转写失败".
+
+To swap the endpoint: edit `sttClient.ts`. The IPC contract (`transcribe`,
+`chunkTranscribed`) does not change.
