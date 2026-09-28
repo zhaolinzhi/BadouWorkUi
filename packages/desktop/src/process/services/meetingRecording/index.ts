@@ -46,7 +46,7 @@ export const createMeetingRecordingService = () => ({
     const results: MeetingRecording[] = [];
     for (const id of entries) {
       const dir = path.join(root, id);
-      const stat = await fs.stat(dir).catch(() => null);
+      const stat = await fs.stat(dir).catch((): null => null);
       if (!stat?.isDirectory()) continue;
       const meta = await readMeta(dir);
       if (!meta) continue;
