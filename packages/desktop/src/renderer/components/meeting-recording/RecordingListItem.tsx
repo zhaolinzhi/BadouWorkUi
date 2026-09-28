@@ -20,27 +20,23 @@ const formatMs = (ms: number): string => {
   const m = Math.floor(totalSeconds / 60)
     .toString()
     .padStart(2, '0');
-  const s = (totalSeconds % 60).toString().padStart(2, '0');
+  const s = (totalSeconds % 60).toString()
+    .padStart(2, '0');
   return `${m}:${s}`;
 };
 
 const RecordingListItem: React.FC<RecordingListItemProps> = ({ recording, onDelete }) => {
   const { t } = useTranslation();
-  const [showAudio, setShowAudio] = React.useState(false);
+  const [openAudioIndex, setOpenAudioIndex] = React.useState<number | null>(null);
 
   return (
     <div className={styles.row}>
       <div className={styles.meta}>
-        <Button
-          size='mini'
-          onClick={() => setShowAudio((v) => !v)}
-          aria-expanded={showAudio}
-          aria-controls={`audio-${recording.id}`}
-        >
-          {showAudio ? '▼' : '▶'}
-        </Button>
         <span className={styles.name}>{recording.name}</span>
         <span className={styles.duration}>{formatMs(recording.durationMs)}</span>
+        <Typography.Text type='secondary' className={styles.chunkCount}>
+          {`${recording.chunks.length} chunks`}
+        </Typography.Text>
         <Popconfirm
           title={t('meeting-recording.deleteConfirm')}
           okText='OK'
@@ -56,12 +52,46 @@ const RecordingListItem: React.FC<RecordingListItemProps> = ({ recording, onDele
           />
         </Popconfirm>
       </div>
-      {showAudio ? (
-        <audio id={`audio-${recording.id}`} className={styles.audio} controls src={recording.audioUrl} />
-      ) : null}
-      <Typography.Text type='secondary' className={styles.transcript}>
-        {recording.transcription || t('meeting-recording.transcriptionPending')}
-      </Typography.Text>
+      <div className={styles.chunks}>
+        {recording.chunks.map((chunk) => {
+          const isOpen = openAudioIndex === chunk.index;
+          const audioId = `audio-${recording.id}-${chunk.index}`;
+          return (
+            <div key={chunk.index} className={styles.chunk}>
+              <div className={styles.chunkMeta}>
+                <Button
+                  size='mini'
+                  onClick={() => setOpenAudioIndex(isOpen ? null : chunk.index)}
+                  aria-expanded={isOpen}
+                  aria-controls={audioId}
+                >
+                  {isOpen ? '▼' : '▶'}
+                </Button>
+                <span className={styles.chunkLabel}>
+                  {t('meeting-recording.chunkLabel', { index: chunk.index + 1 })}
+                </span>
+                <span className={styles.chunkDuration}>{formatMs(chunk.durationMs)}</span>
+              </div>
+              {isOpen ? (
+                <audio
+                  id={audioId}
+                  data-testid={audioId}
+                  className={styles.audio}
+                  controls
+                  src={chunk.audioUrl}
+                />
+              ) : null}
+              <Typography.Text type='secondary' className={styles.transcript}>
+                {chunk.status === 'transcribed'
+                  ? chunk.transcription || t('meeting-recording.transcriptionPending')
+                  : chunk.status === 'failed'
+                    ? t('meeting-recording.transcriptionFailed')
+                    : t('meeting-recording.transcriptionPending')}
+              </Typography.Text>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };

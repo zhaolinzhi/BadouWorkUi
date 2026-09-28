@@ -5,7 +5,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ipcBridge } from '@/common';
-import type { MeetingRecording } from '@/common/types/meetingRecording';
+import type { MeetingRecording, SaveRecordingParams } from '@/common/types/meetingRecording';
 import { pickRecordingMimeType } from '@renderer/hooks/system/useSpeechInput';
 
 export type MeetingRecorderStatus = 'idle' | 'requesting' | 'recording' | 'finalizing' | 'error';
@@ -99,7 +99,7 @@ export const useMeetingRecorder = () => {
       if (event.data.size > 0) chunksRef.current.push(event.data);
     };
 
-    recorder.start(1000); // 1s timeslice
+    recorder.start(50_000); // ≤50 s per chunk
     setStatus('recording');
   }, [status]);
 
@@ -120,26 +120,26 @@ export const useMeetingRecorder = () => {
     await stopped;
 
     const effectiveMimeType = recorder.mimeType || mimeTypeRef.current || 'audio/webm';
-    const blob = new Blob(chunksRef.current, { type: effectiveMimeType });
 
     let saved: MeetingRecording;
     try {
-      const audioBase64 = await blobToBase64(blob);
+      const perChunkDuration = Math.round(recordedDurationMs / Math.max(1, chunksRef.current.length));
+      const chunksPayload = await Promise.all(
+        chunksRef.current.map(async (chunk, index) => ({
+          index,
+          durationMs: perChunkDuration,
+          audioBase64: await blobToBase64(chunk),
+        }))
+      );
       const id = crypto.randomUUID();
-      const params = {
+      const params: SaveRecordingParams = {
         id,
         name: formatDate(Date.now()),
         mimeType: effectiveMimeType,
-        durationMs: recordedDurationMs,
-        audioBase64,
+        chunks: chunksPayload,
       };
       saved = await ipcBridge.meetingRecording.save.invoke(params);
-      try {
-        const { transcription } = await ipcBridge.meetingRecording.transcribe.invoke({ id });
-        saved = { ...saved, transcription };
-      } catch {
-        saved = { ...saved, transcription: '' };
-      }
+      void ipcBridge.meetingRecording.transcribe.invoke({ id });
     } catch {
       setErrorCode('save-failed');
       setStatus('error');

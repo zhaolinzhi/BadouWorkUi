@@ -33,15 +33,26 @@ const MeetingRecordingPage: React.FC = () => {
     void refresh();
   }, [refresh]);
 
-  const handleRecorded = useCallback(
-    async (id: string) => {
-      await refresh();
-      if (!recordings.some((r) => r.id === id)) {
-        console.warn('Recording', id, 'was saved but not returned by list()');
-      }
-    },
-    [refresh, recordings]
-  );
+  // Subscribe to per-chunk transcription updates so the list reflects the
+  // STT endpoint's progress without a manual refresh.
+  useEffect(() => {
+    const off = ipcBridge.meetingRecording.chunkTranscribed.on(({ id, chunkIndex, status }) => {
+      setRecordings((current) =>
+        current.map((rec) => {
+          if (rec.id !== id) return rec;
+          return {
+            ...rec,
+            chunks: rec.chunks.map((c) => (c.index === chunkIndex ? { ...c, status } : c)),
+          };
+        })
+      );
+    });
+    return off;
+  }, []);
+
+  const handleRecorded = useCallback(async () => {
+    await refresh();
+  }, [refresh]);
 
   const handleDelete = useCallback(
     async (id: string) => {
