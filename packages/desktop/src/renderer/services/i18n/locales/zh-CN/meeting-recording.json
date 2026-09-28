@@ -1,0 +1,18 @@
+{
+  "title": "会议录音",
+  "startRecording": "开始录音",
+  "stopRecording": "停止",
+  "recording": "正在录音",
+  "empty": "暂无录音",
+  "placeholderName": "录音 {{date}}",
+  "transcriptionPending": "等待转写",
+  "deleteConfirm": "确认删除此录音?删除后无法恢复。",
+  "errors": {
+    "permissionDenied": "麦克风权限被拒绝",
+    "noDevice": "未检测到麦克风设备",
+    "saveFailed": "保存录音失败",
+    "deleteFailed": "删除录音失败",
+    "transcribeFailed": "转写失败",
+    "recordingUnsupported": "当前环境不支持录音"
+  }
+}

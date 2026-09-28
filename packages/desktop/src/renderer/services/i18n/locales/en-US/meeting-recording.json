@@ -1,0 +1,18 @@
+{
+  "title": "Meeting Recording",
+  "startRecording": "Start recording",
+  "stopRecording": "Stop",
+  "recording": "Recording",
+  "empty": "No recordings yet",
+  "placeholderName": "Recording {{date}}",
+  "transcriptionPending": "Transcription pending",
+  "deleteConfirm": "Delete this recording? This cannot be undone.",
+  "errors": {
+    "permissionDenied": "Microphone access denied",
+    "noDevice": "No microphone detected",
+    "saveFailed": "Failed to save recording",
+    "deleteFailed": "Failed to delete recording",
+    "transcribeFailed": "Transcription failed",
+    "recordingUnsupported": "Recording is not supported in this environment"
+  }
+}

@@ -21,6 +21,7 @@ import pet from './pet.json';
 import workbench from './workbench.json';
 import kbChat from './kb-chat.json';
 import taskCenter from './taskCenter.json';
+import meetingRecording from './meeting-recording.json';
 export default {
   common,
   agentMode,
@@ -44,4 +45,5 @@ export default {
   workbench,
   'kb-chat': kbChat,
   taskCenter,
+  'meeting-recording': meetingRecording,
 };
