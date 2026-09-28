@@ -96,6 +96,7 @@ import type { Theme } from '@/common/theme/types';
 import type { AttachFolderRequest, ProjectDetailDto, ProjectEntryDto } from '@/common/types/project';
 import type { ProjectBinding } from '@/renderer/api/types';
 import type { ChatFileRef, ContentEncoding } from '@/common/types/chatFile';
+import type { MeetingRecording, SaveRecordingParams } from '@/common/types/meetingRecording';
 import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from '../utils/protocolDetector';
 import {
   buildCreateConversationBody,
@@ -234,6 +235,19 @@ export type KbChatStreamErrorPayload = {
   requestId: string;
   code: KbChatStreamErrorCode;
   message: string;
+};
+
+// ---------------------------------------------------------------------------
+// Meeting Recording — local mic captures persisted under <userData>/meeting-recordings/
+// ---------------------------------------------------------------------------
+
+export const meetingRecording = {
+  list: bridge.buildProvider<MeetingRecording[], void>('meetingRecording.list'),
+  save: bridge.buildProvider<MeetingRecording, SaveRecordingParams>('meetingRecording.save'),
+  delete: bridge.buildProvider<{ ok: true }, { id: string }>('meetingRecording.delete'),
+  transcribe: bridge.buildProvider<{ id: string; transcription: string }, { id: string }>(
+    'meetingRecording.transcribe'
+  ),
 };
 
 // ---------------------------------------------------------------------------
