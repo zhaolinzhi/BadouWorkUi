@@ -6,7 +6,13 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { app } from 'electron';
-import type { MeetingRecording, SaveRecordingParams } from '@/common/types/meetingRecording';
+import { ipcBridge } from '@/common';
+import type {
+  MeetingRecording,
+  RecordingChunk,
+  SaveRecordingParams,
+} from '@/common/types/meetingRecording';
+import { transcribeFile } from './sttClient';
 
 const RECORDINGS_ROOT = (): string => path.join(app.getPath('userData'), 'meeting-recordings');
 
@@ -24,13 +30,25 @@ const mimeToExt = (mimeType: string): string => {
   return 'bin';
 };
 
-const readMeta = async (dir: string): Promise<Omit<MeetingRecording, 'audioUrl'> | null> => {
+const readMeta = async (dir: string): Promise<MeetingRecording | null> => {
   try {
     const raw = await fs.readFile(path.join(dir, 'meta.json'), 'utf8');
-    return JSON.parse(raw) as Omit<MeetingRecording, 'audioUrl'>;
+    return JSON.parse(raw) as MeetingRecording;
   } catch {
     return null;
   }
+};
+
+const writeMeta = async (dir: string, meta: MeetingRecording): Promise<void> => {
+  await fs.writeFile(path.join(dir, 'meta.json'), JSON.stringify(meta, null, 2));
+};
+
+const emitChunkTranscribed = (
+  id: string,
+  chunkIndex: number,
+  status: 'transcribed' | 'failed'
+): void => {
+  ipcBridge.meetingRecording.chunkTranscribed.emit({ id, chunkIndex, status });
 };
 
 export const createMeetingRecordingService = () => ({
@@ -50,8 +68,7 @@ export const createMeetingRecordingService = () => ({
       if (!stat?.isDirectory()) continue;
       const meta = await readMeta(dir);
       if (!meta) continue;
-      const audioPath = path.join(dir, `audio.${mimeToExt(meta.mimeType)}`);
-      results.push({ ...meta, audioUrl: audioPath });
+      results.push(meta);
     }
     return results.sort((a, b) => b.createdAt - a.createdAt);
   },
@@ -60,19 +77,34 @@ export const createMeetingRecordingService = () => ({
     assertUuid(p.id);
     const dir = path.join(RECORDINGS_ROOT(), p.id);
     await fs.mkdir(dir, { recursive: true });
+    const chunksDir = path.join(dir, 'chunks');
+    await fs.mkdir(chunksDir, { recursive: true });
+
     const ext = mimeToExt(p.mimeType);
-    const audioPath = path.join(dir, `audio.${ext}`);
-    await fs.writeFile(audioPath, Buffer.from(p.audioBase64, 'base64'));
-    const meta: Omit<MeetingRecording, 'audioUrl'> = {
+    const chunks: RecordingChunk[] = [];
+    for (const c of p.chunks) {
+      const audioPath = path.join(chunksDir, `${String(c.index).padStart(3, '0')}.${ext}`);
+      await fs.writeFile(audioPath, Buffer.from(c.audioBase64, 'base64'));
+      chunks.push({
+        index: c.index,
+        durationMs: c.durationMs,
+        audioUrl: audioPath,
+        transcription: '',
+        status: 'pending',
+      });
+    }
+
+    const totalDuration = chunks.reduce((sum, c) => sum + c.durationMs, 0);
+    const meta: MeetingRecording = {
       id: p.id,
       name: p.name,
       createdAt: Date.now(),
-      durationMs: p.durationMs,
       mimeType: p.mimeType,
-      transcription: '',
+      durationMs: totalDuration,
+      chunks,
     };
-    await fs.writeFile(path.join(dir, 'meta.json'), JSON.stringify(meta, null, 2));
-    return { ...meta, audioUrl: audioPath };
+    await writeMeta(dir, meta);
+    return meta;
   },
 
   async delete(id: string): Promise<{ ok: true }> {
@@ -82,13 +114,29 @@ export const createMeetingRecordingService = () => ({
     return { ok: true };
   },
 
-  async transcribe(id: string): Promise<{ id: string; transcription: string }> {
+  async transcribe(id: string): Promise<{ id: string }> {
     assertUuid(id);
     const dir = path.join(RECORDINGS_ROOT(), id);
     const meta = await readMeta(dir);
     if (!meta) throw new Error(`Recording not found: ${id}`);
-    const transcription = `[Placeholder transcription for ${meta.name}]`;
-    await fs.writeFile(path.join(dir, 'meta.json'), JSON.stringify({ ...meta, transcription }, null, 2));
-    return { id, transcription };
+
+    // Fire-and-forget: walk chunks serially in the background.
+    void (async () => {
+      for (const chunk of meta.chunks) {
+        if (chunk.status === 'transcribed') continue;
+        const result = await transcribeFile(chunk.audioUrl, meta.mimeType);
+        if (result.ok) {
+          chunk.transcription = result.text;
+          chunk.status = 'transcribed';
+        } else {
+          chunk.transcription = '';
+          chunk.status = 'failed';
+        }
+        await writeMeta(dir, meta);
+        emitChunkTranscribed(id, chunk.index, chunk.status);
+      }
+    })();
+
+    return { id };
   },
 });

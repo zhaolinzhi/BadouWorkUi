@@ -238,16 +238,21 @@ export type KbChatStreamErrorPayload = {
 };
 
 // ---------------------------------------------------------------------------
-// Meeting Recording — local mic captures persisted under <userData>/meeting-recordings/
+// Meeting Recording — chunked local mic captures persisted under
+// <userData>/meeting-recordings/<id>/chunks/, transcribed via the external
+// STT endpoint (fire-and-forget, with chunkTranscribed events).
 // ---------------------------------------------------------------------------
 
 export const meetingRecording = {
   list: bridge.buildProvider<MeetingRecording[], void>('meetingRecording.list'),
   save: bridge.buildProvider<MeetingRecording, SaveRecordingParams>('meetingRecording.save'),
   delete: bridge.buildProvider<{ ok: true }, { id: string }>('meetingRecording.delete'),
-  transcribe: bridge.buildProvider<{ id: string; transcription: string }, { id: string }>(
-    'meetingRecording.transcribe'
-  ),
+  transcribe: bridge.buildProvider<{ id: string }, { id: string }>('meetingRecording.transcribe'),
+  chunkTranscribed: bridge.buildEmitter<{
+    id: string;
+    chunkIndex: number;
+    status: 'transcribed' | 'failed';
+  }>('meetingRecording.chunkTranscribed'),
 };
 
 // ---------------------------------------------------------------------------

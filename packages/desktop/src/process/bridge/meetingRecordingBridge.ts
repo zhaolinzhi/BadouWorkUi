@@ -6,6 +6,8 @@
 import { ipcBridge } from '@/common';
 import { createMeetingRecordingService } from '../services/meetingRecording';
 
+// chunkTranscribed is a fire-and-forget emitter; main process only calls
+// .emit() on it. No provider registration needed here.
 export const registerMeetingRecordingBridge = (): void => {
   const service = createMeetingRecordingService();
   ipcBridge.meetingRecording.list.provider(() => service.list());

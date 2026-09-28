@@ -4,20 +4,34 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+export type RecordingChunkStatus = 'pending' | 'transcribed' | 'failed';
+
+export type RecordingChunk = {
+  index: number;
+  durationMs: number;
+  audioUrl: string;
+  transcription: string;
+  status: RecordingChunkStatus;
+};
+
 export type MeetingRecording = {
   id: string;
   name: string;
   createdAt: number;
-  durationMs: number;
   mimeType: string;
-  audioUrl: string;
-  transcription: string;
+  durationMs: number;
+  chunks: RecordingChunk[];
+};
+
+export type SaveRecordingChunkPayload = {
+  index: number;
+  durationMs: number;
+  audioBase64: string;
 };
 
 export type SaveRecordingParams = {
   id: string;
   name: string;
   mimeType: string;
-  durationMs: number;
-  audioBase64: string;
+  chunks: SaveRecordingChunkPayload[];
 };
