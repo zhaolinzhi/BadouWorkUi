@@ -99,11 +99,14 @@ describe('meetingRecordingService (chunked)', () => {
 
     const meta = JSON.parse(await fs.readFile(path.join(userDataDir, 'meeting-recordings', id, 'meta.json'), 'utf8'));
     expect(meta.chunks[0]).toMatchObject({ status: 'transcribed', transcription: '你好' });
-    expect(meta.chunks[1]).toMatchObject({ status: 'failed', transcription: '', error: 'HTTP 500' });
+    expect(meta.chunks[1]).toMatchObject({ status: 'failed', transcription: '' });
+    expect(meta.chunks[1].error).toContain('HTTP 500');
 
     const emit = vi.mocked(ipcBridge.meetingRecording.chunkTranscribed.emit);
     expect(emit).toHaveBeenCalledWith({ id, chunkIndex: 0, status: 'transcribed', error: undefined });
-    expect(emit).toHaveBeenCalledWith({ id, chunkIndex: 1, status: 'failed', error: 'HTTP 500' });
+    const failedCall = emit.mock.calls.find((c) => (c[0] as { chunkIndex: number }).chunkIndex === 1);
+    expect(failedCall).toBeDefined();
+    expect((failedCall![0] as { error: string }).error).toContain('HTTP 500');
   });
 
   it('list() returns recordings with chunks[] preserved', async () => {

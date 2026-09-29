@@ -18,9 +18,7 @@ const writeTempAudio = async (contents: string): Promise<string> => {
 };
 
 afterEach(async () => {
-  await Promise.all(
-    tempFiles.splice(0).map((p) => fs.rm(p, { force: true }))
-  );
+  await Promise.all(tempFiles.splice(0).map((p) => fs.rm(p, { force: true })));
 });
 
 // Test doubles for FormData / File / fetch.
@@ -81,9 +79,7 @@ describe('transcribeFile', () => {
     expect(init.body).toBeInstanceOf(FakeFormData);
     const entries = (init.body as FakeFormData).entries.map(([k, v]) => [
       k,
-      v instanceof FakeFile
-        ? { name: v.name, type: v.options.type }
-        : v,
+      v instanceof FakeFile ? { name: v.name, type: v.options.type } : v,
     ]);
     expect(entries).toEqual([
       ['file', { name: expect.stringMatching(/\.webm$/), type: 'audio/webm' }],
@@ -95,10 +91,22 @@ describe('transcribeFile', () => {
 
   it('returns ok:false when HTTP status is non-2xx', async () => {
     const filePath = await writeTempAudio('x');
-    fetchMock.mockResolvedValueOnce({ ok: false, status: 503, text: async () => '' });
+    fetchMock.mockResolvedValueOnce({ ok: false, status: 503, statusText: 'Service Unavailable', text: async () => '' });
 
     const result = await transcribeFile(filePath, 'audio/webm');
-    expect(result).toEqual({ ok: false, error: 'HTTP 503' });
+    expect(result).toEqual({ ok: false, error: 'HTTP 503 Service Unavailable' });
+  });
+
+  it('includes a body snippet in the error when the server returns one', async () => {
+    const filePath = await writeTempAudio('x');
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 502,
+      statusText: 'Bad Gateway',
+      text: async () => '<html>upstream connect error</html>',
+    });
+    const result = await transcribeFile(filePath, 'audio/webm');
+    expect(result).toEqual({ ok: false, error: 'HTTP 502: <html>upstream connect error</html>' });
   });
 
   it('returns ok:false when fetch throws', async () => {
