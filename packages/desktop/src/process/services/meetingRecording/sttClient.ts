@@ -24,7 +24,16 @@ export const transcribeFile = async (filePath: string, mimeType: string): Promis
   form.append('prompt', STT_PROMPT);
 
   try {
-    const resp = await fetch(STT_URL, { method: 'POST', body: form });
+    const resp = await fetch(STT_URL, {
+      method: 'POST',
+      body: form,
+      headers: {
+        // Mimic curl: some corporate reverse proxies reject non-browser UAs
+        // before forwarding to upstream.
+        'User-Agent': 'curl/8.7.1',
+        Accept: '*/*',
+      },
+    });
     if (!resp.ok) {
       // Capture status text + a snippet of the body so the UI can surface
       // 502 Bad Gateway vs 401 Unauthorized vs 400 Bad Request distinctly.
