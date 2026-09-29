@@ -12,6 +12,8 @@ export type RecordingChunk = {
   audioUrl: string;
   transcription: string;
   status: RecordingChunkStatus;
+  /** Populated when status === 'failed'; surfaced in the UI for diagnosis. */
+  error?: string;
 };
 
 export type MeetingRecording = {

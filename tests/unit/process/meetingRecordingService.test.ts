@@ -71,10 +71,7 @@ describe('meetingRecordingService (chunked)', () => {
 
     expect(await fs.readFile(result.chunks[0].audioUrl, 'utf8')).toBe('a');
     expect(await fs.readFile(result.chunks[1].audioUrl, 'utf8')).toBe('b');
-    const metaRaw = await fs.readFile(
-      path.join(userDataDir, 'meeting-recordings', params.id, 'meta.json'),
-      'utf8'
-    );
+    const metaRaw = await fs.readFile(path.join(userDataDir, 'meeting-recordings', params.id, 'meta.json'), 'utf8');
     const parsed = JSON.parse(metaRaw);
     expect(parsed.chunks.map((c: { status: string }) => c.status)).toEqual(['pending', 'pending']);
   });
@@ -100,15 +97,13 @@ describe('meetingRecordingService (chunked)', () => {
     await svc.transcribe(id);
     await new Promise((r) => setTimeout(r, 50));
 
-    const meta = JSON.parse(
-      await fs.readFile(path.join(userDataDir, 'meeting-recordings', id, 'meta.json'), 'utf8')
-    );
+    const meta = JSON.parse(await fs.readFile(path.join(userDataDir, 'meeting-recordings', id, 'meta.json'), 'utf8'));
     expect(meta.chunks[0]).toMatchObject({ status: 'transcribed', transcription: '你好' });
-    expect(meta.chunks[1]).toMatchObject({ status: 'failed', transcription: '' });
+    expect(meta.chunks[1]).toMatchObject({ status: 'failed', transcription: '', error: 'HTTP 500' });
 
     const emit = vi.mocked(ipcBridge.meetingRecording.chunkTranscribed.emit);
-    expect(emit).toHaveBeenCalledWith({ id, chunkIndex: 0, status: 'transcribed' });
-    expect(emit).toHaveBeenCalledWith({ id, chunkIndex: 1, status: 'failed' });
+    expect(emit).toHaveBeenCalledWith({ id, chunkIndex: 0, status: 'transcribed', error: undefined });
+    expect(emit).toHaveBeenCalledWith({ id, chunkIndex: 1, status: 'failed', error: 'HTTP 500' });
   });
 
   it('list() returns recordings with chunks[] preserved', async () => {

@@ -252,6 +252,8 @@ export const meetingRecording = {
     id: string;
     chunkIndex: number;
     status: 'transcribed' | 'failed';
+    /** Populated when status === 'failed'. */
+    error?: string;
   }>('meetingRecording.chunkTranscribed'),
 };
 

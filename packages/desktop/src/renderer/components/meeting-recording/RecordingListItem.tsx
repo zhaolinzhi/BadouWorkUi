@@ -20,8 +20,7 @@ const formatMs = (ms: number): string => {
   const m = Math.floor(totalSeconds / 60)
     .toString()
     .padStart(2, '0');
-  const s = (totalSeconds % 60).toString()
-    .padStart(2, '0');
+  const s = (totalSeconds % 60).toString().padStart(2, '0');
   return `${m}:${s}`;
 };
 
@@ -73,19 +72,15 @@ const RecordingListItem: React.FC<RecordingListItemProps> = ({ recording, onDele
                 <span className={styles.chunkDuration}>{formatMs(chunk.durationMs)}</span>
               </div>
               {isOpen ? (
-                <audio
-                  id={audioId}
-                  data-testid={audioId}
-                  className={styles.audio}
-                  controls
-                  src={chunk.audioUrl}
-                />
+                <audio id={audioId} data-testid={audioId} className={styles.audio} controls src={chunk.audioUrl} />
               ) : null}
               <Typography.Text type='secondary' className={styles.transcript}>
                 {chunk.status === 'transcribed'
                   ? chunk.transcription || t('meeting-recording.transcriptionPending')
                   : chunk.status === 'failed'
-                    ? t('meeting-recording.transcriptionFailed')
+                    ? chunk.error
+                      ? `${t('meeting-recording.transcriptionFailed')} (${chunk.error})`
+                      : t('meeting-recording.transcriptionFailed')
                     : t('meeting-recording.transcriptionPending')}
               </Typography.Text>
             </div>

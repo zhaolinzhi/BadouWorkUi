@@ -9,8 +9,7 @@ import { act, render, screen } from '@testing-library/react';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (k: string, opts?: Record<string, unknown>) =>
-      opts ? `${k}:${JSON.stringify(opts)}` : k,
+    t: (k: string, opts?: Record<string, unknown>) => (opts ? `${k}:${JSON.stringify(opts)}` : k),
   }),
 }));
 
@@ -44,6 +43,7 @@ const baseRecording: MeetingRecording = {
       audioUrl: '/tmp/rec-1/chunks/002.webm',
       transcription: '',
       status: 'failed',
+      error: 'HTTP 500',
     },
   ],
 };
@@ -53,7 +53,7 @@ describe('RecordingListItem (chunked)', () => {
     render(<RecordingListItem recording={baseRecording} onDelete={() => {}} />);
     expect(screen.getByText('第一段')).toBeTruthy();
     expect(screen.getByText('meeting-recording.transcriptionPending')).toBeTruthy();
-    expect(screen.getByText('meeting-recording.transcriptionFailed')).toBeTruthy();
+    expect(screen.getByText('meeting-recording.transcriptionFailed (HTTP 500)')).toBeTruthy();
   });
 
   it('shows chunk label with 1-based index', () => {
@@ -75,9 +75,7 @@ describe('RecordingListItem (chunked)', () => {
   it('toggles an inline <audio> for the clicked chunk', () => {
     render(<RecordingListItem recording={baseRecording} onDelete={() => {}} />);
     expect(screen.queryByTestId('audio-rec-1-0')).toBeNull();
-    const toggle = screen
-      .getAllByRole('button')
-      .find((b) => b.getAttribute('aria-controls') === 'audio-rec-1-0');
+    const toggle = screen.getAllByRole('button').find((b) => b.getAttribute('aria-controls') === 'audio-rec-1-0');
     expect(toggle).toBeTruthy();
     act(() => {
       toggle!.click();

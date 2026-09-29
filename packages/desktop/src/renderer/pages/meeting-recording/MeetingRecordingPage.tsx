@@ -36,13 +36,13 @@ const MeetingRecordingPage: React.FC = () => {
   // Subscribe to per-chunk transcription updates so the list reflects the
   // STT endpoint's progress without a manual refresh.
   useEffect(() => {
-    const off = ipcBridge.meetingRecording.chunkTranscribed.on(({ id, chunkIndex, status }) => {
+    const off = ipcBridge.meetingRecording.chunkTranscribed.on(({ id, chunkIndex, status, error }) => {
       setRecordings((current) =>
         current.map((rec) => {
           if (rec.id !== id) return rec;
           return {
             ...rec,
-            chunks: rec.chunks.map((c) => (c.index === chunkIndex ? { ...c, status } : c)),
+            chunks: rec.chunks.map((c) => (c.index === chunkIndex ? { ...c, status, error } : c)),
           };
         })
       );

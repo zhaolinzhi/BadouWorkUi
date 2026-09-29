@@ -7,11 +7,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { app } from 'electron';
 import { ipcBridge } from '@/common';
-import type {
-  MeetingRecording,
-  RecordingChunk,
-  SaveRecordingParams,
-} from '@/common/types/meetingRecording';
+import type { MeetingRecording, RecordingChunk, SaveRecordingParams } from '@/common/types/meetingRecording';
 import { transcribeFile } from './sttClient';
 
 const RECORDINGS_ROOT = (): string => path.join(app.getPath('userData'), 'meeting-recordings');
@@ -46,9 +42,10 @@ const writeMeta = async (dir: string, meta: MeetingRecording): Promise<void> => 
 const emitChunkTranscribed = (
   id: string,
   chunkIndex: number,
-  status: 'transcribed' | 'failed'
+  status: 'transcribed' | 'failed',
+  error?: string
 ): void => {
-  ipcBridge.meetingRecording.chunkTranscribed.emit({ id, chunkIndex, status });
+  ipcBridge.meetingRecording.chunkTranscribed.emit({ id, chunkIndex, status, error });
 };
 
 export const createMeetingRecordingService = () => ({
@@ -125,15 +122,18 @@ export const createMeetingRecordingService = () => ({
       for (const chunk of meta.chunks) {
         if (chunk.status === 'transcribed') continue;
         const result = await transcribeFile(chunk.audioUrl, meta.mimeType);
-        if (result.ok) {
+        if (result.ok === true) {
           chunk.transcription = result.text;
           chunk.status = 'transcribed';
+          chunk.error = undefined;
         } else {
+          const failed = result as { ok: false; error: string };
           chunk.transcription = '';
           chunk.status = 'failed';
+          chunk.error = failed.error;
         }
         await writeMeta(dir, meta);
-        emitChunkTranscribed(id, chunk.index, chunk.status);
+        emitChunkTranscribed(id, chunk.index, chunk.status, chunk.error);
       }
     })();
 
