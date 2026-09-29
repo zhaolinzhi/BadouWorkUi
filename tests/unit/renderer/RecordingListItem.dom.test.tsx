@@ -13,6 +13,19 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
+vi.mock('@/common', () => ({
+  ipcBridge: {
+    meetingRecording: {
+      readChunk: {
+        invoke: vi.fn(async () => ({
+          base64: Buffer.from('fake-audio').toString('base64'),
+          mimeType: 'audio/webm',
+        })),
+      },
+    },
+  },
+}));
+
 import RecordingListItem from '@/renderer/components/meeting-recording/RecordingListItem';
 import type { MeetingRecording } from '@/common/types/meetingRecording';
 
@@ -72,13 +85,16 @@ describe('RecordingListItem (chunked)', () => {
     expect(onDelete).toHaveBeenCalledWith('rec-1');
   });
 
-  it('toggles an inline <audio> for the clicked chunk', () => {
+  it('toggles an inline <audio> for the clicked chunk', async () => {
     render(<RecordingListItem recording={baseRecording} onDelete={() => {}} />);
     expect(screen.queryByTestId('audio-rec-1-0')).toBeNull();
-    const toggle = screen.getAllByRole('button').find((b) => b.getAttribute('aria-controls') === 'audio-rec-1-0');
+    const toggle = screen
+      .getAllByRole('button')
+      .find((b) => b.getAttribute('aria-controls') === 'audio-rec-1-0');
     expect(toggle).toBeTruthy();
-    act(() => {
+    await act(async () => {
       toggle!.click();
+      await new Promise((r) => setTimeout(r, 0));
     });
     expect(screen.getByTestId('audio-rec-1-0')).toBeTruthy();
   });

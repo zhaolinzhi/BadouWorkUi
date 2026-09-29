@@ -51,8 +51,40 @@ const MeetingRecordingPage: React.FC = () => {
   }, []);
 
   const handleRecorded = useCallback(async () => {
-    await refresh();
-  }, [refresh]);
+    // Pull the freshly-saved recording from disk, but keep any
+    // chunkTranscribed updates we've already applied so the row doesn't
+    // flash back to 'pending' between save and the first emit.
+    try {
+      const list = await ipcBridge.meetingRecording.list.invoke();
+      setRecordings((current) => {
+        const byId = new Map(current.map((r) => [r.id, r]));
+        return list.map((next) => {
+          const prev = byId.get(next.id);
+          if (!prev) return next;
+          const prevByIndex = new Map(prev.chunks.map((c) => [c.index, c]));
+          return {
+            ...next,
+            chunks: next.chunks.map((c) => {
+              const prevChunk = prevByIndex.get(c.index);
+              if (!prevChunk) return c;
+              // Preserve a status that's already progressed beyond what
+              // disk reports — disk only updates after the background
+              // walker writes back, so refresh races behind the emit.
+              if (
+                (prevChunk.status === 'transcribed' || prevChunk.status === 'failed') &&
+                c.status === 'pending'
+              ) {
+                return { ...c, status: prevChunk.status, error: prevChunk.error, transcription: prevChunk.transcription };
+              }
+              return c;
+            }),
+          };
+        });
+      });
+    } catch (error) {
+      console.error('Failed to refresh after record', error);
+    }
+  }, []);
 
   const handleDelete = useCallback(
     async (id: string) => {

@@ -7,6 +7,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Popconfirm, Typography } from '@arco-design/web-react';
 import { Delete } from '@icon-park/react';
+import { ipcBridge } from '@/common';
 import type { MeetingRecording } from '@/common/types/meetingRecording';
 import styles from './RecordingList.module.css';
 
@@ -20,13 +21,64 @@ const formatMs = (ms: number): string => {
   const m = Math.floor(totalSeconds / 60)
     .toString()
     .padStart(2, '0');
-  const s = (totalSeconds % 60).toString().padStart(2, '0');
+  const s = (totalSeconds % 60).toString()
+    .padStart(2, '0');
   return `${m}:${s}`;
+};
+
+const base64ToBlobUrl = (base64: string, mimeType: string): string => {
+  const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+  const blob = new Blob([bytes], { type: mimeType });
+  return URL.createObjectURL(blob);
 };
 
 const RecordingListItem: React.FC<RecordingListItemProps> = ({ recording, onDelete }) => {
   const { t } = useTranslation();
   const [openAudioIndex, setOpenAudioIndex] = React.useState<number | null>(null);
+  const [audioUrl, setAudioUrl] = React.useState<string | null>(null);
+  const [audioError, setAudioError] = React.useState<string | null>(null);
+  const [audioLoading, setAudioLoading] = React.useState(false);
+
+  // Load chunk bytes lazily — only when the user clicks play. The IPC
+  // returns base64 because the bridge channel is JSON-encoded; we turn it
+  // into a blob URL so `<audio>` can stream it without a `file://` source.
+  const toggleAudio = React.useCallback(
+    async (chunkIndex: number) => {
+      if (openAudioIndex === chunkIndex) {
+        if (audioUrl) URL.revokeObjectURL(audioUrl);
+        setAudioUrl(null);
+        setOpenAudioIndex(null);
+        setAudioError(null);
+        return;
+      }
+      setAudioError(null);
+      setAudioLoading(true);
+      setOpenAudioIndex(chunkIndex);
+      try {
+        const { base64, mimeType } = await ipcBridge.meetingRecording.readChunk.invoke({
+          id: recording.id,
+          chunkIndex,
+        });
+        const url = base64ToBlobUrl(base64, mimeType);
+        setAudioUrl((prev) => {
+          if (prev) URL.revokeObjectURL(prev);
+          return url;
+        });
+      } catch (error) {
+        setAudioError(error instanceof Error ? error.message : String(error));
+        setOpenAudioIndex(null);
+      } finally {
+        setAudioLoading(false);
+      }
+    },
+    [audioUrl, openAudioIndex, recording.id]
+  );
+
+  React.useEffect(() => {
+    return () => {
+      if (audioUrl) URL.revokeObjectURL(audioUrl);
+    };
+  }, [audioUrl]);
 
   return (
     <div className={styles.row}>
@@ -60,7 +112,7 @@ const RecordingListItem: React.FC<RecordingListItemProps> = ({ recording, onDele
               <div className={styles.chunkMeta}>
                 <Button
                   size='mini'
-                  onClick={() => setOpenAudioIndex(isOpen ? null : chunk.index)}
+                  onClick={() => toggleAudio(chunk.index)}
                   aria-expanded={isOpen}
                   aria-controls={audioId}
                 >
@@ -72,7 +124,19 @@ const RecordingListItem: React.FC<RecordingListItemProps> = ({ recording, onDele
                 <span className={styles.chunkDuration}>{formatMs(chunk.durationMs)}</span>
               </div>
               {isOpen ? (
-                <audio id={audioId} data-testid={audioId} className={styles.audio} controls src={chunk.audioUrl} />
+                audioError ? (
+                  <Typography.Text type='warning'>{audioError}</Typography.Text>
+                ) : audioUrl ? (
+                  <audio
+                    id={audioId}
+                    data-testid={audioId}
+                    className={styles.audio}
+                    controls
+                    src={audioUrl}
+                  />
+                ) : (
+                  <Typography.Text type='secondary'>{audioLoading ? '…' : 'loading'}</Typography.Text>
+                )
               ) : null}
               <Typography.Text type='secondary' className={styles.transcript}>
                 {chunk.status === 'transcribed'

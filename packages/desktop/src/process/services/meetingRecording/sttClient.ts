@@ -48,8 +48,18 @@ export const transcribeFile = async (filePath: string, mimeType: string): Promis
       const detail = bodySnippet ? `: ${bodySnippet}` : statusText ? ` ${statusText}` : '';
       return { ok: false, error: `HTTP ${resp.status}${detail}` };
     }
-    const text = (await resp.text()).trim();
-    return { ok: true, text };
+    // The endpoint returns JSON: {"text": "...", "usage": {...}}.
+    // Older/degenerate responses may return plain text — accept either.
+    const raw = (await resp.text()).trim();
+    try {
+      const parsed = JSON.parse(raw) as { text?: unknown };
+      if (typeof parsed.text === 'string') {
+        return { ok: true, text: parsed.text };
+      }
+    } catch {
+      // not JSON — fall through to raw text
+    }
+    return { ok: true, text: raw };
   } catch (error) {
     return { ok: false, error: (error as Error).message };
   }

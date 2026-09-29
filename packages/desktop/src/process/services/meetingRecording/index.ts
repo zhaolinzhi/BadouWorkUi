@@ -139,4 +139,22 @@ export const createMeetingRecordingService = () => ({
 
     return { id };
   },
+
+  /**
+   * Read a chunk's bytes for the renderer to feed `<audio src=blob:...>`.
+   * Returns base64 because the IPC channel serializes JSON only.
+   */
+  async readChunk(p: { id: string; chunkIndex: number }): Promise<{ base64: string; mimeType: string }> {
+    assertUuid(p.id);
+    const dir = path.join(RECORDINGS_ROOT(), p.id);
+    const meta = await readMeta(dir);
+    if (!meta) throw new Error(`Recording not found: ${p.id}`);
+    const chunk = meta.chunks.find((c) => c.index === p.chunkIndex);
+    if (!chunk) throw new Error(`Chunk not found: index ${p.chunkIndex}`);
+    const bytes = await fs.readFile(chunk.audioUrl);
+    return {
+      base64: bytes.toString('base64'),
+      mimeType: meta.mimeType,
+    };
+  },
 });
