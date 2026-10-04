@@ -14,11 +14,7 @@ vi.mock('react-i18next', () => ({
       // strings with placeholders. Production uses real i18n; here we only
       // need enough fidelity for the tests to assert counts/text.
       const messages: Record<string, string> = {
-        'meeting-recording.transcriptModal.statusLine':
-          '{{total}} chunks: {{transcribed}} transcribed, {{failed}} failed, {{pending}} pending',
         'meeting-recording.transcriptModal.disabledHint': 'No transcriptions available yet',
-        'meeting-recording.transcriptModal.footerSeparator': ' · ',
-        'meeting-recording.chunkLabel': 'Chunk {{index}}',
       };
       const message = messages[k] ?? k;
       if (!opts) return message;
@@ -53,13 +49,9 @@ const recording: MeetingRecording = {
 };
 
 describe('TranscriptSummaryModal', () => {
-  it('renders the recording name as title and the status line counts', () => {
+  it('renders the recording name as title', () => {
     render(<TranscriptSummaryModal recording={recording} visible={true} onClose={() => {}} />);
     expect(screen.getByText('我的录音')).toBeTruthy();
-    expect(screen.getByText(/3 chunks/)).toBeTruthy();
-    expect(screen.getByText(/2 transcribed/)).toBeTruthy();
-    expect(screen.getByText(/1 failed/)).toBeTruthy();
-    expect(screen.getByText(/0 pending/)).toBeTruthy();
   });
 
   it('renders the joined transcript text with double newlines in a copyable paragraph', () => {
@@ -77,27 +69,24 @@ describe('TranscriptSummaryModal', () => {
     expect(body!.textContent).toMatch(/第一段文本\n\n第三段/);
   });
 
-  it('renders the footer summary listing every chunk duration', () => {
+  it('does not render the status line or the footer summary', () => {
     render(<TranscriptSummaryModal recording={recording} visible={true} onClose={() => {}} />);
-    // Footer lives in a single div containing all three durations as text.
-    const footer = Array.from(document.querySelectorAll('div')).find((el) => {
-      const txt = el.textContent ?? '';
-      return txt.includes('00:50') && txt.includes('00:30') && txt.includes('00:40');
-    }) as HTMLElement | undefined;
-    expect(footer).toBeTruthy();
+    // Status-line phrases ("chunks", "transcribed", "failed", "pending") and
+    // duration labels ("00:50", "00:30", "00:40") must NOT appear anywhere.
+    const all = document.body.textContent ?? '';
+    expect(all).not.toMatch(/chunks/);
+    expect(all).not.toMatch(/00:50/);
+    expect(all).not.toMatch(/Chunk/);
   });
 
   it('renders nothing visible when visible is false', () => {
     render(<TranscriptSummaryModal recording={recording} visible={false} onClose={() => {}} />);
     expect(screen.queryByText('我的录音')).toBeNull();
-    expect(screen.queryByText(/3 chunks/)).toBeNull();
   });
 
   it('invokes onClose when the modal OK button is clicked', () => {
     const onClose = vi.fn();
     render(<TranscriptSummaryModal recording={recording} visible={true} onClose={onClose} />);
-    // Arco renders the OK button with `okText` ('Close'); both OK and Cancel
-    // route through onClose/onCancel in our wiring.
     const okBtn = screen.getByRole('button', { name: 'common.close' });
     okBtn.click();
     expect(onClose).toHaveBeenCalledTimes(1);
