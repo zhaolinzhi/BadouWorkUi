@@ -13,7 +13,10 @@
     "viewButtonAriaLabel": "查看转写汇总",
     "disabledHint": "还没有可汇总的转写结果",
     "retryTranscribeButtonAriaLabel": "重新转写",
-    "retryTranscribeDisabledHint": "所有片段都已转写完成,无需重试"
+    "retryTranscribeDisabledHint": "所有片段都已转写完成,无需重试",
+    "cancelTranscribeConfirmTitle": "确定停止转写吗?",
+    "cancelTranscribeConfirmOk": "停止",
+    "cancelTranscribeConfirmCancel": "继续转写"
   },
   "errors": {
     "permissionDenied": "麦克风权限被拒绝",

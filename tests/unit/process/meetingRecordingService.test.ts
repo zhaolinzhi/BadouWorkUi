@@ -90,7 +90,7 @@ describe('meetingRecordingService (chunked)', () => {
     });
 
     vi.mocked(transcribeFile)
-      .mockResolvedValueOnce({ ok: true, text: '你好' })
+      .mockResolvedValueOnce({ ok: true, text: '你好', raw: { text: '你好' } })
       .mockResolvedValueOnce({ ok: false, error: 'HTTP 500' });
 
     // Fire-and-forget; wait a tick for the background walk to complete.
@@ -139,5 +139,43 @@ describe('meetingRecordingService (chunked)', () => {
   it('rejects ids that are not uuid-shaped', async () => {
     const svc = createMeetingRecordingService();
     await expect(svc.delete('../escape')).rejects.toThrow(/uuid/i);
+  });
+
+  it('cancelTranscribe stops the walker before processing remaining chunks', async () => {
+    const svc = createMeetingRecordingService();
+    const id = '55555555-5555-5555-5555-555555555555';
+    await svc.save({
+      id,
+      name: 'r',
+      mimeType: 'audio/webm',
+      chunks: [
+        { index: 0, durationMs: 1, audioBase64: Buffer.from('a').toString('base64') },
+        { index: 1, durationMs: 1, audioBase64: Buffer.from('b').toString('base64') },
+        { index: 2, durationMs: 1, audioBase64: Buffer.from('c').toString('base64') },
+      ],
+    });
+
+    // Resolve transcribeFile with a delay so the cancel can land between
+    // chunk 0 and chunk 1.
+    vi.mocked(transcribeFile).mockImplementation(async () => {
+      await new Promise((r) => setTimeout(r, 30));
+      return { ok: true, text: 'ok', raw: { text: 'ok' } };
+    });
+
+    await svc.transcribe(id);
+    // After the first chunk starts processing, ask the service to cancel.
+    await new Promise((r) => setTimeout(r, 10));
+    await svc.cancelTranscribe({ id });
+    // Wait long enough for chunk 0 to finish but well short of the full walk.
+    await new Promise((r) => setTimeout(r, 200));
+
+    const meta = JSON.parse(await fs.readFile(path.join(userDataDir, 'meeting-recordings', id, 'meta.json'), 'utf8'));
+    // chunk 0 may have completed (it was already in flight when cancel landed).
+    // chunk 1 and chunk 2 must remain pending — the walker bailed.
+    const pending = meta.chunks.filter((c: { status: string }) => c.status === 'pending');
+    expect(pending.length).toBeGreaterThanOrEqual(1);
+    // The walker must NOT have processed all three chunks.
+    const transcribed = meta.chunks.filter((c: { status: string }) => c.status === 'transcribed');
+    expect(transcribed.length).toBeLessThan(3);
   });
 });

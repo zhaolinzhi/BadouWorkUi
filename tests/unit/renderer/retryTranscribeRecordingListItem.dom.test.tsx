@@ -9,6 +9,7 @@ import { render, screen } from '@testing-library/react';
 
 const mocks = vi.hoisted(() => ({
   transcribeMock: vi.fn(async () => ({ id: 'rec-1' })),
+  cancelTranscribeMock: vi.fn(async () => ({ ok: true })),
   readChunkMock: vi.fn(async () => ({ base64: 'AAAA', mimeType: 'audio/webm' })),
 }));
 
@@ -23,6 +24,7 @@ vi.mock('@/common', () => ({
     meetingRecording: {
       readChunk: { invoke: mocks.readChunkMock },
       transcribe: { invoke: mocks.transcribeMock },
+      cancelTranscribe: { invoke: mocks.cancelTranscribeMock },
     },
   },
 }));
@@ -107,6 +109,34 @@ describe('RecordingListItem retry-transcribe button', () => {
     await user_.click(screen.getByTestId('retry-transcribe-button'));
     expect(mocks.transcribeMock).toHaveBeenCalledTimes(1);
     expect(mocks.transcribeMock).toHaveBeenCalledWith({ id: 'rec-1' });
+  });
+
+  it('opens a Popconfirm when clicked while retrying, and cancels transcribe on confirm', async () => {
+    const { fireEvent } = await import('@testing-library/react');
+    mocks.transcribeMock.mockClear();
+    mocks.cancelTranscribeMock.mockClear();
+    const recording = makeRecording([
+      chunk({ index: 0, transcription: 'a', status: 'transcribed' }),
+      chunk({ index: 1, status: 'failed' }),
+    ]);
+    const { rerender } = render(<RecordingListItem recording={recording} onDelete={() => {}} />);
+    // First click: kicks off retry (no Popconfirm — we're starting, not stopping).
+    fireEvent.click(screen.getByTestId('retry-transcribe-button'));
+    expect(mocks.transcribeMock).toHaveBeenCalledTimes(1);
+    expect(mocks.cancelTranscribeMock).not.toHaveBeenCalled();
+    // Rerender with the same recording still has the failed chunk, so the
+    // spinner stays on and the button is "armed" for a cancel click.
+    rerender(<RecordingListItem recording={recording} onDelete={() => {}} />);
+    // Second click: should open a Popconfirm instead of immediately firing
+    // transcribe again.
+    mocks.transcribeMock.mockClear();
+    fireEvent.click(screen.getByTestId('retry-transcribe-button'));
+    expect(mocks.transcribeMock).not.toHaveBeenCalled();
+    // Find the confirm button (Arco Popconfirm renders an OK button with the
+    // localized "Stop" text — our stub returns the key as-is).
+    const okBtn = await screen.findByRole('button', { name: 'meeting-recording.transcriptModal.cancelTranscribeConfirmOk' });
+    fireEvent.click(okBtn);
+    expect(mocks.cancelTranscribeMock).toHaveBeenCalledWith({ id: 'rec-1' });
   });
 
   it('spins the Refresh icon while any chunk is pending or failed after a click', async () => {

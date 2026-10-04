@@ -114,27 +114,47 @@ const RecordingListItem: React.FC<RecordingListItemProps> = ({ recording, onDele
             data-testid='transcript-view-button'
           />
         </Tooltip>
-        <Tooltip disabled={canRetryTranscribe} content={t('meeting-recording.transcriptModal.retryTranscribeDisabledHint')}>
-          <Button
-            size='mini'
-            type='text'
-            icon={
-              <span
-                data-testid='retry-transcribe-spin'
-                className={showRetrySpinner ? styles.spin : undefined}
-              >
-                <Refresh theme='outline' size='14' fill='currentColor' />
-              </span>
-            }
-            aria-label={t('meeting-recording.transcriptModal.retryTranscribeButtonAriaLabel')}
-            disabled={!canRetryTranscribe}
-            onClick={() => {
-              setIsRetrying(true);
-              void ipcBridge.meetingRecording.transcribe.invoke({ id: recording.id });
-            }}
-            data-testid='retry-transcribe-button'
-          />
-        </Tooltip>
+        <Popconfirm
+          disabled={!isRetrying}
+          title={t('meeting-recording.transcriptModal.cancelTranscribeConfirmTitle')}
+          okText={t('meeting-recording.transcriptModal.cancelTranscribeConfirmOk')}
+          cancelText={t('meeting-recording.transcriptModal.cancelTranscribeConfirmCancel')}
+          onOk={() => {
+            setIsRetrying(false);
+            void ipcBridge.meetingRecording.cancelTranscribe.invoke({ id: recording.id });
+          }}
+        >
+          <Tooltip
+            disabled={canRetryTranscribe}
+            content={t('meeting-recording.transcriptModal.retryTranscribeDisabledHint')}
+          >
+            <Button
+              size='mini'
+              type='text'
+              icon={
+                <span
+                  data-testid='retry-transcribe-spin'
+                  className={showRetrySpinner ? styles.spin : undefined}
+                >
+                  <Refresh theme='outline' size='14' fill='currentColor' />
+                </span>
+              }
+              aria-label={t('meeting-recording.transcriptModal.retryTranscribeButtonAriaLabel')}
+              disabled={!canRetryTranscribe}
+              onClick={() => {
+                // While a retry is already in flight, the surrounding
+                // Popconfirm is what should react to this click — its
+                // confirm handler cancels via the IPC. Skip the
+                // transcribe.invoke call here so we don't queue a second
+                // walker on top of the running one.
+                if (isRetrying) return;
+                setIsRetrying(true);
+                void ipcBridge.meetingRecording.transcribe.invoke({ id: recording.id });
+              }}
+              data-testid='retry-transcribe-button'
+            />
+          </Tooltip>
+        </Popconfirm>
         <Popconfirm
           title={t('meeting-recording.deleteConfirm')}
           okText='OK'

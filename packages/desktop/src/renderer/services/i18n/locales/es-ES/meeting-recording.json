@@ -13,7 +13,10 @@
     "viewButtonAriaLabel": "View transcript summary",
     "disabledHint": "No transcriptions available yet",
     "retryTranscribeButtonAriaLabel": "Retry transcription",
-    "retryTranscribeDisabledHint": "All chunks have been transcribed; nothing to retry"
+    "retryTranscribeDisabledHint": "All chunks have been transcribed; nothing to retry",
+    "cancelTranscribeConfirmTitle": "Stop transcription?",
+    "cancelTranscribeConfirmOk": "Stop",
+    "cancelTranscribeConfirmCancel": "Keep going"
   },
   "errors": {
     "permissionDenied": "Microphone access denied",

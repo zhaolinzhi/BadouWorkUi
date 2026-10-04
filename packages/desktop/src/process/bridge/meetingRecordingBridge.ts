@@ -14,5 +14,6 @@ export const registerMeetingRecordingBridge = (): void => {
   ipcBridge.meetingRecording.save.provider((p) => service.save(p));
   ipcBridge.meetingRecording.delete.provider((p) => service.delete(p.id));
   ipcBridge.meetingRecording.transcribe.provider((p) => service.transcribe(p.id));
+  ipcBridge.meetingRecording.cancelTranscribe.provider((p) => service.cancelTranscribe(p));
   ipcBridge.meetingRecording.readChunk.provider((p) => service.readChunk(p));
 };

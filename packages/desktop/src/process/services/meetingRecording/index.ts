@@ -12,6 +12,20 @@ import { extractWebmHeader, transcribeFile } from './sttClient';
 
 const RECORDINGS_ROOT = (): string => path.join(app.getPath('userData'), 'meeting-recordings');
 
+/**
+ * Per-recording cancel flags consulted by the in-flight transcribe walker.
+ * A recording id is added when the renderer asks to stop, and removed at
+ * the start of the next `transcribe()` call so a later retry isn't blocked
+ * by a stale flag.
+ *
+ * Note: cancellation is cooperative — the walker checks the flag *between*
+ * chunks, so an in-flight STT request (already past the `await fetch` call)
+ * will still finish and write its result. That's intentional: aborting a
+ * network request mid-flight is more complex than it's worth for a button
+ * that's rarely pressed.
+ */
+const cancelledRecordings = new Set<string>();
+
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const assertUuid = (id: string): void => {
   if (!UUID_RE.test(id)) {
@@ -117,6 +131,11 @@ export const createMeetingRecordingService = () => ({
     const meta = await readMeta(dir);
     if (!meta) throw new Error(`Recording not found: ${id}`);
 
+    // A new transcribe run clears any stale cancel flag from a previous
+    // walk on the same recording id. Without this, a quick retry after a
+    // cancel would never start.
+    cancelledRecordings.delete(id);
+
     // Fire-and-forget: walk chunks serially in the background.
     void (async () => {
       // Some `MediaRecorder` timeslice implementations emit webm slices
@@ -137,6 +156,12 @@ export const createMeetingRecordingService = () => ({
 
       for (const chunk of meta.chunks) {
         if (chunk.status === 'transcribed') continue;
+        // Cooperative cancel: check before starting the next chunk. The
+        // current chunk's STT request (if any) finishes naturally; we
+        // stop the walker from queuing the next one.
+        if (cancelledRecordings.has(id)) {
+          break;
+        }
         const result = await transcribeFile(chunk.audioUrl, meta.mimeType, { webmHeader });
         if (result.ok === true) {
           chunk.transcription = result.text;
@@ -157,6 +182,20 @@ export const createMeetingRecordingService = () => ({
     })();
 
     return { id };
+  },
+
+  /**
+   * Cooperative cancellation of an in-flight `transcribe()` walk. The
+   * walker checks the cancel flag between chunks, so the currently
+   * processing chunk finishes naturally and writes its result; subsequent
+   * chunks are left untouched (still `pending` or `failed`).
+   *
+   * Calling this when nothing is running is a cheap no-op.
+   */
+  async cancelTranscribe(p: { id: string }): Promise<{ ok: true }> {
+    assertUuid(p.id);
+    cancelledRecordings.add(p.id);
+    return { ok: true };
   },
 
   /**

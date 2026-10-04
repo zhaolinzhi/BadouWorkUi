@@ -248,6 +248,7 @@ export const meetingRecording = {
   save: bridge.buildProvider<MeetingRecording, SaveRecordingParams>('meetingRecording.save'),
   delete: bridge.buildProvider<{ ok: true }, { id: string }>('meetingRecording.delete'),
   transcribe: bridge.buildProvider<{ id: string }, { id: string }>('meetingRecording.transcribe'),
+  cancelTranscribe: bridge.buildProvider<{ ok: true }, { id: string }>('meetingRecording.cancelTranscribe'),
   /** Returns the chunk bytes as base64 — the IPC channel is JSON-encoded
    *  so binary data must be serialized before crossing the bridge. */
   readChunk: bridge.buildProvider<{ base64: string; mimeType: string }, { id: string; chunkIndex: number }>(
