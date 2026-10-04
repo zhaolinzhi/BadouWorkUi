@@ -9,6 +9,14 @@
   "transcriptionFailed": "Transcription failed",
   "chunkLabel": "Chunk {{index}}",
   "deleteConfirm": "Delete this recording? This cannot be undone.",
+  "transcriptModal": {
+    "title": "Transcript Summary",
+    "viewButton": "View Transcript",
+    "viewButtonAriaLabel": "View transcript summary",
+    "disabledHint": "No transcriptions available yet",
+    "statusLine": "{{total}} chunks: {{transcribed}} transcribed, {{failed}} failed, {{pending}} pending",
+    "footerSeparator": " · "
+  },
   "errors": {
     "permissionDenied": "Microphone access denied",
     "noDevice": "No microphone detected",

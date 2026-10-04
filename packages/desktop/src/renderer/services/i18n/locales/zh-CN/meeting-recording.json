@@ -9,6 +9,14 @@
   "transcriptionFailed": "转写失败",
   "chunkLabel": "片段 {{index}}",
   "deleteConfirm": "确认删除此录音?删除后无法恢复。",
+  "transcriptModal": {
+    "title": "转写汇总",
+    "viewButton": "查看转写",
+    "viewButtonAriaLabel": "查看转写汇总",
+    "disabledHint": "还没有可汇总的转写结果",
+    "statusLine": "共 {{total}} 段,{{transcribed}} 段已转写,{{failed}} 段失败,{{pending}} 段等待中",
+    "footerSeparator": " · "
+  },
   "errors": {
     "permissionDenied": "麦克风权限被拒绝",
     "noDevice": "未检测到麦克风设备",
