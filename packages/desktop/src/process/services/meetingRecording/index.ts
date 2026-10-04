@@ -8,7 +8,7 @@ import path from 'path';
 import { app } from 'electron';
 import { ipcBridge } from '@/common';
 import type { MeetingRecording, RecordingChunk, SaveRecordingParams } from '@/common/types/meetingRecording';
-import { transcribeFile } from './sttClient';
+import { extractWebmHeader, transcribeFile } from './sttClient';
 
 const RECORDINGS_ROOT = (): string => path.join(app.getPath('userData'), 'meeting-recordings');
 
@@ -119,11 +119,30 @@ export const createMeetingRecordingService = () => ({
 
     // Fire-and-forget: walk chunks serially in the background.
     void (async () => {
+      // Some `MediaRecorder` timeslice implementations emit webm slices
+      // without the EBML/Segment/Tracks header after the first slice, which
+      // the upstream Whisper decoder rejects with HTTP 400 "Invalid or
+      // unsupported audio file". Borrow the header from chunk 0 so every
+      // sibling chunk is a self-decodable webm stream. Non-webm recordings
+      // (mp4/ogg) keep `extractWebmHeader` returning null and skip repair.
+      let webmHeader: Buffer | null = null;
+      if (meta.chunks.length > 0) {
+        try {
+          const firstChunkBytes = await fs.readFile(meta.chunks[0].audioUrl);
+          webmHeader = extractWebmHeader(firstChunkBytes);
+        } catch {
+          webmHeader = null;
+        }
+      }
+
       for (const chunk of meta.chunks) {
         if (chunk.status === 'transcribed') continue;
-        const result = await transcribeFile(chunk.audioUrl, meta.mimeType);
+        const result = await transcribeFile(chunk.audioUrl, meta.mimeType, { webmHeader });
         if (result.ok === true) {
           chunk.transcription = result.text;
+          // Persist the full STT response verbatim so future code can read
+          // usage / latency / model metadata without re-running the request.
+          chunk.raw = result.raw;
           chunk.status = 'transcribed';
           chunk.error = undefined;
         } else {

@@ -14,6 +14,13 @@ export type RecordingChunk = {
   status: RecordingChunkStatus;
   /** Populated when status === 'failed'; surfaced in the UI for diagnosis. */
   error?: string;
+  /**
+   * Full JSON returned by the STT endpoint (e.g. `{ text, usage, language }`).
+   * Persisted verbatim so future callers can read token counts, latency, or
+   * model metadata without re-running transcription. UI displays only
+   * `transcription`; this field is for storage and downstream consumers.
+   */
+  raw?: unknown;
 };
 
 export type MeetingRecording = {
