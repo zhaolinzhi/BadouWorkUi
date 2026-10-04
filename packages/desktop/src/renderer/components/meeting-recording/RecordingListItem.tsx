@@ -40,12 +40,19 @@ const RecordingListItem: React.FC<RecordingListItemProps> = ({ recording, onDele
   const [audioError, setAudioError] = React.useState<string | null>(null);
   const [audioLoading, setAudioLoading] = React.useState(false);
   const [isTranscriptOpen, setIsTranscriptOpen] = React.useState(false);
+  const [isRetrying, setIsRetrying] = React.useState(false);
   const summary = React.useMemo(() => buildTranscriptSummary(recording), [recording]);
   // Retry-transcribe is useful only when something didn't finish successfully.
   // The main-process walker skips already-transcribed chunks, so re-clicking
   // when everything is done is a cheap no-op — but we still gate the button
   // so the affordance reflects "there is work to retry".
   const canRetryTranscribe = recording.chunks.some((c) => c.status === 'pending' || c.status === 'failed');
+  // Track the click-driven retry separately from "is there anything to
+  // retry": we want the spinner to stay on until the user-acknowledged
+  // request has visibly drained all pending/failed chunks, even if the
+  // chunkTranscribed events arrive one at a time.
+  const hasUnfinishedChunk = recording.chunks.some((c) => c.status === 'pending' || c.status === 'failed');
+  const showRetrySpinner = isRetrying && hasUnfinishedChunk;
 
   // Load chunk bytes lazily — only when the user clicks play. The IPC
   // returns base64 because the bridge channel is JSON-encoded; we turn it
@@ -111,10 +118,18 @@ const RecordingListItem: React.FC<RecordingListItemProps> = ({ recording, onDele
           <Button
             size='mini'
             type='text'
-            icon={<Refresh theme='outline' size='14' fill='currentColor' />}
+            icon={
+              <span
+                data-testid='retry-transcribe-spin'
+                className={showRetrySpinner ? styles.spin : undefined}
+              >
+                <Refresh theme='outline' size='14' fill='currentColor' />
+              </span>
+            }
             aria-label={t('meeting-recording.transcriptModal.retryTranscribeButtonAriaLabel')}
             disabled={!canRetryTranscribe}
             onClick={() => {
+              setIsRetrying(true);
               void ipcBridge.meetingRecording.transcribe.invoke({ id: recording.id });
             }}
             data-testid='retry-transcribe-button'

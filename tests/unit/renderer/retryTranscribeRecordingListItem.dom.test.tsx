@@ -108,4 +108,35 @@ describe('RecordingListItem retry-transcribe button', () => {
     expect(mocks.transcribeMock).toHaveBeenCalledTimes(1);
     expect(mocks.transcribeMock).toHaveBeenCalledWith({ id: 'rec-1' });
   });
+
+  it('spins the Refresh icon while any chunk is pending or failed after a click', async () => {
+    const { default: user } = await import('@testing-library/user-event');
+    const user_ = user.setup();
+    const recording = makeRecording([
+      chunk({ index: 0, transcription: 'a', status: 'transcribed' }),
+      chunk({ index: 1, status: 'failed' }),
+    ]);
+    const { rerender } = render(<RecordingListItem recording={recording} onDelete={() => {}} />);
+    // Sanity: before the click the icon has no spin class.
+    expect(screen.getByTestId('retry-transcribe-spin').className).not.toMatch(/spin/);
+    await user_.click(screen.getByTestId('retry-transcribe-button'));
+    // Right after the click the icon should be spinning.
+    expect(screen.getByTestId('retry-transcribe-spin').className).toMatch(/spin/);
+    // Simulate the main process emitting a chunkTranscribed event by
+    // handing the row an updated recording where the failed chunk is now
+    // still failed (e.g. upstream still down) — the spin must persist.
+    rerender(<RecordingListItem recording={recording} onDelete={() => {}} />);
+    expect(screen.getByTestId('retry-transcribe-spin').className).toMatch(/spin/);
+    // Now simulate the chunk going through: spin must clear.
+    rerender(
+      <RecordingListItem
+        recording={makeRecording([
+          chunk({ index: 0, transcription: 'a', status: 'transcribed' }),
+          chunk({ index: 1, transcription: 'b', status: 'transcribed' }),
+        ])}
+        onDelete={() => {}}
+      />
+    );
+    expect(screen.getByTestId('retry-transcribe-spin').className).not.toMatch(/spin/);
+  });
 });

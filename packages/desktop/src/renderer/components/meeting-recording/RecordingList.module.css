@@ -89,3 +89,24 @@
   font-size: 12px;
   color: var(--color-text-3);
 }
+
+/**
+ * Continuous rotation for the Refresh icon shown while a retry-transcribe
+ * request is in flight. Triggered when `data-testid="retry-transcribe-spin"`
+ * is rendered with the `spin` modifier class; the component decides based
+ * on whether any chunk is still pending/failed after a click.
+ */
+@keyframes retrySpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spin {
+  display: inline-flex;
+  animation: retrySpin 1s linear infinite;
+  transform-origin: 50% 50%;
+}
