@@ -1066,6 +1066,8 @@ export type I18nKey =
   | 'meeting-recording.stopRecording'
   | 'meeting-recording.title'
   | 'meeting-recording.transcriptModal.disabledHint'
+  | 'meeting-recording.transcriptModal.retryTranscribeButtonAriaLabel'
+  | 'meeting-recording.transcriptModal.retryTranscribeDisabledHint'
   | 'meeting-recording.transcriptModal.viewButtonAriaLabel'
   | 'meeting-recording.transcriptionFailed'
   | 'meeting-recording.transcriptionPending'

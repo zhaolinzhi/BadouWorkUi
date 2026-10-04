@@ -11,7 +11,9 @@
   "deleteConfirm": "Delete this recording? This cannot be undone.",
   "transcriptModal": {
     "viewButtonAriaLabel": "View transcript summary",
-    "disabledHint": "No transcriptions available yet"
+    "disabledHint": "No transcriptions available yet",
+    "retryTranscribeButtonAriaLabel": "Retry transcription",
+    "retryTranscribeDisabledHint": "All chunks have been transcribed; nothing to retry"
   },
   "errors": {
     "permissionDenied": "Microphone access denied",

@@ -6,7 +6,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Popconfirm, Tooltip, Typography } from '@arco-design/web-react';
-import { Delete, FileText } from '@icon-park/react';
+import { Delete, FileText, Refresh } from '@icon-park/react';
 import { ipcBridge } from '@/common';
 import type { MeetingRecording } from '@/common/types/meetingRecording';
 import { buildTranscriptSummary } from './transcriptSummary';
@@ -41,6 +41,11 @@ const RecordingListItem: React.FC<RecordingListItemProps> = ({ recording, onDele
   const [audioLoading, setAudioLoading] = React.useState(false);
   const [isTranscriptOpen, setIsTranscriptOpen] = React.useState(false);
   const summary = React.useMemo(() => buildTranscriptSummary(recording), [recording]);
+  // Retry-transcribe is useful only when something didn't finish successfully.
+  // The main-process walker skips already-transcribed chunks, so re-clicking
+  // when everything is done is a cheap no-op — but we still gate the button
+  // so the affordance reflects "there is work to retry".
+  const canRetryTranscribe = recording.chunks.some((c) => c.status === 'pending' || c.status === 'failed');
 
   // Load chunk bytes lazily — only when the user clicks play. The IPC
   // returns base64 because the bridge channel is JSON-encoded; we turn it
@@ -100,6 +105,19 @@ const RecordingListItem: React.FC<RecordingListItemProps> = ({ recording, onDele
             disabled={summary.transcribedCount === 0}
             onClick={() => setIsTranscriptOpen(true)}
             data-testid='transcript-view-button'
+          />
+        </Tooltip>
+        <Tooltip disabled={canRetryTranscribe} content={t('meeting-recording.transcriptModal.retryTranscribeDisabledHint')}>
+          <Button
+            size='mini'
+            type='text'
+            icon={<Refresh theme='outline' size='14' fill='currentColor' />}
+            aria-label={t('meeting-recording.transcriptModal.retryTranscribeButtonAriaLabel')}
+            disabled={!canRetryTranscribe}
+            onClick={() => {
+              void ipcBridge.meetingRecording.transcribe.invoke({ id: recording.id });
+            }}
+            data-testid='retry-transcribe-button'
           />
         </Tooltip>
         <Popconfirm

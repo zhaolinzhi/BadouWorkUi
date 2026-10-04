@@ -11,7 +11,9 @@
   "deleteConfirm": "确认删除此录音?删除后无法恢复。",
   "transcriptModal": {
     "viewButtonAriaLabel": "查看转写汇总",
-    "disabledHint": "还没有可汇总的转写结果"
+    "disabledHint": "还没有可汇总的转写结果",
+    "retryTranscribeButtonAriaLabel": "重新转写",
+    "retryTranscribeDisabledHint": "所有片段都已转写完成,无需重试"
   },
   "errors": {
     "permissionDenied": "麦克风权限被拒绝",
