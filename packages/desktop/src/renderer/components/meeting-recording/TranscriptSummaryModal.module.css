@@ -1,0 +1,35 @@
+/**
+ * @license
+ * Copyright 2026 AionUi (aionui.com)
+ * SPDX-License-Identifier: Apache-2.0
+ */
+.modal :global(.arco-modal-body) {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.statusLine {
+  display: block;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.body {
+  background-color: var(--color-fill-1);
+  padding: 12px;
+  border-radius: 6px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.footer {
+  display: block;
+  margin-top: 12px;
+  font-size: 12px;
+}
+
+.separator {
+  margin: 0 4px;
+}
