@@ -5,10 +5,12 @@
  */
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Popconfirm, Typography } from '@arco-design/web-react';
-import { Delete } from '@icon-park/react';
+import { Button, Popconfirm, Tooltip, Typography } from '@arco-design/web-react';
+import { Delete, FileText } from '@icon-park/react';
 import { ipcBridge } from '@/common';
 import type { MeetingRecording } from '@/common/types/meetingRecording';
+import { buildTranscriptSummary } from './transcriptSummary';
+import TranscriptSummaryModal from './TranscriptSummaryModal';
 import styles from './RecordingList.module.css';
 
 interface RecordingListItemProps {
@@ -21,8 +23,7 @@ const formatMs = (ms: number): string => {
   const m = Math.floor(totalSeconds / 60)
     .toString()
     .padStart(2, '0');
-  const s = (totalSeconds % 60).toString()
-    .padStart(2, '0');
+  const s = (totalSeconds % 60).toString().padStart(2, '0');
   return `${m}:${s}`;
 };
 
@@ -38,6 +39,8 @@ const RecordingListItem: React.FC<RecordingListItemProps> = ({ recording, onDele
   const [audioUrl, setAudioUrl] = React.useState<string | null>(null);
   const [audioError, setAudioError] = React.useState<string | null>(null);
   const [audioLoading, setAudioLoading] = React.useState(false);
+  const [isTranscriptOpen, setIsTranscriptOpen] = React.useState(false);
+  const summary = React.useMemo(() => buildTranscriptSummary(recording), [recording]);
 
   // Load chunk bytes lazily — only when the user clicks play. The IPC
   // returns base64 because the bridge channel is JSON-encoded; we turn it
@@ -88,6 +91,17 @@ const RecordingListItem: React.FC<RecordingListItemProps> = ({ recording, onDele
         <Typography.Text type='secondary' className={styles.chunkCount}>
           {`${recording.chunks.length} chunks`}
         </Typography.Text>
+        <Tooltip disabled={summary.transcribedCount > 0} content={t('meeting-recording.transcriptModal.disabledHint')}>
+          <Button
+            size='mini'
+            type='text'
+            icon={<FileText theme='outline' size='14' fill='currentColor' />}
+            aria-label={t('meeting-recording.transcriptModal.viewButtonAriaLabel')}
+            disabled={summary.transcribedCount === 0}
+            onClick={() => setIsTranscriptOpen(true)}
+            data-testid='transcript-view-button'
+          />
+        </Tooltip>
         <Popconfirm
           title={t('meeting-recording.deleteConfirm')}
           okText='OK'
@@ -127,13 +141,7 @@ const RecordingListItem: React.FC<RecordingListItemProps> = ({ recording, onDele
                 audioError ? (
                   <Typography.Text type='warning'>{audioError}</Typography.Text>
                 ) : audioUrl ? (
-                  <audio
-                    id={audioId}
-                    data-testid={audioId}
-                    className={styles.audio}
-                    controls
-                    src={audioUrl}
-                  />
+                  <audio id={audioId} data-testid={audioId} className={styles.audio} controls src={audioUrl} />
                 ) : (
                   <Typography.Text type='secondary'>{audioLoading ? '…' : 'loading'}</Typography.Text>
                 )
@@ -151,6 +159,11 @@ const RecordingListItem: React.FC<RecordingListItemProps> = ({ recording, onDele
           );
         })}
       </div>
+      <TranscriptSummaryModal
+        recording={recording}
+        visible={isTranscriptOpen}
+        onClose={() => setIsTranscriptOpen(false)}
+      />
     </div>
   );
 };
