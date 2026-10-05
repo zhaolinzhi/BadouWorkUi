@@ -13,11 +13,11 @@ import { useSettingsViewMode } from '../settingsViewContext';
 import { openExternalUrl } from '@/renderer/utils/platform';
 import FeedbackReportModal from './FeedbackReportModal';
 
-// __APP_VERSION__ is injected by electron.vite.config.ts `define:` from the
-// repo-root package.json. The previous `import packageJson from
-// '../../../../../../package.json'` resolved to packages/desktop/package.json
-// which is a workspace placeholder permanently pinned at "0.0.0".
-declare const __APP_VERSION__: string;
+// Display-only version label shown on the About screen. Decoupled from
+// the build-time `__APP_VERSION__` injection so the visible brand label can
+// change without affecting auto-update comparison, Sentry release, or build
+// version injection. To change the displayed version, edit APP_VERSION_DISPLAY.
+const APP_VERSION_DISPLAY = '1.0.0';
 
 type LinkItem =
   | { title: string; url: string; icon: React.ReactNode; onClick?: never }
@@ -41,14 +41,14 @@ const AboutModalContent: React.FC = () => {
   const linkItems: LinkItem[] = [
     {
       title: t('settings.helpDocumentation'),
-      url: 'https://github.com/iOfficeAI/AionUi/wiki',
+      url: 'https://www.badousoft.com',
       icon: <Right theme='outline' size='16' />,
     },
-    {
-      title: t('settings.updateLog'),
-      url: 'https://github.com/iOfficeAI/AionUi/releases',
-      icon: <Right theme='outline' size='16' />,
-    },
+    // {
+    //   title: t('settings.updateLog'),
+    //   url: 'https://github.com/iOfficeAI/AionUi/releases',
+    //   icon: <Right theme='outline' size='16' />,
+    // },
     {
       title: t('settings.bugReport'),
       onClick: () => setShowFeedbackModal(true),
@@ -56,12 +56,12 @@ const AboutModalContent: React.FC = () => {
     },
     {
       title: t('settings.contactMe'),
-      url: 'https://x.com/WailiVery',
+      url: 'https://www.badousoft.com',
       icon: <Right theme='outline' size='16' />,
     },
     {
       title: t('settings.officialWebsite'),
-      url: 'https://www.aionui.com',
+      url: 'https://www.badousoft.com',
       icon: <Right theme='outline' size='16' />,
     },
   ];
@@ -86,18 +86,18 @@ const AboutModalContent: React.FC = () => {
             </Typography.Text>
             <div className='flex items-center justify-center gap-8px mb-16px'>
               <span className='px-10px py-4px rd-6px text-13px bg-fill-2 text-t-primary font-500'>
-                v{__APP_VERSION__}
+                v{APP_VERSION_DISPLAY}
               </span>
-              <div
-                className='text-t-primary cursor-pointer hover:text-t-secondary transition-colors p-4px'
-                onClick={() =>
-                  openLink('https://github.com/iOfficeAI/AionUi').catch((error) =>
-                    console.error('Failed to open link:', error)
-                  )
-                }
-              >
-                <Github theme='outline' size='20' />
-              </div>
+              {/*<div*/}
+              {/*  className='text-t-primary cursor-pointer hover:text-t-secondary transition-colors p-4px'*/}
+              {/*  onClick={() =>*/}
+              {/*    openLink('https://github.com/iOfficeAI/AionUi').catch((error) =>*/}
+              {/*      console.error('Failed to open link:', error)*/}
+              {/*    )*/}
+              {/*  }*/}
+              {/*>*/}
+              {/*  <Github theme='outline' size='20' />*/}
+              {/*</div>*/}
             </div>
           </div>
 

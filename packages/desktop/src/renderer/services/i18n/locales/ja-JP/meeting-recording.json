@@ -1,0 +1,29 @@
+{
+  "title": "Meeting Recording",
+  "startRecording": "Start recording",
+  "stopRecording": "Stop",
+  "recording": "Recording",
+  "empty": "No recordings yet",
+  "placeholderName": "Recording {{date}}",
+  "transcriptionPending": "Transcription pending",
+  "transcriptionFailed": "Transcription failed",
+  "chunkLabel": "Chunk {{index}}",
+  "deleteConfirm": "Delete this recording? This cannot be undone.",
+  "transcriptModal": {
+    "viewButtonAriaLabel": "View transcript summary",
+    "disabledHint": "No transcriptions available yet",
+    "retryTranscribeButtonAriaLabel": "Retry transcription",
+    "retryTranscribeDisabledHint": "All chunks have been transcribed; nothing to retry",
+    "cancelTranscribeConfirmTitle": "Stop transcription?",
+    "cancelTranscribeConfirmOk": "Stop",
+    "cancelTranscribeConfirmCancel": "Keep going"
+  },
+  "errors": {
+    "permissionDenied": "Microphone access denied",
+    "noDevice": "No microphone detected",
+    "saveFailed": "Failed to save recording",
+    "deleteFailed": "Failed to delete recording",
+    "transcribeFailed": "Transcription failed",
+    "recordingUnsupported": "Recording is not supported in this environment"
+  }
+}

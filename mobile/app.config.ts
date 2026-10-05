@@ -33,7 +33,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       output: 'static',
       favicon: './assets/images/icon.png',
     },
-    plugins: ['expo-router', 'expo-secure-store', 'expo-dev-client', 'expo-camera'],
+    // 临时注释 expo-dev-client 以便用 Expo Go 预览；恢复时取消下面那行注释
+    plugins: ['expo-router', 'expo-secure-store', 'expo-camera'],
+    // plugins: ['expo-router', 'expo-secure-store', 'expo-dev-client', 'expo-camera'],
     experiments: {
       typedRoutes: true,
     },

@@ -8,7 +8,13 @@
  *   1. The main-process `feedback:capture-screenshot` IPC returns PNG bytes.
  *   2. The existing About → Bug Report entry still opens the modal that the
  *      new one-click flow re-uses (FeedbackReportModal).
- *   3. The modal displays its title and module select control.
+ *   3. The modal displays its title and phone field.
+ *
+ * NOTE: the modal was simplified to a two-field form (phone + description →
+ * AIPaaS). The previously-checked auto-info banner and module select are no
+ * longer rendered. `captureFeedbackScreenshot` is still wired (for callers that
+ * pass `autoScreenshot: true` to `openFeedback`) and continues to return
+ * PNG bytes — kept under test so the main-process IPC contract stays honest.
  */
 import { test, expect } from '../fixtures';
 import { goToSettings } from '../helpers';
@@ -53,7 +59,7 @@ test.describe('One-click feedback infrastructure', () => {
     expect(result.startsWithPngSignature).toBe(true);
   });
 
-  test('About → Bug Report opens the feedback modal with module select visible', async ({ page }) => {
+  test('About → Bug Report opens the feedback modal with the phone field visible', async ({ page }) => {
     await goToSettings(page, 'about');
 
     // The about page lists a row whose title resolves from i18n key
@@ -66,14 +72,18 @@ test.describe('One-click feedback infrastructure', () => {
     await expect(bugReportRow).toBeVisible({ timeout: 10_000 });
     await bugReportRow.click();
 
-    // The modal is rendered by FeedbackReportModal (a ModalWrapper). Verify it
-    // surfaces the scroll body and module select placeholder text.
+    // The modal is rendered by FeedbackReportModal (a ModalWrapper). Verify
+    // it surfaces the scroll body and the phone input — the phone field is
+    // the new top-level field that replaced the old module select.
     const modalBody = page.locator('[data-testid="feedback-report-scroll-body"]');
     await expect(modalBody).toBeVisible({ timeout: 5_000 });
 
-    // Auto-info banner confirms the modal is fully rendered.
-    const autoInfo = page.locator('[data-testid="feedback-report-auto-info"]');
-    await expect(autoInfo).toBeVisible();
+    const phoneInput = page.locator('[data-testid="feedback-report-phone-input"]');
+    await expect(phoneInput).toBeVisible();
+
+    // The previously-rendered auto-info banner and module select are gone in
+    // the simplified two-field form.
+    await expect(page.locator('[data-testid="feedback-report-auto-info"]')).toHaveCount(0);
 
     // Close via the AionModal header close button (aria-label='Close'). The
     // modal is configured with closable={false} so Escape alone does not

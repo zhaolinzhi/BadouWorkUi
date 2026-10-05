@@ -41,6 +41,30 @@ describe('buildAtFileInsertion', () => {
   });
 });
 
+describe('buildAtFileInsertion — KB items', () => {
+  it('produces @kb:<id> for KB-kind items', () => {
+    const item: FileOrFolderItem = {
+      name: 'Remote KB',
+      path: 'kb:abc-123',
+      isFile: false,
+      kind: 'kb',
+    };
+
+    expect(buildAtFileInsertion(item)).toBe('@kb:abc-123');
+  });
+
+  it('returns null when KB-kind item has an empty path', () => {
+    const item: FileOrFolderItem = {
+      name: 'Empty KB',
+      path: '',
+      isFile: false,
+      kind: 'kb',
+    };
+
+    expect(buildAtFileInsertion(item)).toBeNull();
+  });
+});
+
 describe('resolveAtFileMenuKey', () => {
   it('accepts on Enter and Tab', () => {
     expect(resolveAtFileMenuKey('Enter', true)).toBe('accept');

@@ -96,6 +96,7 @@ import type { Theme } from '@/common/theme/types';
 import type { AttachFolderRequest, ProjectDetailDto, ProjectEntryDto } from '@/common/types/project';
 import type { ProjectBinding } from '@/renderer/api/types';
 import type { ChatFileRef, ContentEncoding } from '@/common/types/chatFile';
+import type { MeetingRecording, SaveRecordingParams } from '@/common/types/meetingRecording';
 import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from '../utils/protocolDetector';
 import {
   buildCreateConversationBody,
@@ -234,6 +235,32 @@ export type KbChatStreamErrorPayload = {
   requestId: string;
   code: KbChatStreamErrorCode;
   message: string;
+};
+
+// ---------------------------------------------------------------------------
+// Meeting Recording — chunked local mic captures persisted under
+// <userData>/meeting-recordings/<id>/chunks/, transcribed via the external
+// STT endpoint (fire-and-forget, with chunkTranscribed events).
+// ---------------------------------------------------------------------------
+
+export const meetingRecording = {
+  list: bridge.buildProvider<MeetingRecording[], void>('meetingRecording.list'),
+  save: bridge.buildProvider<MeetingRecording, SaveRecordingParams>('meetingRecording.save'),
+  delete: bridge.buildProvider<{ ok: true }, { id: string }>('meetingRecording.delete'),
+  transcribe: bridge.buildProvider<{ id: string }, { id: string }>('meetingRecording.transcribe'),
+  cancelTranscribe: bridge.buildProvider<{ ok: true }, { id: string }>('meetingRecording.cancelTranscribe'),
+  /** Returns the chunk bytes as base64 — the IPC channel is JSON-encoded
+   *  so binary data must be serialized before crossing the bridge. */
+  readChunk: bridge.buildProvider<{ base64: string; mimeType: string }, { id: string; chunkIndex: number }>(
+    'meetingRecording.readChunk'
+  ),
+  chunkTranscribed: bridge.buildEmitter<{
+    id: string;
+    chunkIndex: number;
+    status: 'transcribed' | 'failed';
+    /** Populated when status === 'failed'. */
+    error?: string;
+  }>('meetingRecording.chunkTranscribed'),
 };
 
 // ---------------------------------------------------------------------------

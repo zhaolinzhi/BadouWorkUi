@@ -19,7 +19,7 @@ import {
   SettingTwo,
   Write,
 } from '@icon-park/react';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import AddModelModal from '@/renderer/pages/settings/components/AddModelModal';
 import AddPlatformModal from '@/renderer/pages/settings/components/AddPlatformModal';
@@ -28,6 +28,7 @@ import EditModeModal from '@/renderer/pages/settings/components/EditModeModal';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import TalkToButlerButton from '@/renderer/components/base/TalkToButlerButton';
 import { useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
+import { NEWAPI_PROVIDER_ID } from '@/renderer/services/newapi/postLoginBootstrap.constants';
 import { useSettingsViewMode } from '../settingsViewContext';
 import SettingsPageHeader from '@/renderer/pages/settings/components/SettingsPageHeader';
 import { consumePendingDeepLink } from '@/renderer/hooks/system/useDeepLink';
@@ -113,6 +114,13 @@ const ModelModalContent: React.FC = () => {
   const [healthCheckLoading, setHealthCheckLoading] = useState<Record<string, boolean>>({});
   const { data, mutate } = useProvidersQuery();
   const [message, messageContext] = Message.useMessage();
+
+  /**
+   * 在「设置 → 模型」管理列表里隐藏由 newapi-postlogin 自动创建的 provider。
+   * 过滤只发生在渲染层 — 写入/比对仍然用 `data`,保证自动创建/更新路径不受影响。
+   * 该 provider 在模型选择器(GuidModelSelector 等)依然可见、可选用。
+   */
+  const visibleData = useMemo(() => (data ?? []).filter((item) => item.id !== NEWAPI_PROVIDER_ID), [data]);
 
   /**
    * Create when the provider id is new, update otherwise.
@@ -401,7 +409,7 @@ const ModelModalContent: React.FC = () => {
 
       {/* Content Area */}
       <AionScrollArea className='flex-1 min-h-0' disableOverflow={isPageMode}>
-        {!data || data.length === 0 ? (
+        {visibleData.length === 0 ? (
           <div className='flex flex-col items-center justify-center py-40px'>
             <Info theme='outline' size='48' className='text-t-secondary mb-16px' />
             <h3 className='text-16px font-500 text-t-primary mb-8px'>{t('settings.noConfiguredModels')}</h3>
@@ -420,7 +428,7 @@ const ModelModalContent: React.FC = () => {
           </div>
         ) : (
           <div className='space-y-16px'>
-            {(data || []).map((platform: IProvider) => {
+            {visibleData.map((platform: IProvider) => {
               const key = platform.id;
               const isExpanded = collapseKey[platform.id] ?? false;
               return (

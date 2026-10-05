@@ -1,3 +1,4 @@
+import type { AtMentionKind } from '@/common/types/atMention';
 import type { ChatFileRef } from '@/common/types/chatFile';
 
 export type FileOrFolderItem = {
@@ -13,4 +14,10 @@ export type FileOrFolderItem = {
    * an `upload` ref built from `path`. See {@link ChatFileRef}.
    */
   chatRef?: ChatFileRef;
+  /**
+   * Mention discriminator. `file` (default) is resolved by the agent from a
+   * workspace path; `kb` routes through the KB streaming endpoint. Defaults to
+   * `file` when omitted for backward compatibility.
+   */
+  kind?: AtMentionKind;
 };

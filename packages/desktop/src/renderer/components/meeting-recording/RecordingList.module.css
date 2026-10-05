@@ -1,0 +1,120 @@
+/**
+ * @license
+ * Copyright 2026 AionUi (aionui.com)
+ * SPDX-License-Identifier: Apache-2.0
+ */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 8px;
+  background-color: var(--color-fill-1);
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-1);
+  flex: 1 1 auto;
+}
+
+.duration {
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  color: var(--color-text-3);
+}
+
+.transcript {
+  color: var(--color-text-3);
+  font-size: 13px;
+  white-space: pre-wrap;
+}
+
+.audio {
+  width: 100%;
+}
+
+.empty {
+  text-align: center;
+  color: var(--color-text-3);
+  padding: 24px;
+}
+
+.chunks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-left: 28px;
+}
+
+.chunk {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.chunkMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chunkLabel {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-2);
+}
+
+.chunkDuration {
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: var(--color-text-3);
+}
+
+.chunkCount {
+  font-size: 12px;
+  color: var(--color-text-3);
+}
+
+/**
+ * Continuous rotation for the Refresh icon shown while a retry-transcribe
+ * request is in flight. Triggered when `data-testid="retry-transcribe-spin"`
+ * is rendered with the `spin` modifier class; the component decides based
+ * on whether any chunk is still pending/failed after a click.
+ */
+@keyframes retrySpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spin {
+  /* `inline-block` keeps the wrapper on the same baseline as the rest of
+   * the button content so toggling this class on/off doesn't reflow the
+   * icon vertically. `inline-flex` (previous version) shifted the icon
+   * up because flex items sit at the top of the line box by default. */
+  display: inline-block;
+  animation: retrySpin 1s linear infinite;
+  transform-origin: 50% 50%;
+  vertical-align: middle;
+  /* Promote to its own layer so the rotation doesn't trigger layout work
+   * on the surrounding button — also keeps the visual center stable. */
+  will-change: transform;
+}
