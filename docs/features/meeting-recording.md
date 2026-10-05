@@ -58,5 +58,24 @@ Chunk results are persisted into `meta.json` and pushed to the UI as
 `chunkTranscribed` events. A failed chunk leaves the rest of the recording
 intact — the UI shows that single chunk as "转写失败".
 
+### Resilient upload
+
+The main-process worker that walks the chunks applies two defenses against
+transient upstream issues before the request hits the wire:
+
+1. **EBML header repair** (`sttClient.repairWebmChunk`): some
+   `MediaRecorder` timeslice implementations emit webm slices without the
+   leading `EBML` / `Segment` / `Tracks` header after the first slice, which
+   Whisper's ffmpeg decoder rejects with HTTP 400 "Invalid or unsupported
+   audio file". The first chunk's first 4 KiB (which always carries the
+   header) is detected via the EBML magic `0x1A 0x45 0xDF 0xA3` and
+   prepended to any sibling chunk that's missing it. Non-webm recordings
+   (mp4/ogg) skip this step — `extractWebmHeader` returns `null` and the
+   raw bytes are sent through.
+2. **Single retry on transient gateway errors**: 502 / 503 / 504 are retried
+   once after 1.5 s. 4xx is never retried — a 400 means the request itself
+   is malformed and a retry would only flood the upstream with the same bad
+   payload.
+
 To swap the endpoint: edit `sttClient.ts`. The IPC contract (`transcribe`,
 `chunkTranscribed`) does not change.

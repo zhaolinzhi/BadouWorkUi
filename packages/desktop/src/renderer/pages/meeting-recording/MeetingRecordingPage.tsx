@@ -70,11 +70,13 @@ const MeetingRecordingPage: React.FC = () => {
               // Preserve a status that's already progressed beyond what
               // disk reports — disk only updates after the background
               // walker writes back, so refresh races behind the emit.
-              if (
-                (prevChunk.status === 'transcribed' || prevChunk.status === 'failed') &&
-                c.status === 'pending'
-              ) {
-                return { ...c, status: prevChunk.status, error: prevChunk.error, transcription: prevChunk.transcription };
+              if ((prevChunk.status === 'transcribed' || prevChunk.status === 'failed') && c.status === 'pending') {
+                return {
+                  ...c,
+                  status: prevChunk.status,
+                  error: prevChunk.error,
+                  transcription: prevChunk.transcription,
+                };
               }
               return c;
             }),

@@ -88,9 +88,7 @@ describe('RecordingListItem (chunked)', () => {
   it('toggles an inline <audio> for the clicked chunk', async () => {
     render(<RecordingListItem recording={baseRecording} onDelete={() => {}} />);
     expect(screen.queryByTestId('audio-rec-1-0')).toBeNull();
-    const toggle = screen
-      .getAllByRole('button')
-      .find((b) => b.getAttribute('aria-controls') === 'audio-rec-1-0');
+    const toggle = screen.getAllByRole('button').find((b) => b.getAttribute('aria-controls') === 'audio-rec-1-0');
     expect(toggle).toBeTruthy();
     await act(async () => {
       toggle!.click();
