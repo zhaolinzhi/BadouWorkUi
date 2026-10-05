@@ -106,7 +106,15 @@
 }
 
 .spin {
-  display: inline-flex;
+  /* `inline-block` keeps the wrapper on the same baseline as the rest of
+   * the button content so toggling this class on/off doesn't reflow the
+   * icon vertically. `inline-flex` (previous version) shifted the icon
+   * up because flex items sit at the top of the line box by default. */
+  display: inline-block;
   animation: retrySpin 1s linear infinite;
   transform-origin: 50% 50%;
+  vertical-align: middle;
+  /* Promote to its own layer so the rotation doesn't trigger layout work
+   * on the surrounding button — also keeps the visual center stable. */
+  will-change: transform;
 }

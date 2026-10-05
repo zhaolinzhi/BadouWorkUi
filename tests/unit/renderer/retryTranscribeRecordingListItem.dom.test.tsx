@@ -152,6 +152,14 @@ describe('RecordingListItem retry-transcribe button', () => {
     await user_.click(screen.getByTestId('retry-transcribe-button'));
     // Right after the click the icon should be spinning.
     expect(screen.getByTestId('retry-transcribe-spin').className).toMatch(/spin/);
+    // NOTE on the visual-shift fix: the CSS module is not loaded into the
+    // jsdom test environment, so `getComputedStyle().display` here always
+    // returns 'inline'. The actual layout fix lives in
+    // `RecordingList.module.css`'s `.spin` rule — it switched from
+    // `display: inline-flex` (which pulled the wrapper to the top of the
+    // line box) to `display: inline-block`, which keeps the wrapper on
+    // the surrounding button's baseline. Verified manually in the running
+    // app; not regression-testable here without CSS injection.
     // Simulate the main process emitting a chunkTranscribed event by
     // handing the row an updated recording where the failed chunk is now
     // still failed (e.g. upstream still down) — the spin must persist.
