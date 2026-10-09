@@ -7,7 +7,19 @@ import fs from 'fs/promises';
 import path from 'path';
 
 const STT_URL = 'http://extranet.badousoft.com:28021/v1/audio/transcriptions';
-const STT_PROMPT = '这是一段中文语音的转录结果。请注意，句子之间应该有合适的标点符号。';
+// We deliberately send no `prompt` to the upstream Whisper endpoint. The
+// previous Chinese-language prompt ("这是一段中文语音的转录结果。请注意，句子
+// 之间应该有合适的标点符号。") was meant to nudge Whisper toward better
+// Chinese punctuation, but on long / low-SNR recordings the model would
+// parrot the prompt verbatim instead of transcribing the actual audio
+// (e.g. an 83s recording came back as "这些字的字体是用文字来形容的...
+// 这就是一段中文语音的转录结果..."). Whisper treats `prompt` as spoken
+// context to continue from, not as a system instruction, so any prompt
+// with self-contained Chinese sentences becomes a hallucination seed.
+// Empirically (see 7bb30031 dev recording) sending no prompt returns the
+// real audio content. Re-introduce a prompt only after the upstream
+// service exposes a non-prefix context knob.
+const STT_PROMPT = '';
 const STT_MODEL = 'whisper-large-v3';
 const STT_LANGUAGE = 'zh';
 
@@ -33,7 +45,9 @@ const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms
  * distinct from `SttResult` so the public type stays clean (callers don't
  * need to know about `status`).
  */
-type AttemptResult = { ok: true; text: string; raw: unknown } | { ok: false; error: string; status: number | undefined };
+type AttemptResult =
+  | { ok: true; text: string; raw: unknown }
+  | { ok: false; error: string; status: number | undefined };
 
 // Node 22+ exposes FormData / File / fetch globally. Older runtimes would
 // need a fallback (e.g. undici); the project targets Node 22.
@@ -112,7 +126,10 @@ export const transcribeFile = async (
   form.append('file', new File([copy], path.basename(filePath), { type: mimeType }));
   form.append('model', STT_MODEL);
   form.append('language', STT_LANGUAGE);
-  form.append('prompt', STT_PROMPT);
+  // Only attach `prompt` when it's non-empty. Whisper treats it as
+  // already-spoken context to continue from, so sending an empty string
+  // can still confuse some server-side parsers — guard it out entirely.
+  if (STT_PROMPT) form.append('prompt', STT_PROMPT);
 
   const attempt = async (): Promise<AttemptResult> => {
     try {

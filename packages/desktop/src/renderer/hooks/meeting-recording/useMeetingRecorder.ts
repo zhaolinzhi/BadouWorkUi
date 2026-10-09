@@ -46,7 +46,25 @@ export const useMeetingRecorder = () => {
 
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
+  // We collect raw bytes (ArrayBuffer) instead of Blob[] because the recorder's
+  // `timeslice` mode emits per-50s `dataavailable` slices that are NOT
+  // independently playable webm files — only the first slice carries the
+  // EBML header / Segment / Tracks. The later slices are bare clusters with
+  // no container, so any player (browser <audio>, QuickTime, VLC) rejects
+  // them as "format error". To produce a single playable webm, we collect
+  // every slice's bytes and concatenate them at stop() time.
+  //
+  // We deliberately store the *promise* from `event.data.arrayBuffer()`
+  // rather than `.then(push)`-ing the resolved value. The reason is a
+  // race that surfaced with short recordings (<50s) where MediaRecorder
+  // fires `dataavailable` *during* `stop()` — if we asynchronously push
+  // resolved buffers via `.then()`, the `stop` event can fire before the
+  // `arrayBuffer()` Promise resolves, leaving `chunksRef.current` empty
+  // when `stop()` synthesizes the final Blob. The result is a 0-byte
+  // webm file on disk, which the upstream STT endpoint rejects with
+  // HTTP 400 "Invalid or unsupported audio file". Awaiting every pending
+  // promise before concatenating closes that window.
+  const chunksRef = useRef<Promise<ArrayBuffer>[]>([]);
   const startedAtRef = useRef(0);
   const mimeTypeRef = useRef<string>('');
 
@@ -96,7 +114,13 @@ export const useMeetingRecorder = () => {
     startedAtRef.current = performance.now();
 
     recorder.ondataavailable = (event) => {
-      if (event.data.size > 0) chunksRef.current.push(event.data);
+      if (event.data.size === 0) return;
+      // Store the promise itself, not a `.then(...)` push. The promise
+      // resolves asynchronously inside the browser's Blob implementation;
+      // if we awaited each one inside this callback the next timeslice
+      // (or the synchronous `stop` event) could be delayed. Collecting
+      // promises lets us fan out all the reads and join them at stop().
+      chunksRef.current.push(event.data.arrayBuffer());
     };
 
     recorder.start(50_000); // ≤50 s per chunk
@@ -123,14 +147,27 @@ export const useMeetingRecorder = () => {
 
     let saved: MeetingRecording;
     try {
-      const perChunkDuration = Math.round(recordedDurationMs / Math.max(1, chunksRef.current.length));
-      const chunksPayload = await Promise.all(
-        chunksRef.current.map(async (chunk, index) => ({
-          index,
-          durationMs: perChunkDuration,
-          audioBase64: await blobToBase64(chunk),
-        }))
-      );
+      // Wait for every queued `arrayBuffer()` Promise to resolve before
+      // concatenating. `await stopped` only guarantees the `stop` event
+      // fired, not that the bytes from the trailing `dataavailable`
+      // slice have been copied out of the Blob. Without this fan-in,
+      // short recordings (<50s, single slice) can race and produce an
+      // empty Blob — which the upstream STT endpoint rejects with HTTP
+      // 400 "Invalid or unsupported audio file".
+      const buffers = await Promise.all(chunksRef.current);
+      // Concatenate all collected bytes into a single webm container. The
+      // recorder's first slice carries the EBML/Segment/Tracks header, so
+      // the resulting blob is a self-contained, playable file. We expose
+      // it to the main process as a single chunk (index 0) — the main
+      // process doesn't care how many slices the recorder produced.
+      const combined = new Blob(buffers as BlobPart[], { type: effectiveMimeType });
+      const chunksPayload = [
+        {
+          index: 0,
+          durationMs: recordedDurationMs,
+          audioBase64: await blobToBase64(combined),
+        },
+      ];
       const id = crypto.randomUUID();
       const params: SaveRecordingParams = {
         id,

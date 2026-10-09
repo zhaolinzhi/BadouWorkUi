@@ -16,6 +16,13 @@ import styles from './RecordingList.module.css';
 interface RecordingListItemProps {
   recording: MeetingRecording;
   onDelete: (id: string) => void;
+  /** Set by the page when this recording's transcription *just* finished
+   *  (i.e. transitioned from not-all-terminal to all-terminal during this
+   *  session). When true, the row should open its transcript modal on the
+   *  next render, then notify the page via `onAutoOpenConsumed` so the
+   *  flag is cleared and re-renders don't re-open the modal. */
+  autoOpenTranscript: boolean;
+  onAutoOpenConsumed: () => void;
 }
 
 const formatMs = (ms: number): string => {
@@ -33,7 +40,12 @@ const base64ToBlobUrl = (base64: string, mimeType: string): string => {
   return URL.createObjectURL(blob);
 };
 
-const RecordingListItem: React.FC<RecordingListItemProps> = ({ recording, onDelete }) => {
+const RecordingListItem: React.FC<RecordingListItemProps> = ({
+  recording,
+  onDelete,
+  autoOpenTranscript,
+  onAutoOpenConsumed,
+}) => {
   const { t } = useTranslation();
   const [openAudioIndex, setOpenAudioIndex] = React.useState<number | null>(null);
   const [audioUrl, setAudioUrl] = React.useState<string | null>(null);
@@ -53,6 +65,20 @@ const RecordingListItem: React.FC<RecordingListItemProps> = ({ recording, onDele
   // chunkTranscribed events arrive one at a time.
   const hasUnfinishedChunk = recording.chunks.some((c) => c.status === 'pending' || c.status === 'failed');
   const showRetrySpinner = isRetrying && hasUnfinishedChunk;
+
+  // Open the transcript summary modal when the page signals that *this*
+  // recording just finished transcribing during the current session.
+  // We deliberately do NOT auto-open based on chunk state alone — opening
+  // the page with historical recordings should leave them quiet. The
+  // page sets `autoOpenTranscript=true` only on the render that flips a
+  // recording from "in progress" to "all terminal"; after we open we
+  // immediately ack via `onAutoOpenConsumed` so the page clears the
+  // signal and we don't reopen on the next render.
+  React.useEffect(() => {
+    if (!autoOpenTranscript) return;
+    setIsTranscriptOpen(true);
+    onAutoOpenConsumed();
+  }, [autoOpenTranscript, onAutoOpenConsumed]);
 
   // Load chunk bytes lazily — only when the user clicks play. The IPC
   // returns base64 because the bridge channel is JSON-encoded; we turn it
@@ -132,10 +158,7 @@ const RecordingListItem: React.FC<RecordingListItemProps> = ({ recording, onDele
               size='mini'
               type='text'
               icon={
-                <span
-                  data-testid='retry-transcribe-spin'
-                  className={showRetrySpinner ? styles.spin : undefined}
-                >
+                <span data-testid='retry-transcribe-spin' className={showRetrySpinner ? styles.spin : undefined}>
                   <Refresh theme='outline' size='14' fill='currentColor' />
                 </span>
               }

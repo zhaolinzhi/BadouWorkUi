@@ -57,9 +57,18 @@ const emitChunkTranscribed = (
   id: string,
   chunkIndex: number,
   status: 'transcribed' | 'failed',
-  error?: string
+  payload: { transcription?: string; error?: string } = {}
 ): void => {
-  ipcBridge.meetingRecording.chunkTranscribed.emit({ id, chunkIndex, status, error });
+  // Carry the freshly-written transcription text over the wire so the
+  // renderer can update the live list and auto-open the summary modal
+  // without a follow-up `list()` call. Failed chunks carry `error` instead.
+  ipcBridge.meetingRecording.chunkTranscribed.emit({
+    id,
+    chunkIndex,
+    status,
+    transcription: payload.transcription,
+    error: payload.error,
+  });
 };
 
 export const createMeetingRecordingService = () => ({
@@ -177,7 +186,10 @@ export const createMeetingRecordingService = () => ({
           chunk.error = failed.error;
         }
         await writeMeta(dir, meta);
-        emitChunkTranscribed(id, chunk.index, chunk.status, chunk.error);
+        emitChunkTranscribed(id, chunk.index, chunk.status, {
+          transcription: chunk.transcription,
+          error: chunk.error,
+        });
       }
     })();
 

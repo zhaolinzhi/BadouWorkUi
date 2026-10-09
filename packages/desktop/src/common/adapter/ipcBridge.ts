@@ -258,6 +258,10 @@ export const meetingRecording = {
     id: string;
     chunkIndex: number;
     status: 'transcribed' | 'failed';
+    /** Populated when status === 'transcribed'. Carried over the wire so the
+     *  renderer can refresh the live transcript view (and auto-open the
+     *  summary modal on completion) without a redundant `list()` round-trip. */
+    transcription?: string;
     /** Populated when status === 'failed'. */
     error?: string;
   }>('meetingRecording.chunkTranscribed'),
