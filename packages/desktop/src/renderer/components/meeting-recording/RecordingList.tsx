@@ -13,20 +13,9 @@ interface RecordingListProps {
   recordings: MeetingRecording[];
   onDelete: (id: string) => void;
   loading: boolean;
-  /** Recording id whose transcript modal should auto-open on this render. */
-  autoOpenId: string | null;
-  /** Fired once the matching RecordingListItem has consumed the auto-open
-   *  signal so the page can clear it and avoid re-triggering. */
-  onAutoOpenConsumed: () => void;
 }
 
-const RecordingList: React.FC<RecordingListProps> = ({
-  recordings,
-  onDelete,
-  loading,
-  autoOpenId,
-  onAutoOpenConsumed,
-}) => {
+const RecordingList: React.FC<RecordingListProps> = ({ recordings, onDelete, loading }) => {
   const { t } = useTranslation();
 
   if (!loading && recordings.length === 0) {
@@ -36,13 +25,7 @@ const RecordingList: React.FC<RecordingListProps> = ({
   return (
     <div className={styles.list}>
       {recordings.map((recording) => (
-        <RecordingListItem
-          key={recording.id}
-          recording={recording}
-          onDelete={onDelete}
-          autoOpenTranscript={recording.id === autoOpenId}
-          onAutoOpenConsumed={onAutoOpenConsumed}
-        />
+        <RecordingListItem key={recording.id} recording={recording} onDelete={onDelete} />
       ))}
     </div>
   );

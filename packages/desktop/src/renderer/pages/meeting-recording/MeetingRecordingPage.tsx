@@ -16,12 +16,6 @@ const MeetingRecordingPage: React.FC = () => {
   const { t } = useTranslation();
   const [recordings, setRecordings] = useState<MeetingRecording[]>([]);
   const [loading, setLoading] = useState(true);
-  // Tracks the recording id whose transcript modal should auto-open on the
-  // next render. We intentionally do NOT auto-open on mount for already-
-  // finished recordings — only when a recording *transitions* to fully
-  // terminal during this session. This avoids the "open the page and 12
-  // modals pop up" UX bug from historical data.
-  const [autoOpenId, setAutoOpenId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -40,43 +34,34 @@ const MeetingRecordingPage: React.FC = () => {
   }, [refresh]);
 
   // Subscribe to per-chunk transcription updates so the list reflects the
-  // STT endpoint's progress without a manual refresh.
+  // STT endpoint's progress without a manual refresh. We previously
+  // tracked a "first-time-finished" transition here to auto-open the
+  // transcript modal on the just-finished recording, but that UX was
+  // removed — the user opens the modal themselves via the row button
+  // when they want to read the transcript.
   useEffect(() => {
     const off = ipcBridge.meetingRecording.chunkTranscribed.on(({ id, chunkIndex, status, transcription, error }) => {
-      // We need both the previous chunks (to detect the "just-finished"
-      // transition) and the next chunks (to write back). Using a
-      // functional updater lets us compute both inside one render cycle.
-      let shouldAutoOpen = false;
       setRecordings((current) =>
         current.map((rec) => {
           if (rec.id !== id) return rec;
-          const wasAllTerminal =
-            rec.chunks.length > 0 && rec.chunks.every((c) => c.status === 'transcribed' || c.status === 'failed');
-          const nextChunks = rec.chunks.map((c) => {
-            if (c.index !== chunkIndex) return c;
-            // Merge only the fields the event actually carries. The
-            // payload includes `transcription` on success and `error` on
-            // failure; missing fields leave the prior chunk value intact
-            // so a partial race doesn't blank out an earlier good result.
-            return {
-              ...c,
-              status,
-              ...(transcription !== undefined ? { transcription } : {}),
-              ...(error !== undefined ? { error } : {}),
-            };
-          });
-          const isAllTerminal =
-            nextChunks.length > 0 && nextChunks.every((c) => c.status === 'transcribed' || c.status === 'failed');
-          // Only fire the auto-open when this event *flips* the recording
-          // from "not done yet" to "all done". This way historical
-          // recordings that were already complete when the page mounted
-          // stay quiet — only the recording we *just* finished in this
-          // session triggers the modal.
-          if (!wasAllTerminal && isAllTerminal) shouldAutoOpen = true;
-          return { ...rec, chunks: nextChunks };
+          return {
+            ...rec,
+            chunks: rec.chunks.map((c) => {
+              if (c.index !== chunkIndex) return c;
+              // Merge only the fields the event actually carries. The
+              // payload includes `transcription` on success and `error` on
+              // failure; missing fields leave the prior chunk value intact
+              // so a partial race doesn't blank out an earlier good result.
+              return {
+                ...c,
+                status,
+                ...(transcription !== undefined ? { transcription } : {}),
+                ...(error !== undefined ? { error } : {}),
+              };
+            }),
+          };
         })
       );
-      if (shouldAutoOpen) setAutoOpenId(id);
     });
     return off;
   }, []);
@@ -138,13 +123,7 @@ const MeetingRecordingPage: React.FC = () => {
     <div className={styles.page}>
       <h1 className={styles.title}>{t('meeting-recording.title')}</h1>
       <RecorderPanel onRecorded={handleRecorded} />
-      <RecordingList
-        recordings={recordings}
-        onDelete={handleDelete}
-        loading={loading}
-        autoOpenId={autoOpenId}
-        onAutoOpenConsumed={() => setAutoOpenId(null)}
-      />
+      <RecordingList recordings={recordings} onDelete={handleDelete} loading={loading} />
     </div>
   );
 };

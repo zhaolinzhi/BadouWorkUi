@@ -46,24 +46,26 @@ export const useMeetingRecorder = () => {
 
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  // We collect raw bytes (ArrayBuffer) instead of Blob[] because the recorder's
-  // `timeslice` mode emits per-50s `dataavailable` slices that are NOT
-  // independently playable webm files — only the first slice carries the
-  // EBML header / Segment / Tracks. The later slices are bare clusters with
-  // no container, so any player (browser <audio>, QuickTime, VLC) rejects
-  // them as "format error". To produce a single playable webm, we collect
-  // every slice's bytes and concatenate them at stop() time.
+  // We keep every per-50s `dataavailable` slice as a separate chunk and
+  // pass them to the main process as `chunks[]`. The main process's
+  // STT walker (meetingRecording/index.ts) calls `transcribeFile` once
+  // per chunk, and `sttClient.ts`'s `repairWebmChunk` borrows the EBML
+  // header from chunk #0 so every later chunk is a self-decodable webm
+  // stream when sent upstream.
   //
-  // We deliberately store the *promise* from `event.data.arrayBuffer()`
-  // rather than `.then(push)`-ing the resolved value. The reason is a
-  // race that surfaced with short recordings (<50s) where MediaRecorder
-  // fires `dataavailable` *during* `stop()` — if we asynchronously push
-  // resolved buffers via `.then()`, the `stop` event can fire before the
-  // `arrayBuffer()` Promise resolves, leaving `chunksRef.current` empty
-  // when `stop()` synthesizes the final Blob. The result is a 0-byte
-  // webm file on disk, which the upstream STT endpoint rejects with
-  // HTTP 400 "Invalid or unsupported audio file". Awaiting every pending
-  // promise before concatenating closes that window.
+  // We store the *promise* from `event.data.arrayBuffer()` rather than
+  // `.then(push)`-ing the resolved value. The reason is a race that
+  // surfaced with short recordings (<50s, single slice) where
+  // MediaRecorder fires `dataavailable` *during* `stop()` — if we
+  // asynchronously push resolved buffers via `.then()`, the `stop` event
+  // can fire before the `arrayBuffer()` Promise resolves, leaving
+  // `chunksRef.current` empty when `stop()` reads the array. The result
+  // would be a 0-byte webm file on disk, which the upstream STT endpoint
+  // rejects with HTTP 400 "Invalid or unsupported audio file". Awaiting
+  // every pending promise in `stop()` closes that window. Long
+  // recordings (>50s) trigger `dataavailable` periodically via the
+  // 50_000 timeslice, each slice is queued as a pending promise, and
+  // `Promise.all` joins them at stop() time.
   const chunksRef = useRef<Promise<ArrayBuffer>[]>([]);
   const startedAtRef = useRef(0);
   const mimeTypeRef = useRef<string>('');
@@ -148,26 +150,28 @@ export const useMeetingRecorder = () => {
     let saved: MeetingRecording;
     try {
       // Wait for every queued `arrayBuffer()` Promise to resolve before
-      // concatenating. `await stopped` only guarantees the `stop` event
-      // fired, not that the bytes from the trailing `dataavailable`
-      // slice have been copied out of the Blob. Without this fan-in,
-      // short recordings (<50s, single slice) can race and produce an
-      // empty Blob — which the upstream STT endpoint rejects with HTTP
-      // 400 "Invalid or unsupported audio file".
+      // reading the array. `await stopped` only guarantees the `stop`
+      // event fired, not that the bytes from the trailing
+      // `dataavailable` slice have been copied out of the Blob. Without
+      // this fan-in, short recordings (<50s, single slice) can race and
+      // leave `chunksRef.current` empty — which would surface as a
+      // 0-byte webm file on disk, rejected upstream with HTTP 400
+      // "Invalid or unsupported audio file".
       const buffers = await Promise.all(chunksRef.current);
-      // Concatenate all collected bytes into a single webm container. The
-      // recorder's first slice carries the EBML/Segment/Tracks header, so
-      // the resulting blob is a self-contained, playable file. We expose
-      // it to the main process as a single chunk (index 0) — the main
-      // process doesn't care how many slices the recorder produced.
-      const combined = new Blob(buffers as BlobPart[], { type: effectiveMimeType });
-      const chunksPayload = [
-        {
-          index: 0,
-          durationMs: recordedDurationMs,
-          audioBase64: await blobToBase64(combined),
-        },
-      ];
+      // We pass each per-50s slice as its own chunk to the main process.
+      // Slice #0 is a self-contained webm (EBML + Segment + Tracks +
+      // cluster #0); later slices are bare clusters — the main process
+      // reuses slice #0's EBML header to make them decodable before
+      // sending each to the STT endpoint (see sttClient.ts
+      // `repairWebmChunk`).
+      const perChunkDuration = Math.round(recordedDurationMs / Math.max(1, buffers.length));
+      const chunksPayload = await Promise.all(
+        buffers.map(async (buf, index) => ({
+          index,
+          durationMs: perChunkDuration,
+          audioBase64: await blobToBase64(new Blob([buf], { type: effectiveMimeType })),
+        }))
+      );
       const id = crypto.randomUUID();
       const params: SaveRecordingParams = {
         id,
