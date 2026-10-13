@@ -344,3 +344,103 @@ describe('runNewapiPostLogin — 409 / errors', () => {
     expect(createProviderInvoke).not.toHaveBeenCalled();
   });
 });
+
+describe('runNewapiPostLogin — model_settings backfill edge cases', () => {
+  it('does not backfill when existing model_settings already has tool_wire_shape (full idempotency)', async () => {
+    const plain = 'sk-zzz-1234567890abcdef';
+    const enc = aipaasLikeEncrypt(plain);
+    stubFetchOnce({ hasOk: true, message: 'ok', bean: { enc } });
+    listProvidersInvoke.mockResolvedValue([
+      {
+        id: NEWAPI_PROVIDER_ID,
+        api_key: plain,
+        platform: 'new-api',
+        name: '默认token',
+        base_url: NEWAPI_BASE_URL,
+        models: [NEWAPI_DEFAULT_MODEL],
+        model_settings: { [NEWAPI_DEFAULT_MODEL]: { tool_wire_shape: 'open_ai_flat_function' } },
+      },
+    ]);
+
+    await runNewapiPostLogin('T');
+
+    expect(createProviderInvoke).not.toHaveBeenCalled();
+    expect(updateProviderInvoke).not.toHaveBeenCalled();
+  });
+
+  it('backfills when model_settings exists for another model but missing for the default one', async () => {
+    const plain = 'sk-zzz-1234567890abcdef';
+    const enc = aipaasLikeEncrypt(plain);
+    stubFetchOnce({ hasOk: true, message: 'ok', bean: { enc } });
+    listProvidersInvoke.mockResolvedValue([
+      {
+        id: NEWAPI_PROVIDER_ID,
+        api_key: plain,
+        platform: 'new-api',
+        name: '默认token',
+        base_url: NEWAPI_BASE_URL,
+        models: [NEWAPI_DEFAULT_MODEL, 'gpt-4o'],
+        // 用户手动给 gpt-4o 设过 settings,但 deepseek 缺
+        model_settings: { 'gpt-4o': { tool_wire_shape: 'native' } },
+      },
+    ]);
+    updateProviderInvoke.mockResolvedValue({ id: NEWAPI_PROVIDER_ID });
+
+    await runNewapiPostLogin('T');
+
+    expect(updateProviderInvoke).toHaveBeenCalledWith({
+      id: NEWAPI_PROVIDER_ID,
+      model_settings: { [NEWAPI_DEFAULT_MODEL]: { tool_wire_shape: 'open_ai_flat_function' } },
+    });
+  });
+
+  it('does not backfill when existing api_key differs (key rotation path skips model_settings)', async () => {
+    const newPlain = 'sk-new-rotated-key-12345';
+    const enc = aipaasLikeEncrypt(newPlain);
+    stubFetchOnce({ hasOk: true, message: 'ok', bean: { enc } });
+    listProvidersInvoke.mockResolvedValue([
+      {
+        id: NEWAPI_PROVIDER_ID,
+        api_key: 'sk-old-stale-key-9999',
+        platform: 'new-api',
+        name: '默认token',
+        base_url: NEWAPI_BASE_URL,
+        models: [NEWAPI_DEFAULT_MODEL],
+        // 即使 model_settings 是空,key 轮换路径也不回填
+        model_settings: {},
+      },
+    ]);
+    updateProviderInvoke.mockResolvedValue({ id: NEWAPI_PROVIDER_ID });
+
+    await runNewapiPostLogin('T');
+
+    expect(updateProviderInvoke).toHaveBeenCalledTimes(1);
+    expect(updateProviderInvoke).toHaveBeenCalledWith({
+      id: NEWAPI_PROVIDER_ID,
+      api_key: newPlain,
+    });
+  });
+
+  it('logs warn but does not throw when backfill updateProvider fails', async () => {
+    const plain = 'sk-zzz-1234567890abcdef';
+    const enc = aipaasLikeEncrypt(plain);
+    stubFetchOnce({ hasOk: true, message: 'ok', bean: { enc } });
+    listProvidersInvoke.mockResolvedValue([
+      {
+        id: NEWAPI_PROVIDER_ID,
+        api_key: plain,
+        platform: 'new-api',
+        name: '默认token',
+        base_url: NEWAPI_BASE_URL,
+        models: [NEWAPI_DEFAULT_MODEL],
+        model_settings: {},
+      },
+    ]);
+    updateProviderInvoke.mockRejectedValue(new Error('backfill failed'));
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    await expect(runNewapiPostLogin('T')).resolves.toBeUndefined();
+    expect(warn).toHaveBeenCalled();
+    expect(warn.mock.calls[0][0]).toContain('model_settings backfill failed');
+  });
+});
