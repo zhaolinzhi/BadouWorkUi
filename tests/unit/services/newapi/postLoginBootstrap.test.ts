@@ -93,6 +93,7 @@ describe('runNewapiPostLogin — happy path', () => {
       models: [NEWAPI_DEFAULT_MODEL],
       enabled: true,
       is_full_url: true,
+      model_settings: { [NEWAPI_DEFAULT_MODEL]: { tool_wire_shape: 'open_ai_flat_function' } },
     });
   });
 
@@ -276,6 +277,7 @@ describe('runNewapiPostLogin — skip paths', () => {
       models: [NEWAPI_DEFAULT_MODEL],
       enabled: true,
       is_full_url: true,
+      model_settings: { [NEWAPI_DEFAULT_MODEL]: { tool_wire_shape: 'open_ai_flat_function' } },
     });
     expect(updateProviderInvoke).not.toHaveBeenCalled();
   });

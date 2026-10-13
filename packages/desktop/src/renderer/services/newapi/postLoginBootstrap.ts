@@ -5,6 +5,7 @@ import { decryptNewapiKey } from '@/renderer/utils/crypto';
 import {
   NEWAPI_BASE_URL,
   NEWAPI_DEFAULT_MODEL,
+  NEWAPI_DEFAULT_MODEL_SETTINGS,
   NEWAPI_MASK_FOR_CURRENT_PATH,
   NEWAPI_PROVIDER_ID,
   NEWAPI_PROVIDER_NAME,
@@ -98,6 +99,9 @@ export async function runNewapiPostLogin(token: string): Promise<void> {
         models: [NEWAPI_DEFAULT_MODEL],
         enabled: true,
         is_full_url: true,
+        model_settings: {
+          [NEWAPI_DEFAULT_MODEL]: NEWAPI_DEFAULT_MODEL_SETTINGS,
+        },
       });
     } catch (e) {
       // 409 = 同 id 已存在(并发/竞态),按成功处理
