@@ -192,7 +192,7 @@ describe('runNewapiPostLogin — skip paths', () => {
     expect(createProviderInvoke).not.toHaveBeenCalled();
   });
 
-  it('skips when the newapi-default provider already has the same api_key (idempotency)', async () => {
+  it('backfills tool_wire_shape when existing provider has same api_key but missing model_settings', async () => {
     const plain = 'sk-dup-1234567890abcdef';
     const enc = aipaasLikeEncrypt(plain);
     stubFetchOnce({ hasOk: true, message: 'ok', bean: { enc } });
@@ -205,13 +205,19 @@ describe('runNewapiPostLogin — skip paths', () => {
         name: '默认token',
         base_url: NEWAPI_BASE_URL,
         models: [NEWAPI_DEFAULT_MODEL],
+        // 注意: 故意没设 model_settings,模拟老数据
       },
     ]);
+    updateProviderInvoke.mockResolvedValue({ id: NEWAPI_PROVIDER_ID });
 
     await runNewapiPostLogin('T');
 
     expect(createProviderInvoke).not.toHaveBeenCalled();
-    expect(updateProviderInvoke).not.toHaveBeenCalled();
+    expect(updateProviderInvoke).toHaveBeenCalledTimes(1);
+    expect(updateProviderInvoke).toHaveBeenCalledWith({
+      id: NEWAPI_PROVIDER_ID,
+      model_settings: { [NEWAPI_DEFAULT_MODEL]: { tool_wire_shape: 'open_ai_flat_function' } },
+    });
   });
 
   it('updates the newapi-default provider when its stored api_key differs from the freshly decrypted one', async () => {
