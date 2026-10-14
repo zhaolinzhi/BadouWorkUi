@@ -191,7 +191,7 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
     >
       {/* inner white card — narrower than outer wrap */}
       <div
-        className={`${styles.guidInputInner} relative p-12px flex flex-col bg-dialog-fill-0`}
+        className={`${styles.guidInputInner} ${isKbMenuOpen ? 'overflow-visible' : ''} relative p-12px flex flex-col bg-dialog-fill-0`}
         style={{
           transition: 'box-shadow 0.25s ease, border-color 0.25s ease',
           borderColor: isFileDragging ? 'rgb(var(--primary-3))' : borderColor,
@@ -286,25 +286,6 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
             })()}
           </div>
         )}
-        {isKbMenuOpen && (
-          <div className='absolute left-0 right-0 bottom-[calc(100%+8px)] z-70'>
-            <AtFileMenu
-              activeIndex={atMenuActiveIndex}
-              emptyText={
-                atMention.loading
-                  ? t('conversation.atMenu.loadingKb', { defaultValue: 'Loading knowledge bases…' })
-                  : t('kb-chat.empty', { defaultValue: 'No knowledge bases available' })
-              }
-              items={kbMenuItems}
-              label={t('conversation.atMenu.kbSectionTitle', { defaultValue: 'Knowledge bases' })}
-              loading={atMention.loading}
-              loadingText={t('conversation.atMenu.loadingKb', { defaultValue: 'Loading knowledge bases…' })}
-              onHoverItem={setAtMenuActiveIndex}
-              onSelectItem={insertSelectedKbItem}
-              getSubtitle={() => t('conversation.atMenu.kbSectionTitle', { defaultValue: 'Knowledge bases' })}
-            />
-          </div>
-        )}
         <div style={{ height: 12, flexShrink: 0 }} aria-hidden='true' />
         {files.length > 0 && (
           <div className='flex flex-wrap items-center gap-8px mt-12px mb-12px'>
@@ -324,6 +305,25 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
           <div className='absolute left-0 right-0 top-[calc(100%+4px)] z-70'>{slashCommandMenu}</div>
         )}
       </div>
+      {isKbMenuOpen && (
+        <div className='absolute left-12px right-12px bottom-[calc(100%+8px)] z-70 pointer-events-auto' style={{ zIndex: 70 }}>
+          <AtFileMenu
+            activeIndex={atMenuActiveIndex}
+            emptyText={
+              atMention.loading
+                ? t('conversation.atMenu.loadingKb', { defaultValue: 'Loading knowledge bases…' })
+                : t('kb-chat.empty', { defaultValue: 'No knowledge bases available' })
+            }
+            items={kbMenuItems}
+            label={t('conversation.atMenu.kbSectionTitle', { defaultValue: 'Knowledge bases' })}
+            loading={atMention.loading}
+            loadingText={t('conversation.atMenu.loadingKb', { defaultValue: 'Loading knowledge bases…' })}
+            onHoverItem={setAtMenuActiveIndex}
+            onSelectItem={insertSelectedKbItem}
+            getSubtitle={() => t('conversation.atMenu.kbSectionTitle', { defaultValue: 'Knowledge bases' })}
+          />
+        </div>
+      )}
       <GuidWorkspaceFootnote
         workspaceDir={workspaceDir}
         onSelectWorkspace={onSelectWorkspace}
