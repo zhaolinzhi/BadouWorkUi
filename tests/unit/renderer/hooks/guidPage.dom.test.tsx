@@ -149,6 +149,16 @@ vi.mock('@/renderer/hooks/mcp/catalog', () => ({
   ensureBackendMcpCatalog: vi.fn().mockResolvedValue({ allServers: [] }),
 }));
 
+vi.mock('@/renderer/hooks/knowledge-base', () => ({
+  useKnowledgeBaseList: () => ({
+    personalItems: [],
+    sharedItems: [],
+    personalLoading: false,
+    sharedLoading: false,
+  }),
+  useKnowledgeBaseEditor: () => ({}),
+}));
+
 vi.mock('@/renderer/hooks/chat/useInputFocusRing', () => ({
   useInputFocusRing: () => ({
     activeBorderColor: '#000',

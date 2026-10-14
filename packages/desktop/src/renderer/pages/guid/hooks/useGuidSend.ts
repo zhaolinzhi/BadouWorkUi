@@ -12,7 +12,10 @@ import { toSessionMcpServer } from '@/renderer/hooks/mcp/catalog';
 import { emitter } from '@/renderer/utils/emitter';
 import { updateWorkspaceTime } from '@/renderer/utils/workspace/workspaceHistory';
 import { Message } from '@arco-design/web-react';
-import { useCallback, useRef } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
+import { findAllKbTokens } from '@/renderer/utils/kb/atKbInsertion';
+import { kbIdToMcpServerId } from '@/renderer/utils/kb/kbToMcpId';
+import { useKnowledgeBaseList } from '@/renderer/hooks/knowledge-base';
 import { type TFunction } from 'i18next';
 import type { NavigateFunction } from 'react-router-dom';
 import { mutate as swrMutate } from 'swr';
@@ -102,6 +105,11 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     localeKey,
   } = deps;
   const sendingRef = useRef(false);
+  const { personalItems, sharedItems } = useKnowledgeBaseList();
+  const knownKbIds = useMemo(
+    () => new Set([...personalItems, ...sharedItems].map((k) => k.id)),
+    [personalItems, sharedItems]
+  );
 
   const handleSend = useCallback(async () => {
     if (!selectedAssistantId) {
@@ -123,6 +131,20 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     const enabled_skills_to_send = guidEnabledSkills ?? assistantDefaultSkillIds;
     const excludeBuiltinSkills = guidDisabledBuiltinSkills ?? assistantDefaultDisabledBuiltinSkillIds;
     const selectedAllMcpServerIds = selectedMcpServerIds ?? [];
+    // Merge @kb:<id> tokens from the user's input as MCP server ids
+    // (`kb-<id>`), deduping against the existing selection. Stale @kb tokens
+    // (KBs no longer in the list) are dropped silently.
+    const kbTokens = findAllKbTokens(input);
+    if (kbTokens.length > 0) {
+      const seenIds = new Set(selectedAllMcpServerIds);
+      for (const token of kbTokens) {
+        if (!knownKbIds.has(token.kbId)) continue;
+        const mcpId = kbIdToMcpServerId(token.kbId);
+        if (!mcpId || seenIds.has(mcpId)) continue;
+        seenIds.add(mcpId);
+        selectedAllMcpServerIds.push(mcpId);
+      }
+    }
     const selectedMcpServerIdSet = new Set(selectedAllMcpServerIds);
     const selectedUserMcpServerIds = availableMcpServers
       .filter((server) => selectedMcpServerIdSet.has(server.id) && server.builtin !== true)
