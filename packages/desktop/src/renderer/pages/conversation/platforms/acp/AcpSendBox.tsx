@@ -52,6 +52,9 @@ import { classifyConversationBusyError } from '../conversationBusyError';
 import { buildSendFailureError } from './buildSendFailureError';
 import { useAcpInitialMessage } from './useAcpInitialMessage';
 import type { UseAcpMessageReturn } from './useAcpMessage';
+import { findAllKbTokens } from '@/renderer/utils/kb/atKbInsertion';
+import { kbIdToMcpServerId } from '@/renderer/utils/kb/kbToMcpId';
+import { useKnowledgeBaseList } from '@/renderer/hooks/knowledge-base';
 
 const configErrorMessageKey = (error: unknown) => {
   const errorKind = classifyConfigSetError(error);
@@ -59,6 +62,21 @@ const configErrorMessageKey = (error: unknown) => {
   if (errorKind === 'confirmation_timeout') return 'agent.config.timeout';
   if (errorKind === 'config_update_in_progress') return 'agent.config.busy';
   return 'agent.config.failed';
+};
+
+const deriveSelectedMcpServerIds = (input: string, knownKbIds: Set<string>): string[] | null => {
+  const tokens = findAllKbTokens(input);
+  if (tokens.length === 0) return null;
+  const ids: string[] = [];
+  const seen = new Set<string>();
+  for (const token of tokens) {
+    if (!knownKbIds.has(token.kbId)) continue;
+    const mcpId = kbIdToMcpServerId(token.kbId);
+    if (!mcpId || seen.has(mcpId)) continue;
+    seen.add(mcpId);
+    ids.push(mcpId);
+  }
+  return ids.length > 0 ? ids : null;
 };
 
 const useAcpSendBoxDraft = getSendBoxDraftHook('acp', {
@@ -133,6 +151,11 @@ const AcpSendBox: React.FC<{
   const layout = useLayoutContext();
   const isMobile = Boolean(layout?.isMobile);
   const conversationContext = useConversationContextSafe();
+  const { personalItems, sharedItems } = useKnowledgeBaseList();
+  const knownKbIds = useMemo(
+    () => new Set([...personalItems, ...sharedItems].map((k) => k.id)),
+    [personalItems, sharedItems]
+  );
   const loadedSkills = conversationContext?.loadedSkills ?? [];
   const loadedMcpStatuses =
     conversationContext?.loadedMcpStatuses ??
@@ -298,10 +321,12 @@ const AcpSendBox: React.FC<{
 
         markSendStarted();
         setAiProcessing(true);
+        const selectedMcpServerIds = deriveSelectedMcpServerIds(input, knownKbIds);
         const result = await ipcBridge.acpConversation.sendMessage.invoke({
           input,
           conversation_id,
           files,
+          ...(selectedMcpServerIds ? { selected_mcp_server_ids: selectedMcpServerIds } : {}),
         });
         markSendAccepted(result.turn_id, result.runtime, result.msg_id);
         emitter.emit('chat.history.refresh');
