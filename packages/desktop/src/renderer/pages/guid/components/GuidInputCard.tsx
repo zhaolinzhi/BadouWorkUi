@@ -287,10 +287,14 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
           </div>
         )}
         {isKbMenuOpen && (
-          <div className='absolute left-12px right-12px bottom-[calc(100%+8px)] z-70'>
+          <div className='absolute left-0 right-0 bottom-[calc(100%+8px)] z-70'>
             <AtFileMenu
               activeIndex={atMenuActiveIndex}
-              emptyText={t('messages.atFile.hint', { defaultValue: 'Type to search for files' })}
+              emptyText={
+                atMention.loading
+                  ? t('conversation.atMenu.loadingKb', { defaultValue: 'Loading knowledge bases…' })
+                  : t('kb-chat.empty', { defaultValue: 'No knowledge bases available' })
+              }
               items={kbMenuItems}
               label={t('conversation.atMenu.kbSectionTitle', { defaultValue: 'Knowledge bases' })}
               loading={atMention.loading}
