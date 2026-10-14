@@ -159,6 +159,10 @@ vi.mock('@/renderer/hooks/knowledge-base', () => ({
   useKnowledgeBaseEditor: () => ({}),
 }));
 
+vi.mock('@/renderer/hooks/chat/useAtMentionItems', () => ({
+  useAtMentionItems: () => ({ items: [], loading: false, knownKbIds: new Set() }),
+}));
+
 vi.mock('@/renderer/hooks/chat/useInputFocusRing', () => ({
   useInputFocusRing: () => ({
     activeBorderColor: '#000',

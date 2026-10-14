@@ -10,7 +10,11 @@ import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useCompositionInput } from '@/renderer/hooks/chat/useCompositionInput';
 import { Input } from '@arco-design/web-react';
 import type { RefTextAreaType } from '@arco-design/web-react/es/Input';
-import React, { useEffect, useRef } from 'react';
+import AtFileMenu from '@/renderer/components/chat/AtFileMenu';
+import { useAtMentionItems } from '@/renderer/hooks/chat/useAtMentionItems';
+import { buildAtFileInsertion, getActiveAtFileQuery, getAllAtFileQueries, resolveAtFileMenuKey } from '@/renderer/utils/chat/atFileQuery';
+import { useTranslation } from 'react-i18next';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import styles from '../index.module.css';
 import GuidWorkspaceFootnote from './GuidWorkspaceFootnote';
 
@@ -76,11 +80,72 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
   onSelectWorkspace,
   onClearWorkspace,
 }) => {
+  const { t } = useTranslation();
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
   const { compositionHandlers, isComposing } = useCompositionInput();
   const inputRef = useRef<RefTextAreaType | null>(null);
   const textareaAutoSize = isMobile ? { minRows: 2, maxRows: 8 } : { minRows: 2, maxRows: 20 };
+
+  // KB-only @ mention (Guid does not support file @-mentions).
+  const [caretPosition, setCaretPosition] = useState(0);
+  const [atMenuActiveIndex, setAtMenuActiveIndex] = useState(0);
+  const activeAtFileQuery = useMemo(() => getActiveAtFileQuery(input, caretPosition), [caretPosition, input]);
+  const isKbMenuOpen = Boolean(activeAtFileQuery);
+  const atMention = useAtMentionItems({
+    query: activeAtFileQuery?.query ?? '',
+    isOpen: isKbMenuOpen,
+    limit: 8,
+  });
+  const kbMenuItems = useMemo(() => atMention.items.filter((i) => i.kind === 'kb'), [atMention.items]);
+
+  const allAtFileQueries = useMemo(() => getAllAtFileQueries(input), [input]);
+
+  // Splice a KB item into the input at the active @ query position.
+  const insertSelectedKbItem = (item: (typeof kbMenuItems)[number]) => {
+    if (!activeAtFileQuery) return;
+    const text = buildAtFileInsertion(item);
+    if (!text) return;
+    const before = input.slice(0, activeAtFileQuery.start);
+    const after = input.slice(activeAtFileQuery.end);
+    const next = `${before}${text}${after}`;
+    onInputChange(next);
+    const nextCaret = activeAtFileQuery.start + text.length;
+    setCaretPosition(nextCaret);
+    requestAnimationFrame(() => {
+      inputRef.current?.dom.setSelectionRange(nextCaret, nextCaret);
+    });
+  };
+
+  // Keyboard navigation for the KB menu (overrides normal onKeyDown while open).
+  const handleKbMenuKeyDown = (event: React.KeyboardEvent) => {
+    if (!isKbMenuOpen || !activeAtFileQuery || kbMenuItems.length === 0) {
+      onKeyDown(event);
+      return;
+    }
+    if (isComposing.current) {
+      onKeyDown(event);
+      return;
+    }
+    const action = resolveAtFileMenuKey(event.key, kbMenuItems.length > 0);
+    if (action === 'dismiss') {
+      onKeyDown(event);
+      return;
+    }
+    event.preventDefault();
+    if (action === 'down') {
+      setAtMenuActiveIndex((prev) => (prev + 1) % kbMenuItems.length);
+      return;
+    }
+    if (action === 'up') {
+      setAtMenuActiveIndex((prev) => (prev === 0 ? kbMenuItems.length - 1 : prev - 1));
+      return;
+    }
+    if (action === 'accept') {
+      const item = kbMenuItems[atMenuActiveIndex];
+      if (item) insertSelectedKbItem(item);
+    }
+  };
 
   useEffect(() => {
     if (!focusRequestKey || isMobile) return;
@@ -90,6 +155,10 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (isComposing.current) return;
+    if (isKbMenuOpen && kbMenuItems.length > 0) {
+      handleKbMenuKeyDown(e);
+      return;
+    }
     onKeyDown(e);
   };
 
@@ -137,6 +206,10 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
           className={`text-14px focus:b-none rounded-xl !bg-transparent !b-none !resize-none !py-0 !pr-0 !pl-7px ${styles.lightPlaceholder}`}
           value={input}
           onChange={onInputChange}
+          onSelect={(event) => {
+            const target = event.target as HTMLTextAreaElement | null;
+            if (target) setCaretPosition(target.selectionStart ?? input.length);
+          }}
           onPaste={onPaste}
           onFocus={onFocus}
           onBlur={onBlur}
@@ -144,6 +217,90 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
           onKeyDown={handleKeyDown}
           data-testid='guid-input'
         />
+        {allAtFileQueries.length > 0 && (
+          <div
+            aria-hidden='true'
+            className='sendbox-highlight-layer'
+            style={{
+              position: 'absolute',
+              inset: 0,
+              pointerEvents: 'none',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+              color: 'transparent',
+            }}
+          >
+            {(() => {
+              const segments: React.ReactNode[] = [];
+              let cursor = 0;
+              allAtFileQueries.forEach((match, index) => {
+                if (cursor < match.start) {
+                  segments.push(
+                    <span className='sendbox-highlight-text' key={`t-${cursor}`}>
+                      {input.slice(cursor, match.start)}
+                    </span>
+                  );
+                }
+                if (match.token.startsWith('@kb:')) {
+                  const colonIdx = match.token.indexOf(':');
+                  const prefix = match.token.slice(0, colonIdx + 1);
+                  const idPart = match.token.slice(colonIdx + 1);
+                  segments.push(
+                    <span key={`kb-${match.start}-${index}`} style={{ color: 'var(--color-primary-6, #165dff)' }}>
+                      {prefix}
+                    </span>
+                  );
+                  segments.push(
+                    <span
+                      key={`kbd-${match.start}-${index}`}
+                      title={t('conversation.atMenu.kbBadgeTitle', { defaultValue: 'Cited knowledge base' })}
+                      style={{
+                        background: 'color-mix(in srgb, var(--color-primary-light-1, #e6f4ff) 80%, transparent)',
+                        color: 'var(--color-primary-6, #165dff)',
+                        borderRadius: '6px',
+                        padding: '0 4px',
+                        margin: '0 2px',
+                      }}
+                    >
+                      {idPart}
+                    </span>
+                  );
+                  cursor = match.start + prefix.length + idPart.length;
+                } else {
+                  segments.push(
+                    <span key={`m-${match.start}-${index}`} style={{ color: 'var(--color-primary-6, #165dff)' }}>
+                      {input.slice(match.start, match.end)}
+                    </span>
+                  );
+                  cursor = match.end;
+                }
+              });
+              if (cursor < input.length) {
+                segments.push(
+                  <span className='sendbox-highlight-text' key={`tail-${cursor}`}>
+                    {input.slice(cursor)}
+                  </span>
+                );
+              }
+              return segments;
+            })()}
+          </div>
+        )}
+        {isKbMenuOpen && (
+          <div className='absolute left-12px right-12px bottom-[calc(100%+8px)] z-70'>
+            <AtFileMenu
+              activeIndex={atMenuActiveIndex}
+              emptyText={t('messages.atFile.hint', { defaultValue: 'Type to search for files' })}
+              items={kbMenuItems}
+              label={t('conversation.atMenu.kbSectionTitle', { defaultValue: 'Knowledge bases' })}
+              loading={atMention.loading}
+              loadingText={t('conversation.atMenu.loadingKb', { defaultValue: 'Loading knowledge bases…' })}
+              onHoverItem={setAtMenuActiveIndex}
+              onSelectItem={insertSelectedKbItem}
+              getSubtitle={() => t('conversation.atMenu.kbSectionTitle', { defaultValue: 'Knowledge bases' })}
+            />
+          </div>
+        )}
         <div style={{ height: 12, flexShrink: 0 }} aria-hidden='true' />
         {files.length > 0 && (
           <div className='flex flex-wrap items-center gap-8px mt-12px mb-12px'>
