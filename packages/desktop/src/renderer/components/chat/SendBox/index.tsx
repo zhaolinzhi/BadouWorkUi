@@ -1509,7 +1509,11 @@ const SendBoxInner = (
         const idPart = match.token.slice(colonIdx + 1);
         const idStart = match.start + prefix.length;
         segments.push(
-          <span className='sendbox-highlight-mention' key={`mention-prefix-${match.start}-${index}`} style={{ color: AT_FILE_HIGHLIGHT_COLOR }}>
+          <span
+            className='sendbox-highlight-mention'
+            key={`mention-prefix-${match.start}-${index}`}
+            style={{ color: AT_FILE_HIGHLIGHT_COLOR }}
+          >
             {prefix}
           </span>
         );
@@ -1608,7 +1612,13 @@ const SendBoxInner = (
               }
               items={visibleAtFileMenuItems}
               label={t('messages.atFile.menuLabel', { defaultValue: 'File mentions' })}
-              loading={atMention.items.length > 0 ? atMention.loading : projectMention.active ? projectMention.loading : workspaceMentionLoading}
+              loading={
+                atMention.items.length > 0
+                  ? atMention.loading
+                  : projectMention.active
+                    ? projectMention.loading
+                    : workspaceMentionLoading
+              }
               loadingText={t('messages.atFile.loading', { defaultValue: 'Loading...' })}
               onHoverItem={setAtFileMenuActiveIndex}
               onSelectItem={insertSelectedAtFile}

@@ -6,7 +6,6 @@
 
 import { useMemo } from 'react';
 import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
-import { useKnowledgeBaseList } from '@/renderer/hooks/knowledge-base';
 import { useKbMentionSearch } from '@/renderer/hooks/kb-chat/useKbMentionSearch';
 import { useProjectMentionSearch } from '@/renderer/pages/conversation/explorer/search/useProjectMentionSearch';
 
@@ -22,15 +21,19 @@ export type AtMentionItems = {
  * - File hits come after, only when the project search is active.
  * - Total capped at `limit`.
  * - `knownKbIds` exposes the set of currently-known KB ids so callers
- *   can filter stale `@kb:<id>` tokens at send time.
+ *   can filter stale `@kb:<id>` tokens at send time. Note this is
+ *   derived from currently visible KB rows only; callers that need
+ *   authoritative validation should also read `useKnowledgeBaseList`.
  */
-export const useAtMentionItems = ({ query, isOpen, limit }: { query: string; isOpen: boolean; limit: number }): AtMentionItems => {
-  const { personalItems, sharedItems } = useKnowledgeBaseList();
-  // Touching the list above ensures we re-derive knownKbIds when KB list changes
-  // (e.g. user added a new KB). The actual filtered KB items come from useKbMentionSearch.
-  void personalItems;
-  void sharedItems;
-
+export const useAtMentionItems = ({
+  query,
+  isOpen,
+  limit,
+}: {
+  query: string;
+  isOpen: boolean;
+  limit: number;
+}): AtMentionItems => {
   const kbMention = useKbMentionSearch({ query, isOpen, limit });
   const projectMention = useProjectMentionSearch({ query, isOpen, limit });
 
@@ -56,5 +59,13 @@ export const useAtMentionItems = ({ query, isOpen, limit }: { query: string; isO
       }
     }
     return { items: merged, loading: kbMention.loading || projectMention.loading, knownKbIds };
-  }, [isOpen, kbMention.items, kbMention.loading, limit, projectMention.active, projectMention.items, projectMention.loading]);
+  }, [
+    isOpen,
+    kbMention.items,
+    kbMention.loading,
+    limit,
+    projectMention.active,
+    projectMention.items,
+    projectMention.loading,
+  ]);
 };
