@@ -2,6 +2,11 @@
   "officePreview": {
     "fileWatchUnavailable": "Live file watching is unavailable — the system may have run out of file-watch handles (inotify). Auto-preview of new Office files is disabled. Raise fs.inotify.max_user_instances or close programs holding many file watches."
   },
+  "atMenu": {
+    "kbSectionTitle": "Knowledge bases",
+    "loadingKb": "Loading knowledge bases…",
+    "kbBadgeTitle": "Cited knowledge base"
+  },
   "welcome": {
     "title": "Hi {{name}}, what's your plan for today?",
     "placeholder": "Send a message, upload files, open a folder, create a scheduled task, or type / for commands...",

@@ -1,4 +1,9 @@
 {
+  "atMenu": {
+    "kbSectionTitle": "知識庫",
+    "loadingKb": "正在載入知識庫…",
+    "kbBadgeTitle": "已引用知識庫"
+  },
   "welcome": {
     "title": "Hi {{name}}，今天有什麼安排？",
     "placeholder": "發送訊息、上傳檔案、開啟資料夾、建立定時任務，或輸入 / 喚起命令...",
