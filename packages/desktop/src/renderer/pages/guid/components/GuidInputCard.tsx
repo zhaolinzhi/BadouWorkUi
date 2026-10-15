@@ -242,17 +242,14 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
                   );
                 }
                 if (match.token.startsWith('@kb:')) {
-                  const colonIdx = match.token.indexOf(':');
-                  const prefix = match.token.slice(0, colonIdx + 1);
-                  const idPart = match.token.slice(colonIdx + 1);
-                  segments.push(
-                    <span key={`kb-${match.start}-${index}`} style={{ color: 'var(--color-primary-6, #165dff)' }}>
-                      {prefix}
-                    </span>
-                  );
+                  // Token form is "@kb:<name>" after the renderer-visible
+                  // rename; render the whole segment as one blue badge so the
+                  // user sees the KB name, not the kbId. The kbId itself is
+                  // recovered at send time by the GuidPage resolver.
                   segments.push(
                     <span
-                      key={`kbd-${match.start}-${index}`}
+                      key={`kb-${match.start}-${index}`}
+                      data-testid='kb-mention-badge'
                       title={t('conversation.atMenu.kbBadgeTitle', { defaultValue: 'Cited knowledge base' })}
                       style={{
                         background: 'color-mix(in srgb, var(--color-primary-light-1, #e6f4ff) 80%, transparent)',
@@ -262,10 +259,10 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
                         margin: '0 2px',
                       }}
                     >
-                      {idPart}
+                      {match.token}
                     </span>
                   );
-                  cursor = match.start + prefix.length + idPart.length;
+                  cursor = match.end;
                 } else {
                   segments.push(
                     <span key={`m-${match.start}-${index}`} style={{ color: 'var(--color-primary-6, #165dff)' }}>
