@@ -208,14 +208,21 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       currentAcpCachedModelInfo?.current_model_id ||
       (assistantBackend === 'aionrs' ? current_model?.use_model : undefined) ||
       undefined;
-    // Hidden system-prompt hint: when the user @-mentions a KB in this turn,
-    // tell the LLM to route the question through knowledge-server's
-    // chatWithStream tool (merged into a single call when multiple KBs are
-    // cited). `buildKbSystemPrompt` returns null when no KB is cited, so
-    // the spread keeps the assistantOverrides payload unchanged on KB-free
-    // turns.
-    const kbIdsFromInput = inputKbMcpIds.filter((mcpId) => mcpId.startsWith('kb-')).map((mcpId) => mcpId.slice(3));
-    const kbSystemPrompt = buildKbSystemPrompt(kbIdsFromInput);
+    // Hidden system-prompt hint: currently DISABLED because the backend
+    // agent framework does NOT yet read `conversation_overrides.system_prompt`,
+    // so shipping the hint here has no effect on the LLM's actual context.
+    // `buildKbSystemPrompt` is retained in `utils/kb/injectKbPrompt.ts` as a
+    // pure helper, ready to wire in once the agent framework gains a
+    // per-conversation system-prompt slot. When that lands, re-introduce:
+    //
+    //   const kbIdsFromInput = inputKbMcpIds
+    //     .filter((mcpId) => mcpId.startsWith('kb-'))
+    //     .map((mcpId) => mcpId.slice(3));
+    //   const kbSystemPrompt = buildKbSystemPrompt(kbIdsFromInput);
+    //   ...(kbSystemPrompt ? { system_prompt: kbSystemPrompt } : {}),
+    //
+    // For now, send the original override shape unchanged.
+    void buildKbSystemPrompt; // (reserved) keep the import live for the helper.
     const assistantOverrides = {
       model: assistantOverrideModel,
       permission: selectedMode || undefined,
@@ -223,7 +230,6 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       skill_ids: enabled_skills_to_send,
       disabled_builtin_skill_ids: excludeBuiltinSkills,
       mcp_ids: assistantOverrideMcpIds,
-      ...(kbSystemPrompt ? { system_prompt: kbSystemPrompt } : {}),
     };
 
     if (assistantBackend === 'aionrs') {

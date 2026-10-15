@@ -334,7 +334,15 @@ describe('useGuidSend', () => {
     expect(createConversationInvokeMock).not.toHaveBeenCalled();
   });
 
-  it('attaches a KB chatWithStream system-prompt hint when input cites @kb:<name>', async () => {
+  // KB system-prompt hint is currently DISABLED — the backend agent
+  // framework does not yet read `conversation_overrides.system_prompt`,
+  // so shipping the hint here would be a no-op as far as the LLM is
+  // concerned. `buildKbSystemPrompt` stays in `utils/kb/injectKbPrompt.ts`
+  // as a pure helper; the payload-shape assertions below verify that
+  // `system_prompt` is not currently emitted, so re-enabling it later is
+  // a single-file change in `useGuidSend.ts`.
+
+  it('does NOT attach a chatWithStream system-prompt hint (backend protocol gap)', async () => {
     const deps = createDeps();
     deps.input = '请总结 @kb:Docs 关于缓存的设计';
     deps.resolveKbId = (name: string, _isShared: boolean) => (name === 'Docs' ? 'uuid-1' : undefined);
@@ -345,12 +353,12 @@ describe('useGuidSend', () => {
     });
 
     const payload = createConversationInvokeMock.mock.calls[0][0];
-    expect(payload.assistant.conversation_overrides.system_prompt).toMatch(/`uuid-1`/);
-    expect(payload.assistant.conversation_overrides.system_prompt).toContain('chatWithStream');
+    expect(payload.assistant.conversation_overrides.system_prompt).toBeUndefined();
+    // MCP ids are still attached via the regular name-resolution path.
     expect(payload.assistant.conversation_overrides.mcp_ids).toContain('kb-uuid-1');
   });
 
-  it('omits the chatWithStream system-prompt hint when input has no @kb token', async () => {
+  it('also does NOT attach the hint on KB-free turns', async () => {
     const deps = createDeps();
     deps.input = 'hello world without a KB';
     deps.resolveKbId = () => undefined;

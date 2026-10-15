@@ -2003,15 +2003,6 @@ export interface ICreateConversationParams {
       skill_ids?: string[];
       disabled_builtin_skill_ids?: string[];
       mcp_ids?: string[];
-      /**
-       * One-shot system-prompt override applied for this conversation's
-       * first turn. Backed by the agent framework's system-prompt slot;
-       * ignored if not provided. Renderer uses this to ship per-turn
-       * hints (e.g. "use knowledge-server.chatWithStream when @kb is
-       * cited") without permanently mutating the assistant's default
-       * system prompt.
-       */
-      system_prompt?: string;
     };
   };
   extra: {
