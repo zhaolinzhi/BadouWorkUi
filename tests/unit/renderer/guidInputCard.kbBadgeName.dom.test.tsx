@@ -145,17 +145,21 @@ describe('GuidInputCard — KB highlight badge', () => {
     expect(textarea?.className).toMatch(/sendbox-highlight-textarea/);
   });
 
-  // Visual breathing room: an @-KB badge rendered as the only content of
-  // the textarea must have an inset from the textarea border instead of
-  // floating flush against it. The highlight overlay carries that inset.
-  it('offsets KB badges from the textarea edge by 8px vertically', async () => {
+  // Visual breathing room: KB badges should sit slightly indented from
+  // the textarea's left edge so they don't look glued to the border.
+  // A previous attempt added 8px vertical padding too, but that moved
+  // the overlay baseline away from the (transparent) textarea text and
+  // reintroduced the "two @kb names" double-render — vertical inset is
+  // intentionally left at 0 here.
+  it('offsets KB badges from the left textarea edge by 12px', async () => {
     const { default: GuidInputCard } = await import('@/renderer/pages/guid/components/GuidInputCard');
     const { container } = render(<GuidInputCard {...baseProps} input='@kb:研发文档' />);
     const layer = container.querySelector('.sendbox-highlight-layer');
     expect(layer).not.toBeNull();
-    // jsdom exposes inline styles via `style.paddingTop` (top/bottom keyed
-    // differently from CSS: top → paddingTop, bottom → paddingBottom).
-    expect((layer as HTMLElement | null)?.style.paddingTop).toBe('8px');
-    expect((layer as HTMLElement | null)?.style.paddingBottom).toBe('8px');
+    // Horizontal offset only — guard against the vertical baseline drift
+    // that causes double-rendering of @kb tokens.
+    expect((layer as HTMLElement | null)?.style.paddingLeft).toBe('12px');
+    expect((layer as HTMLElement | null)?.style.paddingTop).toBe('');
+    expect((layer as HTMLElement | null)?.style.paddingBottom).toBe('');
   });
 });

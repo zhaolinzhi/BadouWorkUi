@@ -233,12 +233,15 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
               whiteSpace: 'pre-wrap',
               wordBreak: 'break-word',
               color: 'transparent',
-              // Keep badges inside the textarea inset — without these insets
-              // the KB badge floats flush against the textarea border,
-              // which reads as "stuck to the edge". 8px vertical is the
-              // visual breathing room used elsewhere in the input card.
-              paddingTop: 8,
-              paddingBottom: 8,
+              // The textarea has `!py-0` (no vertical padding) and `pl-7px`
+              // for its left text inset. The overlay mirrors only the
+              // left inset so the KB badge sits at the same horizontal
+              // origin as plain text. Vertical inset is left at 0 — adding
+              // paddingTop / paddingBottom here would offset the overlay
+              // text baseline away from the (transparent) textarea text
+              // and re-introduce the "two @kb names" double-rendering
+              // symptom.
+              paddingLeft: 12,
             }}
           >
             {(() => {
