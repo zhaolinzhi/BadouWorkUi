@@ -208,7 +208,20 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
           autoSize={textareaAutoSize}
           placeholder={placeholder}
           spellCheck={false}
-          className={`sendbox-highlight-textarea text-14px focus:b-none rounded-xl !bg-transparent !b-none !resize-none !py-0 !pr-0 !pl-7px ${styles.lightPlaceholder}`}
+          className={`sendbox-highlight-textarea lh-[20px] text-14px focus:b-none rounded-xl !bg-transparent !b-none !resize-none !py-0 !pr-0 !pl-7px ${styles.lightPlaceholder}`}
+          style={{
+            // The CSS class `.sendbox-highlight-textarea` already forces the
+            // text colour to transparent, but Arco's Input.TextArea forwards
+            // its `style` prop to the underlying `<textarea>` element. Apply
+            // the same overrides inline so the cancellation is robust even
+            // if stylesheet loading order changes (CSS specificity wars
+            // happen), and so the visible-text / overlay-text baseline
+            // match exactly.
+            color: 'transparent',
+            WebkitTextFillColor: 'transparent',
+            caretColor: 'var(--text-primary)',
+            lineHeight: '20px',
+          }}
           value={input}
           onChange={onInputChange}
           onSelect={(event) => {
@@ -225,7 +238,7 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
         {allAtFileQueries.length > 0 && (
           <div
             aria-hidden='true'
-            className='sendbox-highlight-layer'
+            className='sendbox-highlight-layer lh-[20px]'
             style={{
               position: 'absolute',
               inset: 0,
@@ -234,13 +247,15 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
               wordBreak: 'break-word',
               color: 'transparent',
               // The textarea has `!py-0` (no vertical padding) and `pl-7px`
-              // for its left text inset. The overlay mirrors only the
-              // left inset so the KB badge sits at the same horizontal
-              // origin as plain text. Vertical inset is left at 0 — adding
-              // paddingTop / paddingBottom here would offset the overlay
-              // text baseline away from the (transparent) textarea text
-              // and re-introduce the "two @kb names" double-rendering
-              // symptom.
+              // for its left text inset. The overlay mirrors the textarea
+              // line-height (20px) so badge baseline aligns with the
+              // transparent textarea text — without an explicit line-height
+              // here, the overlay inherits the page-level 1.5 line-height,
+              // and the two layers wrap at different line breaks, which
+              // visually presents as duplicate text. A small left inset
+              // (12px) gives the badge visual breathing room from the
+              // textarea border without disturbing vertical alignment.
+              lineHeight: '20px',
               paddingLeft: 12,
             }}
           >
