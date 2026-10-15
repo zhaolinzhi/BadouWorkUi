@@ -103,8 +103,7 @@ describe('atKbInsertion — name-based parser', () => {
 
 describe('atKbInsertion — extractKbMcpServerIdsFromInput', () => {
   it('resolves @kb:<name> via the page-level resolver into kb-<id>', () => {
-    const resolveKbId = (name: string, isShared: boolean) =>
-      name === '研发文档' && !isShared ? 'uuid-1' : undefined;
+    const resolveKbId = (name: string, isShared: boolean) => (name === '研发文档' && !isShared ? 'uuid-1' : undefined);
     expect(extractKbMcpServerIdsFromInput('请查 @kb:研发文档', resolveKbId)).toEqual(['kb-uuid-1']);
   });
 
@@ -133,17 +132,15 @@ describe('atKbInsertion — extractKbMcpServerIdsFromInput', () => {
   it('falls back to legacy @kb:<id> tokens for in-flight sessionStorage drafts', () => {
     const resolveKbId = () => undefined; // current list does not have a KB with id legacy-1 by name
     const legacyKbTokens = [{ kind: 'kb' as const, kbId: 'legacy-1' }];
-    expect(extractKbMcpServerIdsFromInput('@kb:legacy-1', resolveKbId, { legacyKbTokens, knownKbIds: ['legacy-1'] })).toEqual([
-      'kb-legacy-1',
-    ]);
+    expect(
+      extractKbMcpServerIdsFromInput('@kb:legacy-1', resolveKbId, { legacyKbTokens, knownKbIds: ['legacy-1'] })
+    ).toEqual(['kb-legacy-1']);
   });
 
   it('drops legacy tokens whose id is no longer in knownKbIds', () => {
     const resolveKbId = () => undefined;
     const legacyKbTokens = [{ kind: 'kb' as const, kbId: 'stale' }];
-    expect(
-      extractKbMcpServerIdsFromInput('@kb:stale', resolveKbId, { legacyKbTokens, knownKbIds: [] })
-    ).toEqual([]);
+    expect(extractKbMcpServerIdsFromInput('@kb:stale', resolveKbId, { legacyKbTokens, knownKbIds: [] })).toEqual([]);
   });
 
   it('prefers name-resolved id and dedupes against the legacy fallback for the same id', () => {
@@ -151,8 +148,8 @@ describe('atKbInsertion — extractKbMcpServerIdsFromInput', () => {
     // The user has @kb:Docs (resolves via name) AND a stray @kb:uuid-1 in their draft
     // (left over from an earlier session). Both routes yield kb-uuid-1 — must dedupe.
     const legacyKbTokens = [{ kind: 'kb' as const, kbId: 'uuid-1' }];
-    expect(extractKbMcpServerIdsFromInput('@kb:Docs @kb:uuid-1', resolveKbId, { legacyKbTokens, knownKbIds: ['uuid-1'] })).toEqual([
-      'kb-uuid-1',
-    ]);
+    expect(
+      extractKbMcpServerIdsFromInput('@kb:Docs @kb:uuid-1', resolveKbId, { legacyKbTokens, knownKbIds: ['uuid-1'] })
+    ).toEqual(['kb-uuid-1']);
   });
 });

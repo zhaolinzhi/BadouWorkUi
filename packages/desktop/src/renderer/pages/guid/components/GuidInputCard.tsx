@@ -12,7 +12,12 @@ import { Input } from '@arco-design/web-react';
 import type { RefTextAreaType } from '@arco-design/web-react/es/Input';
 import AtFileMenu from '@/renderer/components/chat/AtFileMenu';
 import { useAtMentionItems } from '@/renderer/hooks/chat/useAtMentionItems';
-import { buildAtFileInsertion, getActiveAtFileQuery, getAllAtFileQueries, resolveAtFileMenuKey } from '@/renderer/utils/chat/atFileQuery';
+import {
+  buildAtFileInsertion,
+  getActiveAtFileQuery,
+  getAllAtFileQueries,
+  resolveAtFileMenuKey,
+} from '@/renderer/utils/chat/atFileQuery';
 import { useTranslation } from 'react-i18next';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import styles from '../index.module.css';
@@ -303,7 +308,10 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
         )}
       </div>
       {isKbMenuOpen && (
-        <div className='absolute left-12px right-12px bottom-[calc(100%+8px)] z-70 pointer-events-auto' style={{ zIndex: 70 }}>
+        <div
+          className='absolute left-12px right-12px bottom-[calc(100%+8px)] z-70 pointer-events-auto'
+          style={{ zIndex: 70 }}
+        >
           <AtFileMenu
             activeIndex={atMenuActiveIndex}
             emptyText={
