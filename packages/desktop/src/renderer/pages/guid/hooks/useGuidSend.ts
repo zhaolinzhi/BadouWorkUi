@@ -15,6 +15,7 @@ import { Message } from '@arco-design/web-react';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { findAllKbTokens, extractKbMcpServerIdsFromInput } from '@/renderer/utils/kb/atKbInsertion';
 import { kbIdToMcpServerId } from '@/renderer/utils/kb/kbToMcpId';
+import { buildKbSystemPrompt } from '@/renderer/utils/kb/injectKbPrompt';
 import { useKnowledgeBaseList } from '@/renderer/hooks/knowledge-base';
 import { type TFunction } from 'i18next';
 import type { NavigateFunction } from 'react-router-dom';
@@ -207,6 +208,16 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       currentAcpCachedModelInfo?.current_model_id ||
       (assistantBackend === 'aionrs' ? current_model?.use_model : undefined) ||
       undefined;
+    // Hidden system-prompt hint: when the user @-mentions a KB in this turn,
+    // tell the LLM to route the question through knowledge-server's
+    // chatWithStream tool (merged into a single call when multiple KBs are
+    // cited). `buildKbSystemPrompt` returns null when no KB is cited, so
+    // the spread keeps the assistantOverrides payload unchanged on KB-free
+    // turns.
+    const kbIdsFromInput = inputKbMcpIds
+      .filter((mcpId) => mcpId.startsWith('kb-'))
+      .map((mcpId) => mcpId.slice(3));
+    const kbSystemPrompt = buildKbSystemPrompt(kbIdsFromInput);
     const assistantOverrides = {
       model: assistantOverrideModel,
       permission: selectedMode || undefined,
@@ -214,6 +225,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       skill_ids: enabled_skills_to_send,
       disabled_builtin_skill_ids: excludeBuiltinSkills,
       mcp_ids: assistantOverrideMcpIds,
+      ...(kbSystemPrompt ? { system_prompt: kbSystemPrompt } : {}),
     };
 
     if (assistantBackend === 'aionrs') {
