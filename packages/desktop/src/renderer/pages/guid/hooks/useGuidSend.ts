@@ -12,8 +12,8 @@ import { toSessionMcpServer } from '@/renderer/hooks/mcp/catalog';
 import { emitter } from '@/renderer/utils/emitter';
 import { updateWorkspaceTime } from '@/renderer/utils/workspace/workspaceHistory';
 import { Message } from '@arco-design/web-react';
-import { useCallback, useMemo, useRef } from 'react';
-import { findAllKbTokens } from '@/renderer/utils/kb/atKbInsertion';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { findAllKbTokens, extractKbMcpServerIdsFromInput } from '@/renderer/utils/kb/atKbInsertion';
 import { kbIdToMcpServerId } from '@/renderer/utils/kb/kbToMcpId';
 import { useKnowledgeBaseList } from '@/renderer/hooks/knowledge-base';
 import { type TFunction } from 'i18next';
@@ -61,6 +61,14 @@ export type GuidSendDeps = {
   navigate: NavigateFunction;
   t: TFunction;
   localeKey: string;
+
+  /**
+   * Resolve an @kb:<name> token (from the renderer-visible form in the Guid
+   * textarea) back to its kbId. Provided by GuidPage and keyed by
+   * `(name, isShared)` so personal+shared KBs with the same display name
+   * don't alias to the same MCP server id.
+   */
+  resolveKbId?: (name: string, isShared: boolean) => string | undefined;
 };
 
 export type GuidSendResult = {
@@ -103,8 +111,16 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     navigate,
     t,
     localeKey,
+    resolveKbId,
   } = deps;
   const sendingRef = useRef(false);
+  // Mirror the live resolver in a ref so handleSend's dep array does not have
+  // to depend on it (it's owned by GuidPage and would otherwise thrash on
+  // every KB-list refresh).
+  const resolveKbIdRef = useRef(resolveKbId);
+  useEffect(() => {
+    resolveKbIdRef.current = resolveKbId;
+  }, [resolveKbId]);
   const { personalItems, sharedItems } = useKnowledgeBaseList();
   const knownKbIds = useMemo(
     () => new Set([...personalItems, ...sharedItems].map((k) => k.id)),
@@ -131,19 +147,23 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     const enabled_skills_to_send = guidEnabledSkills ?? assistantDefaultSkillIds;
     const excludeBuiltinSkills = guidDisabledBuiltinSkills ?? assistantDefaultDisabledBuiltinSkillIds;
     const selectedAllMcpServerIds = selectedMcpServerIds ?? [];
-    // Merge @kb:<id> tokens from the user's input as MCP server ids
-    // (`kb-<id>`), deduping against the existing selection. Stale @kb tokens
-    // (KBs no longer in the list) are dropped silently.
-    const kbTokens = findAllKbTokens(input);
-    if (kbTokens.length > 0) {
-      const seenIds = new Set(selectedAllMcpServerIds);
-      for (const token of kbTokens) {
-        if (!knownKbIds.has(token.kbId)) continue;
-        const mcpId = kbIdToMcpServerId(token.kbId);
-        if (!mcpId || seenIds.has(mcpId)) continue;
-        seenIds.add(mcpId);
-        selectedAllMcpServerIds.push(mcpId);
+    // Resolve renderer-visible @kb:<name> tokens to MCP server ids (`kb-<id>`)
+    // via the page-level resolver; legacy @kb:<id> tokens from in-flight
+    // sessionStorage drafts are appended as a one-shot fallback. Both forms
+    // dedupe against each other and against the user's pre-selected MCP ids.
+    const inputKbMcpIds = extractKbMcpServerIdsFromInput(
+      input,
+      (name, isShared) => resolveKbIdRef.current?.(name, isShared),
+      {
+        legacyKbTokens: findAllKbTokens(input),
+        knownKbIds,
       }
+    );
+    const seenIdsLocal = new Set(selectedAllMcpServerIds);
+    for (const mcpId of inputKbMcpIds) {
+      if (seenIdsLocal.has(mcpId)) continue;
+      seenIdsLocal.add(mcpId);
+      selectedAllMcpServerIds.push(mcpId);
     }
     const selectedMcpServerIdSet = new Set(selectedAllMcpServerIds);
     const selectedUserMcpServerIds = availableMcpServers

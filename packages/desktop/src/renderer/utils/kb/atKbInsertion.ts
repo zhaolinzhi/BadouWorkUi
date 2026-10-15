@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import type { KnowledgeBaseItem } from '@/renderer/pages/knowledge-base/types';
+import { kbIdToMcpServerId } from './kbToMcpId';
 
 export const KB_TOKEN_PREFIX = '@kb:';
 
@@ -96,6 +97,48 @@ export const findAllKbTokens = (input: string): KbMentionToken[] => {
     if (!kbId) continue;
     out.push({ kind: 'kb', kbId });
     i = end - 1;
+  }
+  return out;
+};
+
+/**
+ * Convert the renderer-visible `@kb:<name>` tokens in `input` into MCP server
+ * ids (`kb-<id>`), using `resolveKbId` to recover the kbId.
+ *
+ * Each token is tried against both `isShared: false` and `isShared: true`
+ * keys, so a single KB name appearing in either personal or shared lists
+ * resolves; first hit wins. Stale tokens whose name is no longer in the
+ * resolver are dropped silently — same contract as the legacy id-based path.
+ *
+ * Accepts an optional list of `legacyKbTokens` (e.g. decoded via
+ * `findAllKbTokens`) to retain back-compat for in-flight sessionStorage
+ * drafts that still carry the old `@kb:<id>` text. Legacy tokens are
+ * appended only when their kbId is in `knownKbIds`.
+ */
+export const extractKbMcpServerIdsFromInput = (
+  input: string,
+  resolveKbId: (name: string, isShared: boolean) => string | undefined,
+  options?: { legacyKbTokens?: KbMentionToken[]; knownKbIds?: Iterable<string> }
+): string[] => {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const t of findAllKbNameTokens(input)) {
+    const id = resolveKbId(t.name, false) ?? resolveKbId(t.name, true);
+    if (!id) continue;
+    const mcp = kbIdToMcpServerId(id);
+    if (!mcp || seen.has(mcp)) continue;
+    seen.add(mcp);
+    out.push(mcp);
+  }
+  if (options?.legacyKbTokens && options.legacyKbTokens.length > 0) {
+    const known = options.knownKbIds ? new Set(options.knownKbIds) : null;
+    for (const t of options.legacyKbTokens) {
+      if (known && !known.has(t.kbId)) continue;
+      const mcp = kbIdToMcpServerId(t.kbId);
+      if (!mcp || seen.has(mcp)) continue;
+      seen.add(mcp);
+      out.push(mcp);
+    }
   }
   return out;
 };
