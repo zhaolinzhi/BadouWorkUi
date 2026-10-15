@@ -15,7 +15,7 @@ import { Message } from '@arco-design/web-react';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { findAllKbTokens, extractKbMcpServerIdsFromInput } from '@/renderer/utils/kb/atKbInsertion';
 import { kbIdToMcpServerId } from '@/renderer/utils/kb/kbToMcpId';
-import { buildKbSystemPrompt } from '@/renderer/utils/kb/injectKbPrompt';
+import { buildKbTailHint } from '@/renderer/utils/kb/injectKbPrompt';
 import { useKnowledgeBaseList } from '@/renderer/hooks/knowledge-base';
 import { type TFunction } from 'i18next';
 import type { NavigateFunction } from 'react-router-dom';
@@ -138,7 +138,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     // Backend rejects empty `content` even with files attached. When user
     // sends only attachments (no text), prepend file refs so the model
     // sees what is being attached.
-    const finalInput = input.trim() ? input : getCleanFileNames(files.map(chatFileRefPath)).join(' ');
+    const baseText = input.trim() ? input : getCleanFileNames(files.map(chatFileRefPath)).join(' ');
 
     const isCustomWorkspace = !!dir;
     const finalWorkspace = dir || '';
@@ -160,6 +160,23 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         knownKbIds,
       }
     );
+    // Hidden chatWithStream hint: when the user @-mentions a KB in this
+    // turn, silently append a Chinese instruction to the user message
+    // body so the LLM routes the question through knowledge-server's
+    // chatWithStream tool. The user does NOT see the hint in the
+    // textarea (only the LLM does); the textarea still shows just
+    // `baseText`. `buildKbTailHint` returns null when no KB is cited,
+    // in which case `finalInput` is `baseText` unchanged.
+    //
+    // We use the user-message channel rather than a system-prompt slot
+    // because the current backend agent framework does not yet read
+    // `conversation_overrides.system_prompt` — see the protocol-gap note
+    // in `utils/kb/injectKbPrompt.ts`.
+    const kbIdsForHint = inputKbMcpIds
+      .filter((mcpId) => mcpId.startsWith('kb-'))
+      .map((mcpId) => mcpId.slice(3));
+    const kbTailHint = buildKbTailHint(kbIdsForHint);
+    const finalInput = kbTailHint ? `${baseText}${kbTailHint}` : baseText;
     const seenIdsLocal = new Set(selectedAllMcpServerIds);
     for (const mcpId of inputKbMcpIds) {
       if (seenIdsLocal.has(mcpId)) continue;
@@ -208,21 +225,6 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       currentAcpCachedModelInfo?.current_model_id ||
       (assistantBackend === 'aionrs' ? current_model?.use_model : undefined) ||
       undefined;
-    // Hidden system-prompt hint: currently DISABLED because the backend
-    // agent framework does NOT yet read `conversation_overrides.system_prompt`,
-    // so shipping the hint here has no effect on the LLM's actual context.
-    // `buildKbSystemPrompt` is retained in `utils/kb/injectKbPrompt.ts` as a
-    // pure helper, ready to wire in once the agent framework gains a
-    // per-conversation system-prompt slot. When that lands, re-introduce:
-    //
-    //   const kbIdsFromInput = inputKbMcpIds
-    //     .filter((mcpId) => mcpId.startsWith('kb-'))
-    //     .map((mcpId) => mcpId.slice(3));
-    //   const kbSystemPrompt = buildKbSystemPrompt(kbIdsFromInput);
-    //   ...(kbSystemPrompt ? { system_prompt: kbSystemPrompt } : {}),
-    //
-    // For now, send the original override shape unchanged.
-    void buildKbSystemPrompt; // (reserved) keep the import live for the helper.
     const assistantOverrides = {
       model: assistantOverrideModel,
       permission: selectedMode || undefined,

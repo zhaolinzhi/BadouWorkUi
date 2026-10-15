@@ -4,44 +4,45 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import { describe, expect, it } from 'vitest';
-import { buildKbSystemPrompt } from '@/renderer/utils/kb/injectKbPrompt';
+import { buildKbTailHint } from '@/renderer/utils/kb/injectKbPrompt';
 
-describe('buildKbSystemPrompt', () => {
-  it('returns null for empty kbIds', () => {
-    expect(buildKbSystemPrompt([])).toBeNull();
+describe('buildKbTailHint', () => {
+  it('returns null for empty kbIds so callers do not modify the input', () => {
+    expect(buildKbTailHint([])).toBeNull();
   });
 
   it('renders a single kbId inside an inline-code span', () => {
-    const out = buildKbSystemPrompt(['uuid-1']);
+    const out = buildKbTailHint(['uuid-1']);
     expect(out).not.toBeNull();
     expect(out).toContain('`uuid-1`');
-    // The `kbIds` placeholder is fully replaced; the `{ kbIds: [...] }`
-    // example in the template body is a syntax illustration and is allowed
-    // to stay — what must NOT appear is the literal `{kbIds}` placeholder.
-    expect(out).not.toContain('{kbIds}');
-    expect(out).not.toContain('{ kbIds }');
   });
 
   it('joins multiple kbIds with 、 in document order', () => {
-    const out = buildKbSystemPrompt(['id-1', 'id-2', 'id-3']);
+    const out = buildKbTailHint(['id-1', 'id-2', 'id-3']);
     expect(out).not.toBeNull();
     expect(out).toContain('`id-1`、`id-2`、`id-3`');
-    // The ids appear in the input order, not sorted.
     expect(out!.indexOf('id-1')).toBeLessThan(out!.indexOf('id-2'));
     expect(out!.indexOf('id-2')).toBeLessThan(out!.indexOf('id-3'));
   });
 
-  it('does not include the kb- prefix from ids before composing the prompt', () => {
-    // Helper is fed already-stripped ids by the hook; this test documents
-    // that the rendered prompt is free of any "kb-" substring.
-    const out = buildKbSystemPrompt(['uuid-1']);
+  it('does not include the kb- prefix from ids (input is already stripped)', () => {
+    const out = buildKbTailHint(['uuid-1']);
     expect(out).not.toContain('kb-uuid-1');
   });
 
-  it('contains the chatWithStream routing instructions', () => {
-    const out = buildKbSystemPrompt(['uuid-1']) ?? '';
+  it('contains the chatWithStream routing instructions + summarising instruction', () => {
+    const out = buildKbTailHint(['uuid-1']) ?? '';
     expect(out).toContain('chatWithStream');
     expect(out).toContain('kbIds');
-    expect(out).toContain('在不偏离原意的前提下');
+    expect(out).toContain('不偏离原意');
+    expect(out).toContain('请使用 knowledge-server');
+  });
+
+  it('starts with a leading newline so the hint reads as a separate paragraph', () => {
+    // When appended to a user message body, the leading blank line keeps
+    // the hint visually separated from the user's own text. Helps the LLM
+    // recognise the hint as an instruction rather than continuation.
+    const out = buildKbTailHint(['uuid-1']) ?? '';
+    expect(out.startsWith('\n')).toBe(true);
   });
 });
