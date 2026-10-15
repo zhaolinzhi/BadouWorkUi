@@ -214,9 +214,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     // cited). `buildKbSystemPrompt` returns null when no KB is cited, so
     // the spread keeps the assistantOverrides payload unchanged on KB-free
     // turns.
-    const kbIdsFromInput = inputKbMcpIds
-      .filter((mcpId) => mcpId.startsWith('kb-'))
-      .map((mcpId) => mcpId.slice(3));
+    const kbIdsFromInput = inputKbMcpIds.filter((mcpId) => mcpId.startsWith('kb-')).map((mcpId) => mcpId.slice(3));
     const kbSystemPrompt = buildKbSystemPrompt(kbIdsFromInput);
     const assistantOverrides = {
       model: assistantOverrideModel,

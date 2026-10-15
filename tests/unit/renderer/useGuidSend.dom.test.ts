@@ -337,8 +337,7 @@ describe('useGuidSend', () => {
   it('attaches a KB chatWithStream system-prompt hint when input cites @kb:<name>', async () => {
     const deps = createDeps();
     deps.input = '请总结 @kb:Docs 关于缓存的设计';
-    deps.resolveKbId = (name: string, _isShared: boolean) =>
-      name === 'Docs' ? 'uuid-1' : undefined;
+    deps.resolveKbId = (name: string, _isShared: boolean) => (name === 'Docs' ? 'uuid-1' : undefined);
 
     const { result } = renderHook(() => useGuidSend(deps as never));
     await act(async () => {
