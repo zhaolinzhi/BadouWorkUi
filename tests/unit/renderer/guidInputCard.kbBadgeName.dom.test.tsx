@@ -144,4 +144,18 @@ describe('GuidInputCard — KB highlight badge', () => {
     expect(textarea).not.toBeNull();
     expect(textarea?.className).toMatch(/sendbox-highlight-textarea/);
   });
+
+  // Visual breathing room: an @-KB badge rendered as the only content of
+  // the textarea must have an inset from the textarea border instead of
+  // floating flush against it. The highlight overlay carries that inset.
+  it('offsets KB badges from the textarea edge by 8px vertically', async () => {
+    const { default: GuidInputCard } = await import('@/renderer/pages/guid/components/GuidInputCard');
+    const { container } = render(<GuidInputCard {...baseProps} input='@kb:研发文档' />);
+    const layer = container.querySelector('.sendbox-highlight-layer');
+    expect(layer).not.toBeNull();
+    // jsdom exposes inline styles via `style.paddingTop` (top/bottom keyed
+    // differently from CSS: top → paddingTop, bottom → paddingBottom).
+    expect((layer as HTMLElement | null)?.style.paddingTop).toBe('8px');
+    expect((layer as HTMLElement | null)?.style.paddingBottom).toBe('8px');
+  });
 });

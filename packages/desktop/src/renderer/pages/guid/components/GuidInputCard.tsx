@@ -233,6 +233,12 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
               whiteSpace: 'pre-wrap',
               wordBreak: 'break-word',
               color: 'transparent',
+              // Keep badges inside the textarea inset — without these insets
+              // the KB badge floats flush against the textarea border,
+              // which reads as "stuck to the edge". 8px vertical is the
+              // visual breathing room used elsewhere in the input card.
+              paddingTop: 8,
+              paddingBottom: 8,
             }}
           >
             {(() => {
