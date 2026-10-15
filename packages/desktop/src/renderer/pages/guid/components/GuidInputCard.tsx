@@ -208,20 +208,12 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
           autoSize={textareaAutoSize}
           placeholder={placeholder}
           spellCheck={false}
-          className={`sendbox-highlight-textarea lh-[20px] text-14px focus:b-none rounded-xl !bg-transparent !b-none !resize-none !py-0 !pr-0 !pl-7px ${styles.lightPlaceholder}`}
-          style={{
-            // The CSS class `.sendbox-highlight-textarea` already forces the
-            // text colour to transparent, but Arco's Input.TextArea forwards
-            // its `style` prop to the underlying `<textarea>` element. Apply
-            // the same overrides inline so the cancellation is robust even
-            // if stylesheet loading order changes (CSS specificity wars
-            // happen), and so the visible-text / overlay-text baseline
-            // match exactly.
-            color: 'transparent',
-            WebkitTextFillColor: 'transparent',
-            caretColor: 'var(--text-primary)',
-            lineHeight: '20px',
-          }}
+          // Toggle the highlight-overlay class only when there is at least
+          // one @-mention token. Applying it unconditionally (the previous
+          // setup) makes the textarea text fully transparent even when
+          // there is no overlay to take over — plain text typed without an
+          // @ then disappears visually.
+          className={`${allAtFileQueries.length > 0 ? 'sendbox-highlight-textarea' : ''} lh-[20px] text-14px focus:b-none rounded-xl !bg-transparent !b-none !resize-none !py-0 !pr-0 !pl-7px ${styles.lightPlaceholder}`}
           value={input}
           onChange={onInputChange}
           onSelect={(event) => {

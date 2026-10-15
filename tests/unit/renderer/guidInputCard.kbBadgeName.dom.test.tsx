@@ -162,4 +162,33 @@ describe('GuidInputCard — KB highlight badge', () => {
     expect((layer as HTMLElement | null)?.style.paddingTop).toBe('');
     expect((layer as HTMLElement | null)?.style.paddingBottom).toBe('');
   });
+
+  // Regression: a KB badge whose overlay and textarea text share the
+  // same horizontal origin must render exactly once — i.e. the textarea
+  // colour must still be transparent so the badge covers the underlying
+  // text completely. This guards the root-cause fix from the previous
+  // double-render bug.
+  it('renders exactly one badge for one @kb token (no duplicate)', async () => {
+    const { default: GuidInputCard } = await import('@/renderer/pages/guid/components/GuidInputCard');
+    const { container } = render(<GuidInputCard {...baseProps} input='@kb:研发文档' />);
+    const badges = container.querySelectorAll('[data-testid="kb-mention-badge"]');
+    expect(badges).toHaveLength(1);
+    // The textarea must still carry the transparent-text class so the
+    // overlay text is the only visible layer.
+    const textarea = container.querySelector('textarea');
+    expect(textarea?.className).toMatch(/sendbox-highlight-textarea/);
+  });
+
+  // Regression: when the user types plain text with no `@`-mention, the
+  // textarea must NOT carry `sendbox-highlight-textarea` — otherwise the
+  // text colour is forced transparent and there is no overlay to render
+  // the visible text, so the user sees nothing they typed (only the
+  // caret blinks). The fix: toggle the class based on whether there is
+  // any @-mention to drive an overlay.
+  it('keeps plain text visible (no transparent-text overlay) without any @-mention', async () => {
+    const { default: GuidInputCard } = await import('@/renderer/pages/guid/components/GuidInputCard');
+    const { container } = render(<GuidInputCard {...baseProps} input='hello world' />);
+    const textarea = container.querySelector('textarea');
+    expect(textarea?.className).not.toMatch(/sendbox-highlight-textarea/);
+  });
 });
