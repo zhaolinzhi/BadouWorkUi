@@ -34,6 +34,7 @@ import { BoundBadge } from './components/BoundBadge';
 import { useTypewriterPlaceholder } from './hooks/useTypewriterPlaceholder';
 import { ensureBackendMcpCatalog } from '@/renderer/hooks/mcp/catalog';
 import { resolveGuidAssistantDefaults } from './utils/assistantDefaults';
+import { useKnowledgeBaseList } from '@/renderer/hooks/knowledge-base';
 import SpeechInputButton from '@/renderer/components/chat/SpeechInputButton';
 import { chatFileRefPath, uploadFileRef } from '@/common/types/chatFile';
 import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
@@ -138,6 +139,25 @@ const GuidPage: React.FC = () => {
       const current = prev ?? [];
       return current.includes(serverId) ? current.filter((id) => id !== serverId) : [...current, serverId];
     });
+  }, []);
+
+  // --- KB mention resolver ---
+  // The Guid @-mention token is rendered as "@kb:<name>" (renderer-visible
+  // form). To send, useGuidSend needs to recover the kbId from the name so
+  // it can route through knowledge-server via selected_mcp_server_ids. We
+  // keep a (name, isShared) → kbId map that mirrors the live KB list and
+  // refreshes when it changes. Keyed on both name and origin so two KBs
+  // with the same display name never alias to the same id.
+  const kbMentionResolverRef = useRef<Map<string, string>>(new Map());
+  const { personalItems: kbPersonalItems, sharedItems: kbSharedItems } = useKnowledgeBaseList();
+  useEffect(() => {
+    const next = new Map<string, string>();
+    for (const kb of kbPersonalItems) next.set(`${kb.name}|personal`, kb.id);
+    for (const kb of kbSharedItems) next.set(`${kb.name}|shared`, kb.id);
+    kbMentionResolverRef.current = next;
+  }, [kbPersonalItems, kbSharedItems]);
+  const resolveKbId = useCallback((name: string, isShared: boolean): string | undefined => {
+    return kbMentionResolverRef.current.get(`${name}|${isShared ? 'shared' : 'personal'}`);
   }, []);
 
   // --- Hooks ---
@@ -344,6 +364,9 @@ const GuidPage: React.FC = () => {
     navigate,
     t,
     localeKey,
+
+    // KB mention resolver (maps @kb:<name> → kbId at send time)
+    resolveKbId,
   });
 
   // --- Coordinated handlers (depend on multiple hooks) ---
