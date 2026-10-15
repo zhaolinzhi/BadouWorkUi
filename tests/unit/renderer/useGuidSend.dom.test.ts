@@ -43,6 +43,15 @@ vi.mock('@arco-design/web-react', () => ({
   },
 }));
 
+// useKnowledgeBaseList (called inside useGuidSend for the legacy
+// `knownKbIds` set + the KB system-prompt resolve) reaches useAuth.
+// The test harness does not provide an AuthProvider, so stub a minimal
+// useAuth returning a no-op token. The system-prompt assertions below
+// only care about whether resolveKbId was / wasn't called.
+vi.mock('@/renderer/hooks/context/AuthContext', () => ({
+  useAuth: () => ({ user: null, notifyTokenExpired: vi.fn() }),
+}));
+
 const createDeps = (): GuidSendDeps => ({
   input: 'hello',
   setInput: vi.fn(),
@@ -73,6 +82,7 @@ const createDeps = (): GuidSendDeps => ({
   navigate: vi.fn(() => Promise.resolve()) as never,
   t: vi.fn((key: string, options?: { defaultValue?: string }) => options?.defaultValue || key) as never,
   localeKey: 'zh-CN',
+  resolveKbId: undefined as never,
 });
 
 describe('useGuidSend', () => {
@@ -322,5 +332,36 @@ describe('useGuidSend', () => {
     });
 
     expect(createConversationInvokeMock).not.toHaveBeenCalled();
+  });
+
+  it('attaches a KB chatWithStream system-prompt hint when input cites @kb:<name>', async () => {
+    const deps = createDeps();
+    deps.input = '请总结 @kb:Docs 关于缓存的设计';
+    deps.resolveKbId = (name: string, _isShared: boolean) =>
+      name === 'Docs' ? 'uuid-1' : undefined;
+
+    const { result } = renderHook(() => useGuidSend(deps as never));
+    await act(async () => {
+      await result.current.handleSend();
+    });
+
+    const payload = createConversationInvokeMock.mock.calls[0][0];
+    expect(payload.assistant.conversation_overrides.system_prompt).toMatch(/`uuid-1`/);
+    expect(payload.assistant.conversation_overrides.system_prompt).toContain('chatWithStream');
+    expect(payload.assistant.conversation_overrides.mcp_ids).toContain('kb-uuid-1');
+  });
+
+  it('omits the chatWithStream system-prompt hint when input has no @kb token', async () => {
+    const deps = createDeps();
+    deps.input = 'hello world without a KB';
+    deps.resolveKbId = () => undefined;
+
+    const { result } = renderHook(() => useGuidSend(deps as never));
+    await act(async () => {
+      await result.current.handleSend();
+    });
+
+    const payload = createConversationInvokeMock.mock.calls[0][0];
+    expect(payload.assistant.conversation_overrides.system_prompt).toBeUndefined();
   });
 });
