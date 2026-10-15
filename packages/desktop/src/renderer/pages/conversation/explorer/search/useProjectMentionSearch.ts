@@ -35,8 +35,9 @@ export type ProjectMentionSearch = {
   /** True when the project's pe roots are resolved → `@` streams from fs/search.
    *  False during the loading window → the caller uses its legacy fallback. */
   active: boolean;
-  /** Ranked hits mapped to send-box items (project chat-ref), capped to `limit`.
-   *  Empty when inactive. */
+  /** Ranked hits mapped to send-box items (project chat-ref). Every hit is
+   *  forwarded to `AtFileMenu`; the dropdown is scrollable so users reach
+   *  deeper results by scrolling rather than being silently truncated. */
   items: FileOrFolderItem[];
   /** True while the fs/search stream is in flight (drives the menu's loading UI). */
   loading: boolean;
@@ -51,7 +52,10 @@ export const useProjectMentionSearch = ({
 }: {
   query: string;
   isOpen: boolean;
-  limit: number;
+  /** Unused — kept in the signature so existing call sites compile unchanged.
+   *  The dropdown is scrollable, so we surface every matching item rather
+   *  than truncating with a magic number. */
+  limit?: number;
 }): ProjectMentionSearch => {
   const { roots, peNames } = useProjectSearchRoots();
   const active = roots.length > 0;
@@ -73,8 +77,8 @@ export const useProjectMentionSearch = ({
   }, [active, isOpen, query, runSearch, cancel]);
 
   const items = useMemo<FileOrFolderItem[]>(
-    () => (active && owned ? view.hits.slice(0, limit).map(searchHitToMentionItem) : []),
-    [active, owned, limit, view.hits]
+    () => (active && owned ? view.hits.map(searchHitToMentionItem) : []),
+    [active, owned, view.hits]
   );
 
   return { active, items, loading: active && owned && view.status === 'searching', peNames };

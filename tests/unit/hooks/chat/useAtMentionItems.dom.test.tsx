@@ -63,13 +63,17 @@ describe('useAtMentionItems', () => {
     expect(result.current.items[0]).toMatchObject({ path: 'kb:1' });
   });
 
-  it('caps total at limit', () => {
+  it('surfaces every matching item (no truncate cap)', () => {
+    // The dropdown (`AtFileMenu`) constrains the visible area but stays
+    // scrollable, so every KB and every file hit must be in the merged
+    // list — callers reach deeper results by scrolling, not by being
+    // silently dropped.
     const manyKb = Array.from({ length: 6 }, (_, i) => kb(String(i), `K${i}`, false));
     const manyFiles = Array.from({ length: 6 }, (_, i) => file(`f${i}.ts`));
     kbList.mockReturnValue({ personalItems: manyKb, sharedItems: [] });
     projectSearch.mockReturnValue({ active: true, items: manyFiles, loading: false });
     const { result } = renderHook(() => useAtMentionItems({ query: '', isOpen: true, limit: 8 }));
-    expect(result.current.items).toHaveLength(8);
+    expect(result.current.items).toHaveLength(12);
   });
 
   it('surfaces loading when KB list loading', () => {
@@ -87,16 +91,19 @@ describe('useAtMentionItems', () => {
     expect(result.current.knownKbIds.size).toBe(0);
   });
 
-  // Regression: when the user has more KBs than `limit`, KB items saturate
-  // the dropdown and project file hits no longer fit. Users with a large
-  // KB library reported "@ no longer surfaces files". The merge should
-  // reserve at least one slot for each side when both are active.
-  it('still surfaces project files when KB list exceeds limit', () => {
+  // Regression: when the user has more KBs than `limit`, the merged list
+  // must still include project file hits. Previously the merged loop
+  // `break`-ed as soon as the running count reached `limit`, so a large
+  // KB library silently dropped all file rows. Now we surface every
+  // match (the dropdown is scrollable), so files always appear.
+  it('surfaces every project file even when KB list is huge', () => {
     const manyKb = Array.from({ length: 12 }, (_, i) => kb(String(i), `K${i}`, false));
     kbList.mockReturnValue({ personalItems: manyKb, sharedItems: [] });
     projectSearch.mockReturnValue({ active: true, items: [file('x.ts'), file('y.ts')], loading: false });
     const { result } = renderHook(() => useAtMentionItems({ query: '', isOpen: true, limit: 8 }));
     const fileHits = result.current.items.filter((i) => i.kind !== 'kb');
-    expect(fileHits.length).toBeGreaterThan(0);
+    expect(fileHits.map((i) => i.path)).toEqual(['x.ts', 'y.ts']);
+    // All 12 KB rows also survive — total reflects every matching item.
+    expect(result.current.items).toHaveLength(14);
   });
 });

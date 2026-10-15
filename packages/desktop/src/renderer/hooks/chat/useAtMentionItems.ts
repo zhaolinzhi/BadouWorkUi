@@ -19,7 +19,10 @@ export type AtMentionItems = {
  * Merge KB + file hits for the `@`-mention dropdown.
  * - KB rows come first, personal before shared.
  * - File hits come after, only when the project search is active.
- * - Total capped at `limit`.
+ * - Every matching item is forwarded to `AtFileMenu`, which constrains the
+ *   dropdown visually (`maxHeight: 320; overflow-y: auto`) and lets users
+ *   scroll through deeper hits. We deliberately do NOT cap on a magic
+ *   number — callers can reach deeper results by scrolling.
  * - `knownKbIds` exposes the set of currently-known KB ids so callers
  *   can filter stale `@kb:<id>` tokens at send time. Note this is
  *   derived from currently visible KB rows only; callers that need
@@ -32,7 +35,10 @@ export const useAtMentionItems = ({
 }: {
   query: string;
   isOpen: boolean;
-  limit: number;
+  /** Unused — kept in the signature so existing call sites compile unchanged.
+   *  The dropdown is scrollable, so we surface every matching item rather
+   *  than truncating with a magic number. */
+  limit?: number;
 }): AtMentionItems => {
   const kbMention = useKbMentionSearch({ query, isOpen, limit });
   const projectMention = useProjectMentionSearch({ query, isOpen, limit });
@@ -43,34 +49,14 @@ export const useAtMentionItems = ({
     }
     const kbItems = kbMention.items;
     const fileItems = projectMention.active ? projectMention.items : [];
-    // Cap each side independently so that a saturated KB list cannot push
-    // every project file out of the dropdown. With `limit: 8`, KB and files
-    // each get up to `Math.ceil(8/2) = 4` slots; with smaller `limit` values
-    // each side still gets at least 1, so neither data source is fully
-    // suppressed by the other.
-    const perSideCap = Math.max(1, Math.ceil(limit / 2));
-    const seen = new Set<string>();
-    const pushItem = (item: FileOrFolderItem): boolean => {
-      const key = item.kind === 'kb' ? `kb:${item.path}` : item.path;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    };
     const merged: FileOrFolderItem[] = [];
-    const pushCapped = (items: FileOrFolderItem[], cap: number): void => {
-      let added = 0;
-      for (const item of items) {
-        if (added >= cap) break;
-        if (!pushItem(item)) continue;
-        merged.push(item);
-        added += 1;
-      }
-    };
-    pushCapped(kbItems, perSideCap);
-    pushCapped(fileItems, perSideCap);
-    // Trim to `limit` only if both sides together exceeded it (rare: happens
-    // only when one side already returned fewer than its cap).
-    if (merged.length > limit) merged.length = limit;
+    const seen = new Set<string>();
+    for (const item of [...kbItems, ...fileItems]) {
+      const key = item.kind === 'kb' ? `kb:${item.path}` : item.path;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      merged.push(item);
+    }
     const knownKbIds = new Set<string>();
     for (const item of kbItems) {
       if (item.kind === 'kb' && item.path.startsWith('kb:')) {
@@ -82,7 +68,6 @@ export const useAtMentionItems = ({
     isOpen,
     kbMention.items,
     kbMention.loading,
-    limit,
     projectMention.active,
     projectMention.items,
     projectMention.loading,
