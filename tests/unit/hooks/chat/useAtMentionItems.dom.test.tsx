@@ -86,4 +86,17 @@ describe('useAtMentionItems', () => {
     expect(result.current.items).toEqual([]);
     expect(result.current.knownKbIds.size).toBe(0);
   });
+
+  // Regression: when the user has more KBs than `limit`, KB items saturate
+  // the dropdown and project file hits no longer fit. Users with a large
+  // KB library reported "@ no longer surfaces files". The merge should
+  // reserve at least one slot for each side when both are active.
+  it('still surfaces project files when KB list exceeds limit', () => {
+    const manyKb = Array.from({ length: 12 }, (_, i) => kb(String(i), `K${i}`, false));
+    kbList.mockReturnValue({ personalItems: manyKb, sharedItems: [] });
+    projectSearch.mockReturnValue({ active: true, items: [file('x.ts'), file('y.ts')], loading: false });
+    const { result } = renderHook(() => useAtMentionItems({ query: '', isOpen: true, limit: 8 }));
+    const fileHits = result.current.items.filter((i) => i.kind !== 'kb');
+    expect(fileHits.length).toBeGreaterThan(0);
+  });
 });

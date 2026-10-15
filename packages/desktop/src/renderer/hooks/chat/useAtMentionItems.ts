@@ -43,15 +43,34 @@ export const useAtMentionItems = ({
     }
     const kbItems = kbMention.items;
     const fileItems = projectMention.active ? projectMention.items : [];
-    const merged: FileOrFolderItem[] = [];
+    // Cap each side independently so that a saturated KB list cannot push
+    // every project file out of the dropdown. With `limit: 8`, KB and files
+    // each get up to `Math.ceil(8/2) = 4` slots; with smaller `limit` values
+    // each side still gets at least 1, so neither data source is fully
+    // suppressed by the other.
+    const perSideCap = Math.max(1, Math.ceil(limit / 2));
     const seen = new Set<string>();
-    for (const item of [...kbItems, ...fileItems]) {
+    const pushItem = (item: FileOrFolderItem): boolean => {
       const key = item.kind === 'kb' ? `kb:${item.path}` : item.path;
-      if (seen.has(key)) continue;
+      if (seen.has(key)) return false;
       seen.add(key);
-      merged.push(item);
-      if (merged.length >= limit) break;
-    }
+      return true;
+    };
+    const merged: FileOrFolderItem[] = [];
+    const pushCapped = (items: FileOrFolderItem[], cap: number): void => {
+      let added = 0;
+      for (const item of items) {
+        if (added >= cap) break;
+        if (!pushItem(item)) continue;
+        merged.push(item);
+        added += 1;
+      }
+    };
+    pushCapped(kbItems, perSideCap);
+    pushCapped(fileItems, perSideCap);
+    // Trim to `limit` only if both sides together exceeded it (rare: happens
+    // only when one side already returned fewer than its cap).
+    if (merged.length > limit) merged.length = limit;
     const knownKbIds = new Set<string>();
     for (const item of kbItems) {
       if (item.kind === 'kb' && item.path.startsWith('kb:')) {
