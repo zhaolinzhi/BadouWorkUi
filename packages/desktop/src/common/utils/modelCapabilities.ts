@@ -9,6 +9,7 @@ import type {
   ModelImageInputCapability,
   ModelOpenAiApiMode,
   ModelSettings,
+  ModelToolWireShape,
   ModelType,
 } from '@/common/config/storage';
 
@@ -64,6 +65,7 @@ export const getBaseModelName = (modelName: string): string => {
 
 export type ModelOpenAiApiModeChoice = ModelOpenAiApiMode | 'auto';
 export type ModelImageInputChoice = ModelImageInputCapability | 'auto';
+export type ModelToolWireShapeChoice = ModelToolWireShape | 'auto';
 
 /** Whether a provider/model protocol can select an OpenAI wire API. */
 export const supportsOpenAiApiMode = (platform: string, modelProtocol = 'openai'): boolean => {
@@ -84,13 +86,14 @@ export const updateModelSettings = (
   modelIds: string[],
   imageInput: ModelImageInputChoice,
   openAiApiMode: ModelOpenAiApiModeChoice,
+  toolWireShape: ModelToolWireShapeChoice,
   limits?: ModelLimitInput
 ): Record<string, ModelSettings> => {
   const next = { ...current };
 
   for (const modelId of modelIds) {
     const limitsEmpty = !limits?.contextWindowSize && !limits?.maxContentLength && !limits?.maxResponseLength;
-    if (imageInput === 'auto' && openAiApiMode === 'auto' && limitsEmpty) {
+    if (imageInput === 'auto' && openAiApiMode === 'auto' && toolWireShape === 'auto' && limitsEmpty) {
       delete next[modelId];
       continue;
     }
@@ -99,6 +102,8 @@ export const updateModelSettings = (
     else delete settings.image_input;
     if (openAiApiMode !== 'auto') settings.openai_api_mode = openAiApiMode;
     else delete settings.openai_api_mode;
+    if (toolWireShape !== 'auto') settings.tool_wire_shape = toolWireShape;
+    else delete settings.tool_wire_shape;
     if (limits?.contextWindowSize) settings.context_window_size = limits.contextWindowSize;
     else delete settings.context_window_size;
     if (limits?.maxContentLength) settings.max_content_length = limits.maxContentLength;

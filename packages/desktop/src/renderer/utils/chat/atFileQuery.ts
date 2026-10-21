@@ -147,6 +147,21 @@ export function buildAtFileInsertion(item: FileOrFolderItem): string | null {
   return `@${escapeAtFilePath(path)}`;
 }
 
+/**
+ * Build the text inserted by the `@`-mention dropdown.
+ *
+ * Knowledge-base mentions get a trailing space so the user can keep typing
+ * immediately after selecting one. The space is omitted when the text after
+ * the replaced query already starts with whitespace, which would otherwise
+ * produce two spaces. File mentions keep their existing exact-path form.
+ */
+export function buildAtMentionInsertion(item: FileOrFolderItem, followingText = ''): string | null {
+  const insertion = buildAtFileInsertion(item);
+  if (!insertion) return null;
+  if (item.kind !== 'kb') return insertion;
+  return /^\s/.test(followingText) ? insertion : `${insertion} `;
+}
+
 /** An action the `@`-mention dropdown takes for a keydown (null = not handled). */
 export type AtFileMenuKeyAction = 'dismiss' | 'up' | 'down' | 'accept' | null;
 

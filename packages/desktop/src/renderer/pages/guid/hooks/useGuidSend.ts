@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { uuid } from '@/common/utils/utils';
 import { type ChatFileRef, chatFileRefPath } from '@/common/types/chatFile';
 import { getCleanFileNames } from '@/renderer/services/FileService';
 import type { IMcpServer, TProviderWithModel } from '@/common/config/storage';
@@ -160,22 +161,22 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         knownKbIds,
       }
     );
-    // Hidden chatWithStream hint: when the user @-mentions a KB in this
-    // turn, silently append a Chinese instruction to the user message
-    // body so the LLM routes the question through knowledge-server's
-    // chatWithStream tool. The user does NOT see the hint in the
-    // textarea (only the LLM does); the textarea still shows just
-    // `baseText`. `buildKbTailHint` returns null when no KB is cited,
-    // in which case `finalInput` is `baseText` unchanged.
+    // Hidden KB hint: when the user @-mentions a KB in this turn, silently
+    // append a Chinese instruction to the user message body so the LLM
+    // routes the question through knowledge-server's `chat` tool (one call
+    // per cited KB, all sharing this turn's threadId). The user does NOT
+    // see the hint in the textarea (only the LLM does); the textarea still
+    // shows just `baseText`. `buildKbTailHint` returns null when no KB is
+    // cited, in which case `finalInput` is `baseText` unchanged.
     //
     // We use the user-message channel rather than a system-prompt slot
     // because the current backend agent framework does not yet read
     // `conversation_overrides.system_prompt` — see the protocol-gap note
     // in `utils/kb/injectKbPrompt.ts`.
-    const kbIdsForHint = inputKbMcpIds
-      .filter((mcpId) => mcpId.startsWith('kb-'))
-      .map((mcpId) => mcpId.slice(3));
-    const kbTailHint = buildKbTailHint(kbIdsForHint);
+    const kbIdsForHint = inputKbMcpIds.filter((mcpId) => mcpId.startsWith('kb-')).map((mcpId) => mcpId.slice(3));
+    // A fresh threadId per send: all `chat` calls for this turn (one per KB)
+    // must share it, but separate sends must not leak retrieval context.
+    const kbTailHint = kbIdsForHint.length > 0 ? buildKbTailHint(kbIdsForHint, uuid(36)) : null;
     const finalInput = kbTailHint ? `${baseText}${kbTailHint}` : baseText;
     const seenIdsLocal = new Set(selectedAllMcpServerIds);
     for (const mcpId of inputKbMcpIds) {

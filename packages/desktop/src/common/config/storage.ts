@@ -491,9 +491,18 @@ export type ModelOpenAiApiMode = 'chat_completions' | 'responses';
 
 export type ModelImageInputCapability = 'supported' | 'unsupported';
 
+/**
+ * Explicit `tools` wire-shape override for a model. Mirrors
+ * `aion_config::compat::ToolWireShape` so the front-end can ask the
+ * aionrs runtime to emit a specific `tools[i]` shape (e.g. flat
+ * `{name, parameters}` instead of nested `{function: {name, parameters}}`).
+ */
+export type ModelToolWireShape = 'native' | 'openai_function' | 'openai_flat_function' | 'anthropic_input_schema';
+
 export type ModelSettings = {
   image_input?: ModelImageInputCapability;
   openai_api_mode?: ModelOpenAiApiMode;
+  tool_wire_shape?: ModelToolWireShape;
   context_window_size?: number;
   max_content_length?: number;
   max_response_length?: number;

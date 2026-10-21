@@ -13,7 +13,7 @@ import type { RefTextAreaType } from '@arco-design/web-react/es/Input';
 import AtFileMenu from '@/renderer/components/chat/AtFileMenu';
 import { useAtMentionItems } from '@/renderer/hooks/chat/useAtMentionItems';
 import {
-  buildAtFileInsertion,
+  buildAtMentionInsertion,
   getActiveAtFileQuery,
   getAllAtFileQueries,
   resolveAtFileMenuKey,
@@ -21,6 +21,11 @@ import {
 import { useTranslation } from 'react-i18next';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import styles from '../index.module.css';
+// Shared highlight-overlay CSS for the transparent-text + overlay pair.
+// Must be imported here (and not just by SendBox) so the rule is loaded on
+// the Guid homepage too — otherwise the @kb:<name> token renders as both
+// the underlying textarea text and the badge in the overlay.
+import '@/renderer/styles/sendbox-highlight.css';
 import GuidWorkspaceFootnote from './GuidWorkspaceFootnote';
 
 type GuidInputCardProps = {
@@ -109,10 +114,10 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
   // Splice a KB item into the input at the active @ query position.
   const insertSelectedKbItem = (item: (typeof kbMenuItems)[number]) => {
     if (!activeAtFileQuery) return;
-    const text = buildAtFileInsertion(item);
+    const after = input.slice(activeAtFileQuery.end);
+    const text = buildAtMentionInsertion(item, after);
     if (!text) return;
     const before = input.slice(0, activeAtFileQuery.start);
-    const after = input.slice(activeAtFileQuery.end);
     const next = `${before}${text}${after}`;
     onInputChange(next);
     const nextCaret = activeAtFileQuery.start + text.length;
@@ -133,7 +138,11 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
       return;
     }
     const action = resolveAtFileMenuKey(event.key, kbMenuItems.length > 0);
-    if (action === 'dismiss') {
+    if (!action || action === 'dismiss') {
+      // Keys the menu does not own (Backspace, Delete, printable characters,
+      // Escape…) must reach the textarea. Swallowing them here made it
+      // impossible to edit or delete an existing @kb mention while the menu
+      // was open.
       onKeyDown(event);
       return;
     }
@@ -238,17 +247,20 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
               whiteSpace: 'pre-wrap',
               wordBreak: 'break-word',
               color: 'transparent',
-              // The textarea has `!py-0` (no vertical padding) and `pl-7px`
-              // for its left text inset. The overlay mirrors the textarea
-              // line-height (20px) so badge baseline aligns with the
-              // transparent textarea text — without an explicit line-height
-              // here, the overlay inherits the page-level 1.5 line-height,
-              // and the two layers wrap at different line breaks, which
-              // visually presents as duplicate text. A small left inset
-              // (12px) gives the badge visual breathing room from the
-              // textarea border without disturbing vertical alignment.
+              // The overlay is positioned against the card's padding box
+              // (the card has `p-12px`), while the textarea sits in the
+              // content box. Its padding must therefore reproduce the
+              // textarea's own text insets exactly:
+              //   left: 12 (card padding) + 7 (textarea `pl-7px`) = 19px
+              //   top:  12 (card padding) + 0 (textarea `!py-0`)   = 12px
+              // Otherwise the rendered text is offset from the textarea's
+              // real caret position — vertically (caret below the text) or
+              // horizontally (caret overlapping the last character).
+              // The overlay also mirrors the textarea line-height (20px) so
+              // both layers wrap at the same breaks.
               lineHeight: '20px',
-              paddingLeft: 12,
+              paddingLeft: 19,
+              paddingTop: 12,
             }}
           >
             {(() => {
@@ -276,8 +288,14 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
                         background: 'color-mix(in srgb, var(--color-primary-light-1, #e6f4ff) 80%, transparent)',
                         color: 'var(--color-primary-6, #165dff)',
                         borderRadius: '6px',
+                        // The badge must not widen the inline flow: the
+                        // textarea lays out the raw token without any
+                        // padding/margin, so every extra pixel here shifts
+                        // all following characters (and the caret) out of
+                        // sync. Padding supplies the visual breathing room;
+                        // negative margins cancel its layout width.
                         padding: '0 4px',
-                        margin: '0 2px',
+                        margin: '0 -4px',
                       }}
                     >
                       {match.token}

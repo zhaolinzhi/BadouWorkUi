@@ -16,7 +16,7 @@ import { useConversationContextSafe } from '@/renderer/hooks/context/Conversatio
 import { appendPromptToDraft, useConversationSendBoxPrefill } from '@/renderer/hooks/chat/useSendBoxDraft';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import {
-  buildAtFileInsertion,
+  buildAtMentionInsertion,
   getActiveAtFileQuery,
   getAllAtFileQueries,
   resolveAtFileMenuKey,
@@ -64,6 +64,7 @@ import { appendSpeechTranscript } from '@/renderer/hooks/system/useSpeechInput';
 import { createChainedDispatch, useLiveTranscriptInsertion } from '@/renderer/hooks/system/useLiveTranscriptInsertion';
 import { getConversationInputHistory, isCaretOnFirstLine } from '@/renderer/utils/chat/messageHistory';
 import './sendbox.css';
+import '@/renderer/styles/sendbox-highlight.css';
 
 const constVoid = (): void => undefined;
 // 临界值：超过该字符数直接切换至多行模式，避免为超长文本做昂贵的宽度测量
@@ -1065,7 +1066,7 @@ const SendBoxInner = (
         return;
       }
 
-      const nextInsertion = buildAtFileInsertion(item);
+      const nextInsertion = buildAtMentionInsertion(item, input.slice(activeAtFileQuery.end));
       if (!nextInsertion) {
         return;
       }
@@ -1526,8 +1527,13 @@ const SendBoxInner = (
               background: 'color-mix(in srgb, var(--color-primary-light-1, #e6f4ff) 80%, transparent)',
               color: 'var(--color-primary-6, #165dff)',
               borderRadius: '6px',
+              // The badge must not widen the inline flow: the textarea lays
+              // out the raw token without padding, so extra width here shifts
+              // every following glyph (and the caret) out of sync with the
+              // overlay. Padding supplies the visual breathing room; negative
+              // margins cancel its layout width. Mirrors GuidInputCard.
               padding: '0 4px',
-              margin: '0 2px',
+              margin: '0 -4px',
             }}
           >
             {idPart}

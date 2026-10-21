@@ -407,6 +407,12 @@
   "openAiApiModeChatCompletions": "Chat Completions",
   "openAiApiModeResponses": "Responses",
   "openAiApiModeTip": "Disponible uniquement pour les modèles utilisant un protocole compatible OpenAI.",
+  "toolWireShape": "Forme du fil d'outils",
+  "toolWireShapeNative": "Natif (auto)",
+  "toolWireShapeOpenAiFunction": "OpenAI function (imbriqué)",
+  "toolWireShapeOpenAiFlatFunction": "OpenAI flat function (name au niveau supérieur)",
+  "toolWireShapeAnthropicInputSchema": "Anthropic input_schema",
+  "toolWireShapeTip": "Affiché uniquement pour les modèles utilisant un protocole compatible OpenAI. Certaines passerelles exigent que name apparaisse au niveau supérieur de tools[i] (flat function).",
   "modelSettingsApplyToSelected": "Ces réglages s'appliquent à tous les modèles sélectionnés et peuvent être modifiés individuellement ensuite.",
   "platformBedrock": "AWS Bedrock",
   "bedrock": {

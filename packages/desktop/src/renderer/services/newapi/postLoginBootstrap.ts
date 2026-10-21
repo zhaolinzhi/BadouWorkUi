@@ -113,7 +113,7 @@ export async function runNewapiPostLogin(token: string): Promise<void> {
         api_key: apiKey,
         models: [NEWAPI_DEFAULT_MODEL],
         enabled: true,
-        is_full_url: true,
+        is_full_url: false,
         model_settings: {
           [NEWAPI_DEFAULT_MODEL]: NEWAPI_DEFAULT_MODEL_SETTINGS,
         },
