@@ -12,6 +12,27 @@ import { useGuidSend, type GuidSendDeps } from '@/renderer/pages/guid/hooks/useG
 const createConversationInvokeMock = vi.fn();
 const swrMutateMock = vi.fn();
 
+/**
+ * Read the `input` text that `useGuidSend` stashed in `sessionStorage` as the
+ * initial message body for the freshly-created conversation. Captures the
+ * final user-message content, which is the only place the hidden hint can
+ * survive the trip to the LLM.
+ */
+const readLastSessionInput = (): string | undefined => {
+  // `useGuidSend` writes both a `aionrs_initial_message_<id>` and an
+  // `acp_initial_message_<id>` key depending on the backend; pick whichever
+  // is present.
+  const keys = Object.keys(sessionStorage);
+  const key = keys.find((k) => k.startsWith('aionrs_initial_message_') || k.startsWith('acp_initial_message_'));
+  if (!key) return undefined;
+  try {
+    const raw = sessionStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as { input?: string }).input : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
 vi.mock('@/common', () => ({
   ipcBridge: {
     conversation: {
@@ -41,6 +62,15 @@ vi.mock('@arco-design/web-react', () => ({
     warning: vi.fn(),
     error: vi.fn(),
   },
+}));
+
+// useKnowledgeBaseList (called inside useGuidSend for the legacy
+// `knownKbIds` set + the KB system-prompt resolve) reaches useAuth.
+// The test harness does not provide an AuthProvider, so stub a minimal
+// useAuth returning a no-op token. The system-prompt assertions below
+// only care about whether resolveKbId was / wasn't called.
+vi.mock('@/renderer/hooks/context/AuthContext', () => ({
+  useAuth: () => ({ user: null, notifyTokenExpired: vi.fn() }),
 }));
 
 const createDeps = (): GuidSendDeps => ({
@@ -73,6 +103,7 @@ const createDeps = (): GuidSendDeps => ({
   navigate: vi.fn(() => Promise.resolve()) as never,
   t: vi.fn((key: string, options?: { defaultValue?: string }) => options?.defaultValue || key) as never,
   localeKey: 'zh-CN',
+  resolveKbId: undefined as never,
 });
 
 describe('useGuidSend', () => {
@@ -81,6 +112,7 @@ describe('useGuidSend', () => {
     createConversationInvokeMock.mockResolvedValue({ id: 'conv-1' });
     swrMutateMock.mockReset();
     swrMutateMock.mockResolvedValue(undefined);
+    sessionStorage.clear();
   });
 
   it('passes selected mode into assistant conversation overrides when creating a preset ACP conversation', async () => {
@@ -322,5 +354,45 @@ describe('useGuidSend', () => {
     });
 
     expect(createConversationInvokeMock).not.toHaveBeenCalled();
+  });
+
+  // Hidden chatWithStream hint is APPENDED to the user message body
+  // (not to a system-prompt slot) because the backend agent framework
+  // does not yet read `conversation_overrides.system_prompt`. The hint
+  // reaches the LLM via the user-message channel. The user does NOT
+  // see it in the textarea — only the LLM does.
+
+  it('appends a chatWithStream hint to the user message when input cites @kb:<name>', async () => {
+    const deps = createDeps();
+    deps.input = '请总结 @kb:Docs 关于缓存的设计';
+    deps.resolveKbId = (name: string, _isShared: boolean) => (name === 'Docs' ? 'uuid-1' : undefined);
+
+    const { result } = renderHook(() => useGuidSend(deps as never));
+    await act(async () => {
+      await result.current.handleSend();
+    });
+
+    const sentInput = readLastSessionInput();
+    expect(sentInput).toContain('@kb:Docs');
+    expect(sentInput).toContain('请使用 knowledge-server');
+    expect(sentInput).toContain('chatWithStream');
+    expect(sentInput).toContain('`uuid-1`');
+    // Original user text stays at the head, hint is at the tail.
+    expect(sentInput?.startsWith('请总结 @kb:Docs 关于缓存的设计')).toBe(true);
+  });
+
+  it('does NOT append the hint when input has no @kb token', async () => {
+    const deps = createDeps();
+    deps.input = 'hello world without a KB';
+    deps.resolveKbId = () => undefined;
+
+    const { result } = renderHook(() => useGuidSend(deps as never));
+    await act(async () => {
+      await result.current.handleSend();
+    });
+
+    const sentInput = readLastSessionInput();
+    expect(sentInput).toBe('hello world without a KB');
+    expect(sentInput).not.toContain('chatWithStream');
   });
 });

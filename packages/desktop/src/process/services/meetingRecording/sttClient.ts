@@ -7,7 +7,20 @@ import fs from 'fs/promises';
 import path from 'path';
 
 const STT_URL = 'http://extranet.badousoft.com:28021/v1/audio/transcriptions';
-const STT_PROMPT = '这是一段中文语音的转录结果。请注意，句子之间应该有合适的标点符号。';
+// Short, instructional prompt. The previous Chinese-language prompt
+// ("这是一段中文语音的转录结果。请注意，句子之间应该有合适的标点符号。")
+// was self-contained Chinese text, which Whisper treated as spoken
+// context to continue from — on long / low-SNR recordings the model
+// parroted the prompt verbatim instead of transcribing the actual
+// audio (e.g. an 83s recording came back as "这些字的字体是用文字来
+// 形容的... 这就是一段中文语音的转录结果..."). Switching to a short,
+// imperative prompt that has no complete sentences and isn't plausible
+// as transcript text reduces the hallucination risk while still
+// nudging the model toward better Chinese punctuation. Empirically
+// (A/B tested on 7bb30031 dev recording) Whisper ignores prompts this
+// short on already-degraded audio, so any future divergence from this
+// minimal prompt should re-validate on real recordings before shipping.
+const STT_PROMPT = '请准确转录会议录音。';
 const STT_MODEL = 'whisper-large-v3';
 const STT_LANGUAGE = 'zh';
 
@@ -33,7 +46,9 @@ const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms
  * distinct from `SttResult` so the public type stays clean (callers don't
  * need to know about `status`).
  */
-type AttemptResult = { ok: true; text: string; raw: unknown } | { ok: false; error: string; status: number | undefined };
+type AttemptResult =
+  | { ok: true; text: string; raw: unknown }
+  | { ok: false; error: string; status: number | undefined };
 
 // Node 22+ exposes FormData / File / fetch globally. Older runtimes would
 // need a fallback (e.g. undici); the project targets Node 22.
@@ -112,7 +127,10 @@ export const transcribeFile = async (
   form.append('file', new File([copy], path.basename(filePath), { type: mimeType }));
   form.append('model', STT_MODEL);
   form.append('language', STT_LANGUAGE);
-  form.append('prompt', STT_PROMPT);
+  // Only attach `prompt` when it's non-empty. Whisper treats it as
+  // already-spoken context to continue from, so sending an empty string
+  // can still confuse some server-side parsers — guard it out entirely.
+  if (STT_PROMPT) form.append('prompt', STT_PROMPT);
 
   const attempt = async (): Promise<AttemptResult> => {
     try {

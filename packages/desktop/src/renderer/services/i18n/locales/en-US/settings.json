@@ -1322,5 +1322,11 @@
     }
   },
   "providerIdConflict": "Provider ID already exists. Please try again.",
-  "autoInjectedSkillsHint": "Loaded automatically into every conversation — no need to enable them; the agent decides when to use them."
+  "autoInjectedSkillsHint": "Loaded automatically into every conversation — no need to enable them; the agent decides when to use them.",
+  "toolWireShape": "Tool wire shape",
+  "toolWireShapeNative": "Native (auto)",
+  "toolWireShapeOpenAiFunction": "OpenAI function (nested)",
+  "toolWireShapeOpenAiFlatFunction": "OpenAI flat function (name at top level)",
+  "toolWireShapeAnthropicInputSchema": "Anthropic input_schema",
+  "toolWireShapeTip": "Only shown for models using the OpenAI-compatible protocol. Some gateways require name to appear at the top level of tools[i] (flat function)."
 }

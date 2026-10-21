@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { uuid } from '@/common/utils/utils';
 import { type ChatFileRef, chatFileRefPath } from '@/common/types/chatFile';
 import { getCleanFileNames } from '@/renderer/services/FileService';
 import type { IMcpServer, TProviderWithModel } from '@/common/config/storage';
@@ -12,7 +13,11 @@ import { toSessionMcpServer } from '@/renderer/hooks/mcp/catalog';
 import { emitter } from '@/renderer/utils/emitter';
 import { updateWorkspaceTime } from '@/renderer/utils/workspace/workspaceHistory';
 import { Message } from '@arco-design/web-react';
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { findAllKbTokens, extractKbMcpServerIdsFromInput } from '@/renderer/utils/kb/atKbInsertion';
+import { kbIdToMcpServerId } from '@/renderer/utils/kb/kbToMcpId';
+import { buildKbTailHint } from '@/renderer/utils/kb/injectKbPrompt';
+import { useKnowledgeBaseList } from '@/renderer/hooks/knowledge-base';
 import { type TFunction } from 'i18next';
 import type { NavigateFunction } from 'react-router-dom';
 import { mutate as swrMutate } from 'swr';
@@ -58,6 +63,14 @@ export type GuidSendDeps = {
   navigate: NavigateFunction;
   t: TFunction;
   localeKey: string;
+
+  /**
+   * Resolve an @kb:<name> token (from the renderer-visible form in the Guid
+   * textarea) back to its kbId. Provided by GuidPage and keyed by
+   * `(name, isShared)` so personal+shared KBs with the same display name
+   * don't alias to the same MCP server id.
+   */
+  resolveKbId?: (name: string, isShared: boolean) => string | undefined;
 };
 
 export type GuidSendResult = {
@@ -100,8 +113,21 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     navigate,
     t,
     localeKey,
+    resolveKbId,
   } = deps;
   const sendingRef = useRef(false);
+  // Mirror the live resolver in a ref so handleSend's dep array does not have
+  // to depend on it (it's owned by GuidPage and would otherwise thrash on
+  // every KB-list refresh).
+  const resolveKbIdRef = useRef(resolveKbId);
+  useEffect(() => {
+    resolveKbIdRef.current = resolveKbId;
+  }, [resolveKbId]);
+  const { personalItems, sharedItems } = useKnowledgeBaseList();
+  const knownKbIds = useMemo(
+    () => new Set([...personalItems, ...sharedItems].map((k) => k.id)),
+    [personalItems, sharedItems]
+  );
 
   const handleSend = useCallback(async () => {
     if (!selectedAssistantId) {
@@ -113,7 +139,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     // Backend rejects empty `content` even with files attached. When user
     // sends only attachments (no text), prepend file refs so the model
     // sees what is being attached.
-    const finalInput = input.trim() ? input : getCleanFileNames(files.map(chatFileRefPath)).join(' ');
+    const baseText = input.trim() ? input : getCleanFileNames(files.map(chatFileRefPath)).join(' ');
 
     const isCustomWorkspace = !!dir;
     const finalWorkspace = dir || '';
@@ -123,6 +149,41 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     const enabled_skills_to_send = guidEnabledSkills ?? assistantDefaultSkillIds;
     const excludeBuiltinSkills = guidDisabledBuiltinSkills ?? assistantDefaultDisabledBuiltinSkillIds;
     const selectedAllMcpServerIds = selectedMcpServerIds ?? [];
+    // Resolve renderer-visible @kb:<name> tokens to MCP server ids (`kb-<id>`)
+    // via the page-level resolver; legacy @kb:<id> tokens from in-flight
+    // sessionStorage drafts are appended as a one-shot fallback. Both forms
+    // dedupe against each other and against the user's pre-selected MCP ids.
+    const inputKbMcpIds = extractKbMcpServerIdsFromInput(
+      input,
+      (name, isShared) => resolveKbIdRef.current?.(name, isShared),
+      {
+        legacyKbTokens: findAllKbTokens(input),
+        knownKbIds,
+      }
+    );
+    // Hidden KB hint: when the user @-mentions a KB in this turn, silently
+    // append a Chinese instruction to the user message body so the LLM
+    // routes the question through knowledge-server's `chat` tool (one call
+    // per cited KB, all sharing this turn's threadId). The user does NOT
+    // see the hint in the textarea (only the LLM does); the textarea still
+    // shows just `baseText`. `buildKbTailHint` returns null when no KB is
+    // cited, in which case `finalInput` is `baseText` unchanged.
+    //
+    // We use the user-message channel rather than a system-prompt slot
+    // because the current backend agent framework does not yet read
+    // `conversation_overrides.system_prompt` — see the protocol-gap note
+    // in `utils/kb/injectKbPrompt.ts`.
+    const kbIdsForHint = inputKbMcpIds.filter((mcpId) => mcpId.startsWith('kb-')).map((mcpId) => mcpId.slice(3));
+    // A fresh threadId per send: all `chat` calls for this turn (one per KB)
+    // must share it, but separate sends must not leak retrieval context.
+    const kbTailHint = kbIdsForHint.length > 0 ? buildKbTailHint(kbIdsForHint, uuid(36)) : null;
+    const finalInput = kbTailHint ? `${baseText}${kbTailHint}` : baseText;
+    const seenIdsLocal = new Set(selectedAllMcpServerIds);
+    for (const mcpId of inputKbMcpIds) {
+      if (seenIdsLocal.has(mcpId)) continue;
+      seenIdsLocal.add(mcpId);
+      selectedAllMcpServerIds.push(mcpId);
+    }
     const selectedMcpServerIdSet = new Set(selectedAllMcpServerIds);
     const selectedUserMcpServerIds = availableMcpServers
       .filter((server) => selectedMcpServerIdSet.has(server.id) && server.builtin !== true)

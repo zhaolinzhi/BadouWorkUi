@@ -8,7 +8,7 @@ import path from 'path';
 import { app } from 'electron';
 import { ipcBridge } from '@/common';
 import type { MeetingRecording, RecordingChunk, SaveRecordingParams } from '@/common/types/meetingRecording';
-import { extractWebmHeader, transcribeFile } from './sttClient';
+import { extractWebmHeader, repairWebmChunk, transcribeFile } from './sttClient';
 
 const RECORDINGS_ROOT = (): string => path.join(app.getPath('userData'), 'meeting-recordings');
 
@@ -57,9 +57,18 @@ const emitChunkTranscribed = (
   id: string,
   chunkIndex: number,
   status: 'transcribed' | 'failed',
-  error?: string
+  payload: { transcription?: string; error?: string } = {}
 ): void => {
-  ipcBridge.meetingRecording.chunkTranscribed.emit({ id, chunkIndex, status, error });
+  // Carry the freshly-written transcription text over the wire so the
+  // renderer can update the live list and auto-open the summary modal
+  // without a follow-up `list()` call. Failed chunks carry `error` instead.
+  ipcBridge.meetingRecording.chunkTranscribed.emit({
+    id,
+    chunkIndex,
+    status,
+    transcription: payload.transcription,
+    error: payload.error,
+  });
 };
 
 export const createMeetingRecordingService = () => ({
@@ -92,10 +101,31 @@ export const createMeetingRecordingService = () => ({
     await fs.mkdir(chunksDir, { recursive: true });
 
     const ext = mimeToExt(p.mimeType);
+
+    // For webm recordings with multiple per-50s slices, slice #0 carries
+    // the EBML / Segment / Tracks header but later slices are bare
+    // clusters — they would be rejected by the upstream Whisper decoder
+    // and (more importantly) by the browser's <audio> element when the
+    // user clicks play. To make every chunk on disk a self-decodable
+    // webm stream, we borrow the EBML header from slice #0 (first 4 KiB
+    // is plenty for header + Segment + Tracks) and prepend it to each
+    // sibling slice that lacks the magic bytes. Non-webm recordings
+    // (mp4/ogg) skip the repair; their native demuxer is more forgiving.
+    const firstChunkBytes = p.chunks.length > 0 ? Buffer.from(p.chunks[0].audioBase64, 'base64') : null;
+    const webmHeader = p.mimeType.includes('webm') && firstChunkBytes ? extractWebmHeader(firstChunkBytes) : null;
+
     const chunks: RecordingChunk[] = [];
     for (const c of p.chunks) {
       const audioPath = path.join(chunksDir, `${String(c.index).padStart(3, '0')}.${ext}`);
-      await fs.writeFile(audioPath, Buffer.from(c.audioBase64, 'base64'));
+      let bytes: Buffer = Buffer.from(c.audioBase64, 'base64');
+      if (c !== p.chunks[0]) {
+        // `repairWebmChunk` returns `Buffer.concat(...)` which is typed
+        // as `Buffer<ArrayBuffer>`; our `bytes` is `Buffer<ArrayBufferLike>`
+        // from `Buffer.from(base64)`. Normalize the union so the file
+        // write below stays a single `Buffer` variable.
+        bytes = repairWebmChunk(bytes, webmHeader) as Buffer;
+      }
+      await fs.writeFile(audioPath, bytes);
       chunks.push({
         index: c.index,
         durationMs: c.durationMs,
@@ -177,7 +207,10 @@ export const createMeetingRecordingService = () => ({
           chunk.error = failed.error;
         }
         await writeMeta(dir, meta);
-        emitChunkTranscribed(id, chunk.index, chunk.status, chunk.error);
+        emitChunkTranscribed(id, chunk.index, chunk.status, {
+          transcription: chunk.transcription,
+          error: chunk.error,
+        });
       }
     })();
 

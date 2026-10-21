@@ -10,8 +10,22 @@ import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useCompositionInput } from '@/renderer/hooks/chat/useCompositionInput';
 import { Input } from '@arco-design/web-react';
 import type { RefTextAreaType } from '@arco-design/web-react/es/Input';
-import React, { useEffect, useRef } from 'react';
+import AtFileMenu from '@/renderer/components/chat/AtFileMenu';
+import { useAtMentionItems } from '@/renderer/hooks/chat/useAtMentionItems';
+import {
+  buildAtMentionInsertion,
+  getActiveAtFileQuery,
+  getAllAtFileQueries,
+  resolveAtFileMenuKey,
+} from '@/renderer/utils/chat/atFileQuery';
+import { useTranslation } from 'react-i18next';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import styles from '../index.module.css';
+// Shared highlight-overlay CSS for the transparent-text + overlay pair.
+// Must be imported here (and not just by SendBox) so the rule is loaded on
+// the Guid homepage too — otherwise the @kb:<name> token renders as both
+// the underlying textarea text and the badge in the overlay.
+import '@/renderer/styles/sendbox-highlight.css';
 import GuidWorkspaceFootnote from './GuidWorkspaceFootnote';
 
 type GuidInputCardProps = {
@@ -76,11 +90,76 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
   onSelectWorkspace,
   onClearWorkspace,
 }) => {
+  const { t } = useTranslation();
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
   const { compositionHandlers, isComposing } = useCompositionInput();
   const inputRef = useRef<RefTextAreaType | null>(null);
   const textareaAutoSize = isMobile ? { minRows: 2, maxRows: 8 } : { minRows: 2, maxRows: 20 };
+
+  // KB-only @ mention (Guid does not support file @-mentions).
+  const [caretPosition, setCaretPosition] = useState(0);
+  const [atMenuActiveIndex, setAtMenuActiveIndex] = useState(0);
+  const activeAtFileQuery = useMemo(() => getActiveAtFileQuery(input, caretPosition), [caretPosition, input]);
+  const isKbMenuOpen = Boolean(activeAtFileQuery);
+  const atMention = useAtMentionItems({
+    query: activeAtFileQuery?.query ?? '',
+    isOpen: isKbMenuOpen,
+    limit: 8,
+  });
+  const kbMenuItems = useMemo(() => atMention.items.filter((i) => i.kind === 'kb'), [atMention.items]);
+
+  const allAtFileQueries = useMemo(() => getAllAtFileQueries(input), [input]);
+
+  // Splice a KB item into the input at the active @ query position.
+  const insertSelectedKbItem = (item: (typeof kbMenuItems)[number]) => {
+    if (!activeAtFileQuery) return;
+    const after = input.slice(activeAtFileQuery.end);
+    const text = buildAtMentionInsertion(item, after);
+    if (!text) return;
+    const before = input.slice(0, activeAtFileQuery.start);
+    const next = `${before}${text}${after}`;
+    onInputChange(next);
+    const nextCaret = activeAtFileQuery.start + text.length;
+    setCaretPosition(nextCaret);
+    requestAnimationFrame(() => {
+      inputRef.current?.dom.setSelectionRange(nextCaret, nextCaret);
+    });
+  };
+
+  // Keyboard navigation for the KB menu (overrides normal onKeyDown while open).
+  const handleKbMenuKeyDown = (event: React.KeyboardEvent) => {
+    if (!isKbMenuOpen || !activeAtFileQuery || kbMenuItems.length === 0) {
+      onKeyDown(event);
+      return;
+    }
+    if (isComposing.current) {
+      onKeyDown(event);
+      return;
+    }
+    const action = resolveAtFileMenuKey(event.key, kbMenuItems.length > 0);
+    if (!action || action === 'dismiss') {
+      // Keys the menu does not own (Backspace, Delete, printable characters,
+      // Escape…) must reach the textarea. Swallowing them here made it
+      // impossible to edit or delete an existing @kb mention while the menu
+      // was open.
+      onKeyDown(event);
+      return;
+    }
+    event.preventDefault();
+    if (action === 'down') {
+      setAtMenuActiveIndex((prev) => (prev + 1) % kbMenuItems.length);
+      return;
+    }
+    if (action === 'up') {
+      setAtMenuActiveIndex((prev) => (prev === 0 ? kbMenuItems.length - 1 : prev - 1));
+      return;
+    }
+    if (action === 'accept') {
+      const item = kbMenuItems[atMenuActiveIndex];
+      if (item) insertSelectedKbItem(item);
+    }
+  };
 
   useEffect(() => {
     if (!focusRequestKey || isMobile) return;
@@ -90,6 +169,10 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (isComposing.current) return;
+    if (isKbMenuOpen && kbMenuItems.length > 0) {
+      handleKbMenuKeyDown(e);
+      return;
+    }
     onKeyDown(e);
   };
 
@@ -101,7 +184,7 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
 
   return (
     <div
-      className={`${styles.guidInputCardWrap} guid-input-card-shell relative rd-24px flex flex-col ${slashCommandMenu ? 'overflow-visible' : 'overflow-hidden'} transition-all duration-200 ${isFileDragging ? 'b b-solid border-dashed guid-input-card-shell--dragging' : ''}`}
+      className={`${styles.guidInputCardWrap} guid-input-card-shell relative rd-24px flex flex-col ${slashCommandMenu || isKbMenuOpen ? 'overflow-visible' : 'overflow-hidden'} transition-all duration-200 ${isFileDragging ? 'b b-solid border-dashed guid-input-card-shell--dragging' : ''}`}
       style={{
         zIndex: 1,
         transition: 'box-shadow 0.25s ease',
@@ -122,7 +205,7 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
     >
       {/* inner white card — narrower than outer wrap */}
       <div
-        className={`${styles.guidInputInner} relative p-12px flex flex-col bg-dialog-fill-0`}
+        className={`${styles.guidInputInner} ${isKbMenuOpen ? 'overflow-visible' : ''} relative p-12px flex flex-col bg-dialog-fill-0`}
         style={{
           transition: 'box-shadow 0.25s ease, border-color 0.25s ease',
           borderColor: isFileDragging ? 'rgb(var(--primary-3))' : borderColor,
@@ -134,9 +217,18 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
           autoSize={textareaAutoSize}
           placeholder={placeholder}
           spellCheck={false}
-          className={`text-14px focus:b-none rounded-xl !bg-transparent !b-none !resize-none !py-0 !pr-0 !pl-7px ${styles.lightPlaceholder}`}
+          // Toggle the highlight-overlay class only when there is at least
+          // one @-mention token. Applying it unconditionally (the previous
+          // setup) makes the textarea text fully transparent even when
+          // there is no overlay to take over — plain text typed without an
+          // @ then disappears visually.
+          className={`${allAtFileQueries.length > 0 ? 'sendbox-highlight-textarea' : ''} lh-[20px] text-14px focus:b-none rounded-xl !bg-transparent !b-none !resize-none !py-0 !pr-0 !pl-7px ${styles.lightPlaceholder}`}
           value={input}
           onChange={onInputChange}
+          onSelect={(event) => {
+            const target = event.target as HTMLTextAreaElement | null;
+            if (target) setCaretPosition(target.selectionStart ?? input.length);
+          }}
           onPaste={onPaste}
           onFocus={onFocus}
           onBlur={onBlur}
@@ -144,6 +236,92 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
           onKeyDown={handleKeyDown}
           data-testid='guid-input'
         />
+        {allAtFileQueries.length > 0 && (
+          <div
+            aria-hidden='true'
+            className='sendbox-highlight-layer lh-[20px]'
+            style={{
+              position: 'absolute',
+              inset: 0,
+              pointerEvents: 'none',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+              color: 'transparent',
+              // The overlay is positioned against the card's padding box
+              // (the card has `p-12px`), while the textarea sits in the
+              // content box. Its padding must therefore reproduce the
+              // textarea's own text insets exactly:
+              //   left: 12 (card padding) + 7 (textarea `pl-7px`) = 19px
+              //   top:  12 (card padding) + 0 (textarea `!py-0`)   = 12px
+              // Otherwise the rendered text is offset from the textarea's
+              // real caret position — vertically (caret below the text) or
+              // horizontally (caret overlapping the last character).
+              // The overlay also mirrors the textarea line-height (20px) so
+              // both layers wrap at the same breaks.
+              lineHeight: '20px',
+              paddingLeft: 19,
+              paddingTop: 12,
+            }}
+          >
+            {(() => {
+              const segments: React.ReactNode[] = [];
+              let cursor = 0;
+              allAtFileQueries.forEach((match, index) => {
+                if (cursor < match.start) {
+                  segments.push(
+                    <span className='sendbox-highlight-text' key={`t-${cursor}`}>
+                      {input.slice(cursor, match.start)}
+                    </span>
+                  );
+                }
+                if (match.token.startsWith('@kb:')) {
+                  // Token form is "@kb:<name>" after the renderer-visible
+                  // rename; render the whole segment as one blue badge so the
+                  // user sees the KB name, not the kbId. The kbId itself is
+                  // recovered at send time by the GuidPage resolver.
+                  segments.push(
+                    <span
+                      key={`kb-${match.start}-${index}`}
+                      data-testid='kb-mention-badge'
+                      title={t('conversation.atMenu.kbBadgeTitle', { defaultValue: 'Cited knowledge base' })}
+                      style={{
+                        background: 'color-mix(in srgb, var(--color-primary-light-1, #e6f4ff) 80%, transparent)',
+                        color: 'var(--color-primary-6, #165dff)',
+                        borderRadius: '6px',
+                        // The badge must not widen the inline flow: the
+                        // textarea lays out the raw token without any
+                        // padding/margin, so every extra pixel here shifts
+                        // all following characters (and the caret) out of
+                        // sync. Padding supplies the visual breathing room;
+                        // negative margins cancel its layout width.
+                        padding: '0 4px',
+                        margin: '0 -4px',
+                      }}
+                    >
+                      {match.token}
+                    </span>
+                  );
+                  cursor = match.end;
+                } else {
+                  segments.push(
+                    <span key={`m-${match.start}-${index}`} style={{ color: 'var(--color-primary-6, #165dff)' }}>
+                      {input.slice(match.start, match.end)}
+                    </span>
+                  );
+                  cursor = match.end;
+                }
+              });
+              if (cursor < input.length) {
+                segments.push(
+                  <span className='sendbox-highlight-text' key={`tail-${cursor}`}>
+                    {input.slice(cursor)}
+                  </span>
+                );
+              }
+              return segments;
+            })()}
+          </div>
+        )}
         <div style={{ height: 12, flexShrink: 0 }} aria-hidden='true' />
         {files.length > 0 && (
           <div className='flex flex-wrap items-center gap-8px mt-12px mb-12px'>
@@ -163,6 +341,28 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
           <div className='absolute left-0 right-0 top-[calc(100%+4px)] z-70'>{slashCommandMenu}</div>
         )}
       </div>
+      {isKbMenuOpen && (
+        <div
+          className='absolute left-12px right-12px bottom-[calc(100%+8px)] z-70 pointer-events-auto'
+          style={{ zIndex: 70 }}
+        >
+          <AtFileMenu
+            activeIndex={atMenuActiveIndex}
+            emptyText={
+              atMention.loading
+                ? t('conversation.atMenu.loadingKb', { defaultValue: 'Loading knowledge bases…' })
+                : t('kb-chat.empty', { defaultValue: 'No knowledge bases available' })
+            }
+            items={kbMenuItems}
+            label={t('conversation.atMenu.kbSectionTitle', { defaultValue: 'Knowledge bases' })}
+            loading={atMention.loading}
+            loadingText={t('conversation.atMenu.loadingKb', { defaultValue: 'Loading knowledge bases…' })}
+            onHoverItem={setAtMenuActiveIndex}
+            onSelectItem={insertSelectedKbItem}
+            getSubtitle={() => t('conversation.atMenu.kbSectionTitle', { defaultValue: 'Knowledge bases' })}
+          />
+        </div>
+      )}
       <GuidWorkspaceFootnote
         workspaceDir={workspaceDir}
         onSelectWorkspace={onSelectWorkspace}

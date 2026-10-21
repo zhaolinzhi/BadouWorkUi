@@ -4,9 +4,19 @@ import fs from 'fs/promises';
 import os from 'os';
 
 // Mock sttClient so service tests don't hit the real endpoint.
-vi.mock('../../../packages/desktop/src/process/services/meetingRecording/sttClient', () => ({
-  transcribeFile: vi.fn(),
-}));
+// `extractWebmHeader` and `repairWebmChunk` are now imported by the
+// service's `save()` to pre-pend chunk #0's EBML header onto sibling
+// webm chunks before they hit disk. We passthrough them so the
+// service's repair logic runs against real bytes (test fixtures
+// already carry the magic prefix, so `repairWebmChunk` is a no-op
+// for chunk #0 and a header-prefix for later chunks).
+vi.mock('../../../packages/desktop/src/process/services/meetingRecording/sttClient', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../packages/desktop/src/process/services/meetingRecording/sttClient')>();
+  return {
+    ...actual,
+    transcribeFile: vi.fn(),
+  };
+});
 
 const userDataDir = path.join(
   os.tmpdir(),
@@ -103,9 +113,21 @@ describe('meetingRecordingService (chunked)', () => {
     expect(meta.chunks[1].error).toContain('HTTP 500');
 
     const emit = vi.mocked(ipcBridge.meetingRecording.chunkTranscribed.emit);
-    expect(emit).toHaveBeenCalledWith({ id, chunkIndex: 0, status: 'transcribed', error: undefined });
+    // The payload now carries the freshly-written transcription text on
+    // success, and `error` on failure. Failed chunks still surface an
+    // `error` string, and the per-chunk transcription we wrote is also
+    // echoed back (empty string for failed chunks, since they had no
+    // successful STT response).
+    expect(emit).toHaveBeenCalledWith({
+      id,
+      chunkIndex: 0,
+      status: 'transcribed',
+      transcription: '你好',
+      error: undefined,
+    });
     const failedCall = emit.mock.calls.find((c) => (c[0] as { chunkIndex: number }).chunkIndex === 1);
     expect(failedCall).toBeDefined();
+    expect((failedCall![0] as { transcription: string }).transcription).toBe('');
     expect((failedCall![0] as { error: string }).error).toContain('HTTP 500');
   });
 

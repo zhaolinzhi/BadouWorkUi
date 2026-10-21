@@ -16,3 +16,13 @@ export const NEWAPI_BASE_URL = 'https://qw.badousoft.com/ai-proxy/v1';
 
 /** 自动建好的 provider 默认带这一个模型,用户后续可在设置里 + 拉取更多。 */
 export const NEWAPI_DEFAULT_MODEL = 'deepseek-v4-flash';
+
+/**
+ * 默认模型在登录后被自动建好时 / 已有 provider 回填时携带的 model_settings。
+ * 当前只注入 tool_wire_shape: NewAPI 兼容 OpenAI 协议下,deepseek 系列
+ * upstream 期望扁平 tools 格式(open_ai_flat_function);不注入会导致
+ * 第一次对话报 USER_LLM_PROVIDER_INVALID_REQUEST(tools[i].name missing)。
+ */
+export const NEWAPI_DEFAULT_MODEL_SETTINGS = {
+  tool_wire_shape: 'open_ai_flat_function',
+} as const;

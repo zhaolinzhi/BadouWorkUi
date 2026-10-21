@@ -28,12 +28,15 @@ const AtFileMenu: React.FC<AtFileMenuProps> = ({
 }) => {
   return (
     <div
-      className='rounded-14px border border-solid overflow-hidden p-6px flex flex-col gap-2px'
+      className='rounded-14px border border-solid p-6px flex flex-col gap-2px'
       style={{
         borderColor: 'var(--color-border-2)',
         background: 'color-mix(in srgb, var(--color-bg-1) 94%, transparent)',
         backdropFilter: 'blur(14px) saturate(1.05)',
         WebkitBackdropFilter: 'blur(14px) saturate(1.05)',
+        maxHeight: 320,
+        overflowY: 'auto',
+        overflowX: 'hidden',
       }}
       role='listbox'
       aria-label={label}

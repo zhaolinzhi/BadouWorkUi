@@ -1,4 +1,9 @@
 {
+  "atMenu": {
+    "kbSectionTitle": "ナレッジベース",
+    "loadingKb": "ナレッジベースを読み込み中…",
+    "kbBadgeTitle": "参照中のナレッジベース"
+  },
   "welcome": {
     "title": "Hi {{name}}、今日の予定は何ですか？",
     "placeholder": "メッセージの送信、ファイルの追加、フォルダーの追加、スケジュールタスクの作成、または / でコマンド呼び出し...",

@@ -258,6 +258,10 @@ export const meetingRecording = {
     id: string;
     chunkIndex: number;
     status: 'transcribed' | 'failed';
+    /** Populated when status === 'transcribed'. Carried over the wire so the
+     *  renderer can refresh the live transcript view (and auto-open the
+     *  summary modal on completion) without a redundant `list()` round-trip. */
+    transcription?: string;
     /** Populated when status === 'failed'. */
     error?: string;
   }>('meetingRecording.chunkTranscribed'),
@@ -365,6 +369,7 @@ export const conversation = {
       files: p.files,
       loading_id: p.loading_id,
       inject_skills: p.inject_skills,
+      selected_mcp_server_ids: p.selected_mcp_server_ids,
     })
   ),
   getSlashCommands: httpGet<AcpSlashCommandApiItem[], { conversation_id: string }>(
@@ -1956,6 +1961,9 @@ interface ISendMessageParams {
   files?: ChatFileRef[];
   loading_id?: string;
   inject_skills?: string[];
+  /** MCP server ids to attach to this turn (aioncore spawns them and exposes
+   *  their tools to the LLM). KB mentions are forwarded as `kb-<kbId>`. */
+  selected_mcp_server_ids?: string[];
 }
 
 // Server-assigned identifier for the newly created user message. Clients must

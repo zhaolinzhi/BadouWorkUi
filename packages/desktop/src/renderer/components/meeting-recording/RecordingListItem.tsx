@@ -132,10 +132,7 @@ const RecordingListItem: React.FC<RecordingListItemProps> = ({ recording, onDele
               size='mini'
               type='text'
               icon={
-                <span
-                  data-testid='retry-transcribe-spin'
-                  className={showRetrySpinner ? styles.spin : undefined}
-                >
+                <span data-testid='retry-transcribe-spin' className={showRetrySpinner ? styles.spin : undefined}>
                   <Refresh theme='outline' size='14' fill='currentColor' />
                 </span>
               }

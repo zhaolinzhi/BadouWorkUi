@@ -71,6 +71,11 @@ const makeWebm = (length: number, prefix = EBML_MAGIC): Buffer =>
 
 describe('transcribeFile', () => {
   it('POSTs multipart with file, model, language, prompt on success', async () => {
+    // The prompt is a short, imperative sentence ("请准确转录会议录音。")
+    // — long enough to nudge Chinese punctuation, short enough to not be
+    // a hallucination seed. Earlier we had a longer self-contained
+    // Chinese prompt which Whisper parroted back on low-SNR audio
+    // (see sttClient.ts header comment for the full history).
     const filePath = await writeTempAudio('hello');
     fetchMock.mockResolvedValueOnce({
       ok: true,
@@ -94,7 +99,7 @@ describe('transcribeFile', () => {
       ['file', { name: expect.stringMatching(/\.webm$/), type: 'audio/webm' }],
       ['model', 'whisper-large-v3'],
       ['language', 'zh'],
-      ['prompt', expect.stringContaining('中文')],
+      ['prompt', '请准确转录会议录音。'],
     ]);
   });
 

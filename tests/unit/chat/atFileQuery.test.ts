@@ -42,9 +42,22 @@ describe('buildAtFileInsertion', () => {
 });
 
 describe('buildAtFileInsertion — KB items', () => {
-  it('produces @kb:<id> for KB-kind items', () => {
+  it('produces @kb:<name> for KB-kind items (renderer-visible form)', () => {
     const item: FileOrFolderItem = {
       name: 'Remote KB',
+      path: 'kb:abc-123',
+      isFile: false,
+      kind: 'kb',
+    };
+
+    expect(buildAtFileInsertion(item)).toBe('@kb:Remote KB');
+  });
+
+  it('falls back to legacy @kb:<id> when KB-kind item has no name', () => {
+    // Safety net for callers that synthesise KB items without a name field;
+    // send path still resolves the id and routes through MCP.
+    const item: FileOrFolderItem = {
+      name: '',
       path: 'kb:abc-123',
       isFile: false,
       kind: 'kb',
@@ -53,9 +66,9 @@ describe('buildAtFileInsertion — KB items', () => {
     expect(buildAtFileInsertion(item)).toBe('@kb:abc-123');
   });
 
-  it('returns null when KB-kind item has an empty path', () => {
+  it('returns null when KB-kind item has neither name nor path', () => {
     const item: FileOrFolderItem = {
-      name: 'Empty KB',
+      name: '',
       path: '',
       isFile: false,
       kind: 'kb',

@@ -34,15 +34,31 @@ const MeetingRecordingPage: React.FC = () => {
   }, [refresh]);
 
   // Subscribe to per-chunk transcription updates so the list reflects the
-  // STT endpoint's progress without a manual refresh.
+  // STT endpoint's progress without a manual refresh. We previously
+  // tracked a "first-time-finished" transition here to auto-open the
+  // transcript modal on the just-finished recording, but that UX was
+  // removed — the user opens the modal themselves via the row button
+  // when they want to read the transcript.
   useEffect(() => {
-    const off = ipcBridge.meetingRecording.chunkTranscribed.on(({ id, chunkIndex, status, error }) => {
+    const off = ipcBridge.meetingRecording.chunkTranscribed.on(({ id, chunkIndex, status, transcription, error }) => {
       setRecordings((current) =>
         current.map((rec) => {
           if (rec.id !== id) return rec;
           return {
             ...rec,
-            chunks: rec.chunks.map((c) => (c.index === chunkIndex ? { ...c, status, error } : c)),
+            chunks: rec.chunks.map((c) => {
+              if (c.index !== chunkIndex) return c;
+              // Merge only the fields the event actually carries. The
+              // payload includes `transcription` on success and `error` on
+              // failure; missing fields leave the prior chunk value intact
+              // so a partial race doesn't blank out an earlier good result.
+              return {
+                ...c,
+                status,
+                ...(transcription !== undefined ? { transcription } : {}),
+                ...(error !== undefined ? { error } : {}),
+              };
+            }),
           };
         })
       );
