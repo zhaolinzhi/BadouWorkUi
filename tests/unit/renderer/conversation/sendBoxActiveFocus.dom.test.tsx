@@ -212,6 +212,24 @@ describe('SendBox active-controlled focus', () => {
   });
 });
 
+describe('SendBox KB mention badge geometry', () => {
+  // The badge adds horizontal padding for its background. That padding must
+  // not widen the inline flow: the textarea lays the raw token out with no
+  // padding, so any extra width shifts trailing characters away from the
+  // caret. Negative margins cancel the added width while keeping the visual
+  // breathing room. Mirrors the GuidInputCard badge contract.
+  it('keeps the caret aligned by cancelling the badge padding from the inline flow', () => {
+    layoutState.isMobile = false;
+    const { container } = render(<SendBoxHarness active={false} initialValue='@kb:研发文档 故障' />);
+    const badge = container.querySelector('.sendbox-highlight-kb-badge') as HTMLElement | null;
+    expect(badge).not.toBeNull();
+    expect(badge?.style.marginLeft).toBe('-4px');
+    expect(badge?.style.marginRight).toBe('-4px');
+    expect(badge?.style.paddingLeft).toBe('4px');
+    expect(badge?.style.paddingRight).toBe('4px');
+  });
+});
+
 describe('SendBox selection→focus downward effect', () => {
   it('focuses when active transitions false→true', async () => {
     layoutState.isMobile = false;

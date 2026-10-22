@@ -356,13 +356,13 @@ describe('useGuidSend', () => {
     expect(createConversationInvokeMock).not.toHaveBeenCalled();
   });
 
-  // Hidden chatWithStream hint is APPENDED to the user message body
+  // Hidden chat hint is APPENDED to the user message body
   // (not to a system-prompt slot) because the backend agent framework
   // does not yet read `conversation_overrides.system_prompt`. The hint
   // reaches the LLM via the user-message channel. The user does NOT
   // see it in the textarea — only the LLM does.
 
-  it('appends a chatWithStream hint to the user message when input cites @kb:<name>', async () => {
+  it('appends a knowledge-server chat hint to the user message when input cites @kb:<name>', async () => {
     const deps = createDeps();
     deps.input = '请总结 @kb:Docs 关于缓存的设计';
     deps.resolveKbId = (name: string, _isShared: boolean) => (name === 'Docs' ? 'uuid-1' : undefined);
@@ -375,10 +375,40 @@ describe('useGuidSend', () => {
     const sentInput = readLastSessionInput();
     expect(sentInput).toContain('@kb:Docs');
     expect(sentInput).toContain('请使用 knowledge-server');
-    expect(sentInput).toContain('chatWithStream');
+    expect(sentInput).toContain('chat 工具');
+    expect(sentInput).not.toContain('chatWithStream');
     expect(sentInput).toContain('`uuid-1`');
+    // Every required chat parameter must reach the LLM; the threadId is a
+    // per-send value and must be non-empty.
+    expect(sentInput).toContain('knowledgeBaseId');
+    expect(sentInput).toContain('userMessage');
+    expect(sentInput).toMatch(/threadId：`[^`]+`/);
+    expect(sentInput).toContain('modelCode：MiniMax-M3');
+    expect(sentInput).toContain('searchType：1');
+    expect(sentInput).toContain('enableRerank：0');
+    expect(sentInput).toContain('minRelevance：0.5');
     // Original user text stays at the head, hint is at the tail.
     expect(sentInput?.startsWith('请总结 @kb:Docs 关于缓存的设计')).toBe(true);
+  });
+
+  it('uses one threadId for all chat calls in a single send', async () => {
+    const deps = createDeps();
+    deps.input = '对比 @kb:Docs 和 @kb:Wiki 的缓存设计';
+    deps.resolveKbId = (name: string, _isShared: boolean) =>
+      name === 'Docs' ? 'uuid-1' : name === 'Wiki' ? 'uuid-2' : undefined;
+
+    const { result } = renderHook(() => useGuidSend(deps as never));
+    await act(async () => {
+      await result.current.handleSend();
+    });
+
+    const sentInput = readLastSessionInput() ?? '';
+    expect(sentInput).toContain('`uuid-1`');
+    expect(sentInput).toContain('`uuid-2`');
+    expect(sentInput).toContain('每个知识库 ID 分别调用一次');
+    // A single literal threadId is embedded once and reused by every call.
+    const threadIds = sentInput.match(/threadId：`([^`]+)`/g) ?? [];
+    expect(threadIds).toHaveLength(1);
   });
 
   it('does NOT append the hint when input has no @kb token', async () => {
@@ -393,6 +423,7 @@ describe('useGuidSend', () => {
 
     const sentInput = readLastSessionInput();
     expect(sentInput).toBe('hello world without a KB');
+    expect(sentInput).not.toContain('knowledge-server');
     expect(sentInput).not.toContain('chatWithStream');
   });
 });

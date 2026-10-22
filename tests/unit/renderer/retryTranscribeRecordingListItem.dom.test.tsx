@@ -134,7 +134,9 @@ describe('RecordingListItem retry-transcribe button', () => {
     expect(mocks.transcribeMock).not.toHaveBeenCalled();
     // Find the confirm button (Arco Popconfirm renders an OK button with the
     // localized "Stop" text — our stub returns the key as-is).
-    const okBtn = await screen.findByRole('button', { name: 'meeting-recording.transcriptModal.cancelTranscribeConfirmOk' });
+    const okBtn = await screen.findByRole('button', {
+      name: 'meeting-recording.transcriptModal.cancelTranscribeConfirmOk',
+    });
     fireEvent.click(okBtn);
     expect(mocks.cancelTranscribeMock).toHaveBeenCalledWith({ id: 'rec-1' });
   });
