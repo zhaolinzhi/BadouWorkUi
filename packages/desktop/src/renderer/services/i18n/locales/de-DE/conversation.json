@@ -1,4 +1,9 @@
 {
+  "atMenu": {
+    "kbSectionTitle": "Wissensdatenbanken",
+    "loadingKb": "Wissensdatenbanken werden geladen…",
+    "kbBadgeTitle": "Zitierte Wissensdatenbank"
+  },
   "welcome": {
     "title": "Hallo {{name}}, was hast du heute vor?",
     "placeholder": "Nachricht senden, Dateien hochladen, Ordner öffnen, eine geplante Aufgabe erstellen oder / für Befehle eingeben...",

@@ -16,7 +16,7 @@ import { useConversationContextSafe } from '@/renderer/hooks/context/Conversatio
 import { appendPromptToDraft, useConversationSendBoxPrefill } from '@/renderer/hooks/chat/useSendBoxDraft';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import {
-  buildAtFileInsertion,
+  buildAtMentionInsertion,
   getActiveAtFileQuery,
   getAllAtFileQueries,
   resolveAtFileMenuKey,
@@ -27,6 +27,7 @@ import { mergeFileSelectionItems, type FileSelectionItem } from '@/renderer/util
 import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
 import { filterWorkspaceMentionItems, workspaceMentionItemFromListing } from '@/renderer/utils/file/workspaceMentions';
 import { useProjectMentionSearch } from '@/renderer/pages/conversation/explorer/search/useProjectMentionSearch';
+import { useAtMentionItems } from '@/renderer/hooks/chat/useAtMentionItems';
 import { peLabeledPath } from '@/renderer/pages/conversation/explorer/search/searchModel';
 import { copyText } from '@/renderer/utils/ui/clipboard';
 import { blurActiveElement, shouldBlockMobileInputFocus } from '@/renderer/utils/ui/focus';
@@ -63,6 +64,7 @@ import { appendSpeechTranscript } from '@/renderer/hooks/system/useSpeechInput';
 import { createChainedDispatch, useLiveTranscriptInsertion } from '@/renderer/hooks/system/useLiveTranscriptInsertion';
 import { getConversationInputHistory, isCaretOnFirstLine } from '@/renderer/utils/chat/messageHistory';
 import './sendbox.css';
+import '@/renderer/styles/sendbox-highlight.css';
 
 const constVoid = (): void => undefined;
 // 临界值：超过该字符数直接切换至多行模式，避免为超长文本做昂贵的宽度测量
@@ -637,14 +639,25 @@ const SendBoxInner = (
     isOpen: isAtFileMenuOpen,
     limit: AT_FILE_MENTION_LIMIT,
   });
+  // AtMentionItems merges KB rows ahead of project file hits; projectMention
+  // remains the source of peNames for the file subtitle.
+  const atMention = useAtMentionItems({
+    query: deferredAtFileQuery,
+    isOpen: isAtFileMenuOpen,
+    limit: AT_FILE_MENTION_LIMIT,
+  });
   const visibleAtFileMenuItems = useMemo(() => {
-    // Project path: ranked hits as project chat-ref items. Legacy fallback:
-    // local flat-list filter+rank over the once-loaded workspace list.
+    // Prefer the merged KB+file view; fall back to legacy workspace flat-list
+    // when neither KB rows nor project hits are available (defensive loading
+    // window — see useProjectMentionSearch comment).
+    if (atMention.items.length > 0) {
+      return atMention.items;
+    }
     if (projectMention.active) {
       return projectMention.items;
     }
     return filterWorkspaceMentionItems(workspaceMentionItems, deferredAtFileQuery);
-  }, [deferredAtFileQuery, projectMention.active, projectMention.items, workspaceMentionItems]);
+  }, [atMention.items, deferredAtFileQuery, projectMention.active, projectMention.items, workspaceMentionItems]);
   const isOverlayOpen = isCommandMenuOpen || btwCommand.isOpen || isAtFileMenuOpen;
 
   const getTextareaElement = useCallback((): HTMLTextAreaElement | null => {
@@ -1053,7 +1066,7 @@ const SendBoxInner = (
         return;
       }
 
-      const nextInsertion = buildAtFileInsertion(item);
+      const nextInsertion = buildAtMentionInsertion(item, input.slice(activeAtFileQuery.end));
       if (!nextInsertion) {
         return;
       }
@@ -1488,6 +1501,48 @@ const SendBoxInner = (
         );
       }
 
+      // KB mentions: render the prefix (`@kb:`) muted and the id as a blue badge
+      // so users can visually distinguish a KB citation from a file reference.
+      const isKbMention = match.token.startsWith('@kb:');
+      if (isKbMention) {
+        const colonIdx = match.token.indexOf(':');
+        const prefix = match.token.slice(0, colonIdx + 1); // "@kb:"
+        const idPart = match.token.slice(colonIdx + 1);
+        const idStart = match.start + prefix.length;
+        segments.push(
+          <span
+            className='sendbox-highlight-mention'
+            key={`mention-prefix-${match.start}-${index}`}
+            style={{ color: AT_FILE_HIGHLIGHT_COLOR }}
+          >
+            {prefix}
+          </span>
+        );
+        segments.push(
+          <span
+            className='sendbox-highlight-kb-badge'
+            key={`mention-badge-${match.start}-${index}`}
+            title={t('conversation.atMenu.kbBadgeTitle', { defaultValue: 'Cited knowledge base' })}
+            style={{
+              background: 'color-mix(in srgb, var(--color-primary-light-1, #e6f4ff) 80%, transparent)',
+              color: 'var(--color-primary-6, #165dff)',
+              borderRadius: '6px',
+              // The badge must not widen the inline flow: the textarea lays
+              // out the raw token without padding, so extra width here shifts
+              // every following glyph (and the caret) out of sync with the
+              // overlay. Padding supplies the visual breathing room; negative
+              // margins cancel its layout width. Mirrors GuidInputCard.
+              padding: '0 4px',
+              margin: '0 -4px',
+            }}
+          >
+            {idPart}
+          </span>
+        );
+        cursor = idStart + idPart.length;
+        return;
+      }
+
       segments.push(
         <span
           className='sendbox-highlight-mention'
@@ -1563,20 +1618,29 @@ const SendBoxInner = (
               }
               items={visibleAtFileMenuItems}
               label={t('messages.atFile.menuLabel', { defaultValue: 'File mentions' })}
-              loading={projectMention.active ? projectMention.loading : workspaceMentionLoading}
+              loading={
+                atMention.items.length > 0
+                  ? atMention.loading
+                  : projectMention.active
+                    ? projectMention.loading
+                    : workspaceMentionLoading
+              }
               loadingText={t('messages.atFile.loading', { defaultValue: 'Loading...' })}
               onHoverItem={setAtFileMenuActiveIndex}
               onSelectItem={insertSelectedAtFile}
-              getSubtitle={
-                projectMention.active
-                  ? (item) =>
-                      peLabeledPath(
-                        item.chatRef?.kind === 'project' ? item.chatRef.pe_id : undefined,
-                        item.relativePath || item.path || '',
-                        projectMention.peNames
-                      )
-                  : undefined
-              }
+              getSubtitle={(item) => {
+                if (item.kind === 'kb') {
+                  return t('conversation.atMenu.kbSectionTitle', { defaultValue: 'Knowledge bases' });
+                }
+                if (projectMention.active) {
+                  return peLabeledPath(
+                    item.chatRef?.kind === 'project' ? item.chatRef.pe_id : undefined,
+                    item.relativePath || item.path || '',
+                    projectMention.peNames
+                  );
+                }
+                return item.relativePath || item.path;
+              }}
             />
           </div>
         )}

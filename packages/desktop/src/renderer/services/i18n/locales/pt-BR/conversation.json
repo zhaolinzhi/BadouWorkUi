@@ -1,4 +1,9 @@
 {
+  "atMenu": {
+    "kbSectionTitle": "Bases de conhecimento",
+    "loadingKb": "Carregando bases de conhecimento…",
+    "kbBadgeTitle": "Base de conhecimento citada"
+  },
   "welcome": {
     "title": "Olá {{name}}, qual é o seu plano para hoje?",
     "placeholder": "Envie uma mensagem, faça upload de arquivos, abra uma pasta, crie uma tarefa agendada ou digite / para comandos...",

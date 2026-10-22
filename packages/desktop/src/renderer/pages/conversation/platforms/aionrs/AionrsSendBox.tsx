@@ -53,6 +53,9 @@ import { useTranslation } from 'react-i18next';
 import { classifyConversationBusyError } from '../conversationBusyError';
 import { useAionrsMessage } from './useAionrsMessage';
 import type { AionrsModelSelection } from './useAionrsModelSelection';
+import { findAllKbTokens } from '@/renderer/utils/kb/atKbInsertion';
+import { kbIdToMcpServerId } from '@/renderer/utils/kb/kbToMcpId';
+import { useKnowledgeBaseList } from '@/renderer/hooks/knowledge-base';
 
 const configErrorMessageKey = (error: unknown) => {
   const errorKind = classifyConfigSetError(error);
@@ -60,6 +63,27 @@ const configErrorMessageKey = (error: unknown) => {
   if (errorKind === 'confirmation_timeout') return 'agent.config.timeout';
   if (errorKind === 'config_update_in_progress') return 'agent.config.busy';
   return 'agent.config.failed';
+};
+
+/**
+ * Parse `@kb:<id>` tokens from the user's input and translate them to MCP server
+ * ids (`kb-<id>`), dropping any token whose kbId is not in the user's known KB
+ * list (e.g. a KB the user just deleted). Returns `null` when no KB tokens are
+ * present so the IPC payload can omit the field entirely.
+ */
+const deriveSelectedMcpServerIds = (input: string, knownKbIds: Set<string>): string[] | null => {
+  const tokens = findAllKbTokens(input);
+  if (tokens.length === 0) return null;
+  const ids: string[] = [];
+  const seen = new Set<string>();
+  for (const token of tokens) {
+    if (!knownKbIds.has(token.kbId)) continue;
+    const mcpId = kbIdToMcpServerId(token.kbId);
+    if (!mcpId || seen.has(mcpId)) continue;
+    seen.add(mcpId);
+    ids.push(mcpId);
+  }
+  return ids.length > 0 ? ids : null;
 };
 
 const toModeLabel = (value: string): string =>
@@ -129,6 +153,11 @@ const AionrsSendBox: React.FC<{
   const layout = useLayoutContext();
   const isMobile = Boolean(layout?.isMobile);
   const conversationContext = useConversationContextSafe();
+  const { personalItems, sharedItems } = useKnowledgeBaseList();
+  const knownKbIds = useMemo(
+    () => new Set([...personalItems, ...sharedItems].map((k) => k.id)),
+    [personalItems, sharedItems]
+  );
   const loadedSkills = conversationContext?.loadedSkills ?? [];
   const loadedMcpStatuses =
     conversationContext?.loadedMcpStatuses ??
@@ -274,10 +303,12 @@ const AionrsSendBox: React.FC<{
 
         markSendStarted();
         setWaitingResponse(true);
+        const selectedMcpServerIds = deriveSelectedMcpServerIds(input, knownKbIds);
         const res = await ipcBridge.conversation.sendMessage.invoke({
           input,
           conversation_id,
           files,
+          ...(selectedMcpServerIds ? { selected_mcp_server_ids: selectedMcpServerIds } : {}),
         });
         setActiveMsgId(res.msg_id);
         markSendAccepted(res.turn_id, res.runtime, res.msg_id);

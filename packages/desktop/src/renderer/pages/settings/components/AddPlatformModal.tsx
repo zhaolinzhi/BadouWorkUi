@@ -2,6 +2,7 @@ import type { IProvider } from '@/common/config/storage';
 import {
   type ModelImageInputChoice,
   type ModelOpenAiApiModeChoice,
+  type ModelToolWireShapeChoice,
   supportsOpenAiApiMode,
   updateModelSettings,
 } from '@/common/utils/modelCapabilities';
@@ -243,8 +244,10 @@ const AddPlatformModal = ModalHOC<{
   const [modelProtocol, setModelProtocol] = useState<string>('openai');
   const [imageInput, setImageInput] = useState<ModelImageInputChoice>('auto');
   const [openAiApiMode, setOpenAiApiMode] = useState<ModelOpenAiApiModeChoice>('auto');
+  const [toolWireShape, setToolWireShape] = useState<ModelToolWireShapeChoice>('auto');
   const [isFullUrl, setIsFullUrl] = useState(false);
   const showOpenAiApiMode = supportsOpenAiApiMode(platform, modelProtocol);
+  const showToolWireShape = supportsOpenAiApiMode(platform, modelProtocol);
 
   // Auto-detect protocol when model changes (for new-api platforms). The model
   // field is multi-select, so detect from the most recently added model.
@@ -400,7 +403,8 @@ const AddPlatformModal = ModalHOC<{
           undefined,
           selectedModels.filter(Boolean),
           imageInput,
-          showOpenAiApiMode ? openAiApiMode : 'auto'
+          showOpenAiApiMode ? openAiApiMode : 'auto',
+          showToolWireShape ? toolWireShape : 'auto'
         );
 
         onSubmit(provider);
@@ -765,6 +769,21 @@ const AddPlatformModal = ModalHOC<{
                   { label: t('settings.modelSettingAuto'), value: 'auto' },
                   { label: t('settings.openAiApiModeChatCompletions'), value: 'chat_completions' },
                   { label: t('settings.openAiApiModeResponses'), value: 'responses' },
+                ]}
+              />
+            </Form.Item>
+          )}
+          {showToolWireShape && (
+            <Form.Item label={t('settings.toolWireShape')} extra={t('settings.toolWireShapeTip')}>
+              <Select
+                value={toolWireShape}
+                onChange={(value) => setToolWireShape(value as ModelToolWireShapeChoice)}
+                options={[
+                  { label: t('settings.modelSettingAuto'), value: 'auto' },
+                  { label: t('settings.toolWireShapeNative'), value: 'native' },
+                  { label: t('settings.toolWireShapeOpenAiFunction'), value: 'open_ai_function' },
+                  { label: t('settings.toolWireShapeOpenAiFlatFunction'), value: 'open_ai_flat_function' },
+                  { label: t('settings.toolWireShapeAnthropicInputSchema'), value: 'anthropic_input_schema' },
                 ]}
               />
             </Form.Item>

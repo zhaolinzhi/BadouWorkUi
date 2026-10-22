@@ -5,6 +5,7 @@ import { decryptNewapiKey } from '@/renderer/utils/crypto';
 import {
   NEWAPI_BASE_URL,
   NEWAPI_DEFAULT_MODEL,
+  NEWAPI_DEFAULT_MODEL_SETTINGS,
   NEWAPI_MASK_FOR_CURRENT_PATH,
   NEWAPI_PROVIDER_ID,
   NEWAPI_PROVIDER_NAME,
@@ -79,7 +80,22 @@ export async function runNewapiPostLogin(token: string): Promise<void> {
     if (existing) {
       // 已存在同名 provider;比对(已统一前缀的)api_key 是否一致。
       // 由于保存时统一经过 ensureSkPrefix,这里直接 === 比较即可。
-      if (existing.api_key === apiKey) return;
+      if (existing.api_key === apiKey) {
+        // 同 key 命中: 检查 model_settings 是否缺 tool_wire_shape,缺则回填
+        const currentSettings = existing.model_settings?.[NEWAPI_DEFAULT_MODEL];
+        if (!currentSettings?.tool_wire_shape) {
+          try {
+            await ipcBridge.mode.updateProvider.invoke({
+              id: NEWAPI_PROVIDER_ID,
+              model_settings: { [NEWAPI_DEFAULT_MODEL]: NEWAPI_DEFAULT_MODEL_SETTINGS },
+            });
+          } catch (e) {
+            // 回填失败不阻塞登录主流程
+            console.warn('[newapi-postlogin] model_settings backfill failed:', e);
+          }
+        }
+        return;
+      }
       // key 不一样 → 用新 key 更新(只改 api_key,其它字段不动)
       await ipcBridge.mode.updateProvider.invoke({
         id: NEWAPI_PROVIDER_ID,
@@ -97,7 +113,10 @@ export async function runNewapiPostLogin(token: string): Promise<void> {
         api_key: apiKey,
         models: [NEWAPI_DEFAULT_MODEL],
         enabled: true,
-        is_full_url: true,
+        is_full_url: false,
+        model_settings: {
+          [NEWAPI_DEFAULT_MODEL]: NEWAPI_DEFAULT_MODEL_SETTINGS,
+        },
       });
     } catch (e) {
       // 409 = 同 id 已存在(并发/竞态),按成功处理

@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { buildAtFileInsertion, resolveAtFileMenuKey } from '@/renderer/utils/chat/atFileQuery';
+import { buildAtFileInsertion, buildAtMentionInsertion, resolveAtFileMenuKey } from '@/renderer/utils/chat/atFileQuery';
 import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
 
 describe('buildAtFileInsertion', () => {
@@ -42,9 +42,22 @@ describe('buildAtFileInsertion', () => {
 });
 
 describe('buildAtFileInsertion — KB items', () => {
-  it('produces @kb:<id> for KB-kind items', () => {
+  it('produces @kb:<name> for KB-kind items (renderer-visible form)', () => {
     const item: FileOrFolderItem = {
       name: 'Remote KB',
+      path: 'kb:abc-123',
+      isFile: false,
+      kind: 'kb',
+    };
+
+    expect(buildAtFileInsertion(item)).toBe('@kb:Remote KB');
+  });
+
+  it('falls back to legacy @kb:<id> when KB-kind item has no name', () => {
+    // Safety net for callers that synthesise KB items without a name field;
+    // send path still resolves the id and routes through MCP.
+    const item: FileOrFolderItem = {
+      name: '',
       path: 'kb:abc-123',
       isFile: false,
       kind: 'kb',
@@ -53,15 +66,56 @@ describe('buildAtFileInsertion — KB items', () => {
     expect(buildAtFileInsertion(item)).toBe('@kb:abc-123');
   });
 
-  it('returns null when KB-kind item has an empty path', () => {
+  it('returns null when KB-kind item has neither name nor path', () => {
     const item: FileOrFolderItem = {
-      name: 'Empty KB',
+      name: '',
       path: '',
       isFile: false,
       kind: 'kb',
     };
 
     expect(buildAtFileInsertion(item)).toBeNull();
+  });
+});
+
+describe('buildAtMentionInsertion — KB trailing space', () => {
+  const kbItem: FileOrFolderItem = {
+    name: 'Remote KB',
+    path: 'kb:abc-123',
+    isFile: false,
+    kind: 'kb',
+  };
+
+  it('appends a space after a KB mention so the user can keep typing', () => {
+    expect(buildAtMentionInsertion(kbItem)).toBe('@kb:Remote KB ');
+  });
+
+  it('does not add a second space when the following text already starts with whitespace', () => {
+    expect(buildAtMentionInsertion(kbItem, ' next')).toBe('@kb:Remote KB');
+  });
+
+  it('appends a space to the legacy id form as well', () => {
+    const legacyItem: FileOrFolderItem = {
+      name: '',
+      path: 'kb:abc-123',
+      isFile: false,
+      kind: 'kb',
+    };
+    expect(buildAtMentionInsertion(legacyItem)).toBe('@kb:abc-123 ');
+  });
+
+  it('keeps file mentions unchanged', () => {
+    const fileItem: FileOrFolderItem = {
+      name: 'main.ts',
+      path: '/workspace/src/main.ts',
+      relativePath: 'src/main.ts',
+      isFile: true,
+    };
+    expect(buildAtMentionInsertion(fileItem)).toBe('@src/main.ts');
+  });
+
+  it('returns null when the item has no insertable identity', () => {
+    expect(buildAtMentionInsertion({ name: '', path: '', isFile: false, kind: 'kb' } as FileOrFolderItem)).toBeNull();
   });
 });
 

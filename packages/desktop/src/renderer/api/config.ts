@@ -15,7 +15,7 @@ import { FLAVOR } from '@/common/config/flavor';
  */
 export const AIPAAS_BASE_URL =
   FLAVOR === 'enterprise'
-    ? 'http://devops.badousoft.com/aipaas-service'
+    ? 'https://devops.badousoft.com/aipaas-service'
     : 'https://devops.badousoft.com/aipublic-platform';
 // : 'http://localhost:8081';
 

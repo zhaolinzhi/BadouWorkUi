@@ -64,6 +64,7 @@
 }
 
 .guidInputInner {
+  position: relative;
   background: var(--bg-base, #fff);
   border: 1px solid var(--color-border-3);
   border-radius: 24px;

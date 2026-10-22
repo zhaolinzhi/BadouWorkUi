@@ -354,50 +354,13 @@
   position: relative;
 }
 
-.sendbox-highlight-layer {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-  padding-top: 4px;
-  padding-bottom: 4px;
-  white-space: pre-wrap;
-  word-break: break-word;
-  overflow-wrap: break-word;
-  line-height: 20px;
-}
+/* Foundational `.sendbox-highlight-*` rules live in
+ * `@/renderer/styles/sendbox-highlight.css` so both the chat SendBox and
+ * the Guid homepage input share the same transparent-text + overlay-pair
+ * contract. SendBox-specific variants below; do not duplicate the base. */
 
 .sendbox-highlight-layer--single {
   white-space: nowrap;
-}
-
-.sendbox-highlight-text {
-  color: var(--text-primary);
-}
-
-.sendbox-highlight-mention {
-  color: rgb(var(--primary-6));
-}
-
-.sendbox-highlight-textarea {
-  background: transparent !important;
-}
-
-.sendbox-highlight-textarea {
-  position: relative;
-  z-index: 1;
-  color: transparent !important;
-  -webkit-text-fill-color: transparent !important;
-  caret-color: var(--text-primary) !important;
-}
-
-.sendbox-highlight-textarea::selection {
-  background: rgba(var(--primary-6), 0.2);
-}
-
-.sendbox-highlight-textarea::placeholder {
-  color: #a1a2aa !important;
-  -webkit-text-fill-color: #a1a2aa !important;
 }
 
 /* Mobile compact: `+` launcher button replaces inline tools when the
