@@ -8,7 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const list = vi.fn();
 
-vi.mock('@/renderer/hooks/knowledge-base/useKnowledgeBaseList', () => ({
+vi.mock('@/renderer/hooks/kb-chat/useKnowledgeBaseList', () => ({
   useKnowledgeBaseList: () => {
     const v = list();
     return {

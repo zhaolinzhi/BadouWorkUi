@@ -377,6 +377,10 @@ export default defineConfig(({ mode }) => {
           '@codemirror/lang-markdown',
           '@codemirror/language',
           'vditor',
+          // qiankun pulls in import-html-entry + single-spa + lodash + @babel/runtime;
+          // listing it explicitly avoids the first-launch optimizeDeps stall that
+          // leaves the renderer white-screening (see bug report 2026-10-15).
+          'qiankun',
         ],
       },
     },

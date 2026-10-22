@@ -9,6 +9,13 @@ const aliases = {
   '@mcp/models/': path.resolve(__dirname, './packages/desktop/src/common/models') + '/',
   '@mcp/types/': path.resolve(__dirname, './packages/desktop/src/common') + '/',
   '@mcp/': path.resolve(__dirname, './packages/desktop/src/common') + '/',
+  // Used by `packages/microapps/notes` to share adapter/mapper with main app.
+  '@common/': path.resolve(__dirname, './packages/desktop/src/common') + '/',
+  // Shared qiankun helpers consumed by both `meeting-recording` and `notes` micro-apps.
+  // The microapp-level Vite alias still wins at build time (so the UMD bundle resolves
+  // the alias during qiankun eval), but vitest transforms with the root config — this
+  // root-level alias keeps tests in sync.
+  '@aionui/microapp-shared': path.resolve(__dirname, './packages/microapps/shared/src/index.ts'),
 };
 
 export default defineConfig({
@@ -30,12 +37,20 @@ export default defineConfig({
           environment: 'node',
           include: [
             'packages/web-host/src/**/*.test.ts',
+            'packages/desktop/src/renderer/micro-app/**/*.test.ts',
+            'packages/desktop/src/renderer/shared/**/*.test.ts',
+            'packages/microapps/**/*.test.ts',
             'tests/unit/**/*.test.ts',
             'tests/unit/**/test_*.ts',
             'tests/integration/**/*.test.ts',
             'tests/regression/**/*.test.ts',
           ],
-          exclude: ['tests/unit/**/*.dom.test.ts', 'tests/unit/**/*.dom.test.tsx'],
+          exclude: [
+            'tests/unit/**/*.dom.test.ts',
+            'tests/unit/**/*.dom.test.tsx',
+            'packages/microapps/**/*.dom.test.ts',
+            'packages/microapps/**/*.dom.test.tsx',
+          ],
           setupFiles: ['./tests/vitest.setup.ts'],
         },
       },
@@ -45,7 +60,19 @@ export default defineConfig({
         test: {
           name: 'dom',
           environment: 'jsdom',
-          include: ['tests/unit/**/*.dom.test.ts', 'tests/unit/**/*.dom.test.tsx'],
+          include: [
+            'tests/unit/**/*.dom.test.ts',
+            'tests/unit/**/*.dom.test.tsx',
+            'tests/integration/**/*.dom.test.ts',
+            'tests/integration/**/*.dom.test.tsx',
+            'packages/desktop/src/renderer/micro-app/**/*.dom.test.tsx',
+            'packages/desktop/src/renderer/micro-app/**/*.test.tsx',
+            'packages/desktop/src/renderer/shared/**/*.dom.test.tsx',
+            'packages/desktop/src/renderer/shared/**/*.test.tsx',
+            'packages/microapps/**/*.dom.test.ts',
+            'packages/microapps/**/*.dom.test.tsx',
+            'packages/microapps/**/*.test.tsx',
+          ],
           setupFiles: ['./tests/vitest.dom.setup.ts'],
         },
       },

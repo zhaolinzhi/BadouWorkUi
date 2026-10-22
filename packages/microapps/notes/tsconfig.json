@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "jsx": "react",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@renderer/*": ["../../desktop/src/renderer/*"],
+      "@common/*": ["../../desktop/src/common/*"],
+      "@/*": ["../../desktop/src/*"],
+      "@aionui/microapp-shared": ["../shared/src/index.ts"]
+    }
+  },
+  "include": ["src/**/*"]
+}

@@ -3,7 +3,19 @@
  * Copyright 2026 AionUi (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
-import type { KnowledgeBaseItem } from '@/renderer/pages/knowledge-base/types';
+/**
+ * 知识库提及的最小字段集。
+ *
+ * 完整的 `KnowledgeBaseItem` 定义在 knowledge-base 子应用里
+ * (`packages/microapps/knowledge-base/src/types.ts`),子应用跑在 qiankun
+ * 沙箱中,shell 这边 import 不到。此处只声明真正消费的三个字段 ——
+ * 多声明就是多一处会与后端契约漂移的地方。
+ */
+export type KbInsertionSource = {
+  id: string;
+  name: string;
+  isShared: boolean;
+};
 
 export const KB_TOKEN_PREFIX = '@kb:';
 
@@ -20,8 +32,7 @@ export type KbMentionToken = {
 /** Same boundary rules as workspace `@`-mentions in `utils/chat/atFileQuery.ts`. */
 const BOUNDARY_RE = /[\s,;!?()[\]{}]/;
 
-export const buildKbInsertion = (kb: Pick<KnowledgeBaseItem, 'id' | 'name' | 'isShared'>): string =>
-  `${KB_TOKEN_PREFIX}${kb.id}`;
+export const buildKbInsertion = (kb: KbInsertionSource): string => `${KB_TOKEN_PREFIX}${kb.id}`;
 
 export const parseKbToken = (token: string): KbMentionToken | null => {
   if (!token.startsWith(KB_TOKEN_PREFIX)) return null;

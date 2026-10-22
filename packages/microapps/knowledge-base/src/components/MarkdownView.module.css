@@ -1,0 +1,137 @@
+/**
+ * 知识库描述预览的排版。
+ *
+ * 语义 token(颜色)一律走 CSS 变量 —— 变量由 shell 的主题样式定义在真实
+ * document 上,微应用 DOM 同源,明暗主题自动跟随。
+ */
+
+.kbMarkdown {
+  font-size: 13px;
+  line-height: 22px;
+  color: var(--color-text-2);
+  word-break: break-word;
+}
+
+.kbMarkdown > :first-child {
+  margin-top: 0;
+}
+
+.kbMarkdown > :last-child {
+  margin-bottom: 0;
+}
+
+.kbMarkdown h1,
+.kbMarkdown h2,
+.kbMarkdown h3,
+.kbMarkdown h4,
+.kbMarkdown h5,
+.kbMarkdown h6 {
+  margin: 16px 0 8px;
+  color: var(--color-text-1);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.kbMarkdown h1 {
+  font-size: 18px;
+}
+
+.kbMarkdown h2 {
+  font-size: 16px;
+}
+
+.kbMarkdown h3 {
+  font-size: 14px;
+}
+
+.kbMarkdown p {
+  margin: 8px 0;
+}
+
+.kbMarkdown ul,
+.kbMarkdown ol {
+  margin: 8px 0;
+  padding-left: 22px;
+}
+
+.kbMarkdown li {
+  margin: 4px 0;
+}
+
+.kbMarkdown a {
+  color: rgb(var(--primary-6));
+  text-decoration: none;
+}
+
+.kbMarkdown a:hover {
+  text-decoration: underline;
+}
+
+/* 未指定语言的代码块会带上 `language-undefined`,直接拿第一个 token 当类名 */
+.kbMarkdown code {
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--color-fill-2);
+  color: var(--color-text-1);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+}
+
+.kbMarkdown pre {
+  margin: 10px 0;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--color-fill-2);
+  overflow-x: auto;
+}
+
+.kbMarkdown pre code {
+  padding: 0;
+  background: transparent;
+  font-size: 12px;
+}
+
+.kbMarkdown blockquote {
+  margin: 10px 0;
+  padding: 4px 0 4px 12px;
+  border-left: 3px solid var(--color-border-3);
+  color: var(--color-text-3);
+}
+
+.kbMarkdown table {
+  width: 100%;
+  margin: 10px 0;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.kbMarkdown th,
+.kbMarkdown td {
+  padding: 6px 10px;
+  border: 1px solid var(--color-border-2);
+  text-align: left;
+}
+
+.kbMarkdown th {
+  background: var(--color-fill-2);
+  color: var(--color-text-1);
+  font-weight: 600;
+}
+
+.kbMarkdown img {
+  max-width: 100%;
+  border-radius: 6px;
+}
+
+.kbMarkdown hr {
+  margin: 14px 0;
+  border: none;
+  border-top: 1px solid var(--color-border-2);
+}
+
+/* katex 注入的块级公式自带上下外边距,叠在预览容器里会显得过散 */
+.kbMarkdown .katex-display {
+  margin: 10px 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}

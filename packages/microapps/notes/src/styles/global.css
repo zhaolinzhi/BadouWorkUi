@@ -1,0 +1,32 @@
+/**
+ * Notes micro-app global styles.
+ *
+ * This file is loaded once at module entry. Per-component styles should live in
+ * `<Component>.module.css`; only put truly cross-cutting rules here (e.g.
+ * Vditor theme overrides scoped to the micro-app container).
+ */
+
+.microapp-notes {
+  padding: 16px;
+}
+
+/**
+ * Vditor ships its own color tokens. When the shell switches between light
+ * and dark themes (via `arco-theme` on <body>), Vditor needs a nudge so its
+ * preview surface stays legible. We rely on the CSS variables already exposed
+ * by the shell (--bg-base / --text-primary) instead of hardcoding values.
+ */
+.microapp-notes .vditor {
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+}
+
+.microapp-notes .vditor .vditor-reset {
+  color: var(--text-primary);
+  background-color: var(--bg-base);
+}
+
+.microapp-notes .vditor .vditor-toolbar {
+  background-color: var(--bg-1, var(--fill-1));
+  border-bottom-color: var(--bg-3);
+}

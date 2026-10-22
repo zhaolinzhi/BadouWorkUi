@@ -32,7 +32,7 @@ interface ThemeContextValue {
   setFontSize: (key: FontSizeKey, px: number) => Promise<void>;
 }
 
-const ThemeContext = createContext<ThemeContextValue | null>(null);
+export const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export const ThemeProvider: React.FC<PropsWithChildren> = ({ children }) => {
   const [activeTheme, selectTheme, activeId] = useTheme();
