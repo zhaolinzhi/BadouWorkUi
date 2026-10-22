@@ -608,6 +608,7 @@ function cleanupWindowsPackOutput() {
 // Parse command line arguments
 const args = process.argv.slice(2);
 const archList = ['x64', 'arm64', 'ia32', 'armv7l'];
+const { resolveAutoArchArgs } = require('../packages/shared-scripts/src/resolve-auto-arch-args.js');
 
 // Check for special flags
 const skipVite = args.includes('--skip-vite');
@@ -701,7 +702,19 @@ if (archArgs.length > 1) {
     else if (builderArgs.includes('--win')) detectedPlatform = 'win';
 
     const configArch = detectedPlatform ? getTargetArchFromConfig(detectedPlatform) : null;
-    targetArch = configArch || buildMachineArch;
+    if (configArch) {
+      targetArch = configArch;
+    } else {
+      // electron-builder.yml 没写 arch: 时按本机能力选。关键约束是「本机必须跑得动目标
+      // 二进制」—— prepareAioncore 会 execFileSync 它来拉 managed-resources。
+      const autoArchArgs = resolveAutoArchArgs(detectedPlatform, buildMachineArch);
+      if (autoArchArgs.length > 1) {
+        multiArch = true;
+        archArgs.push(...autoArchArgs);
+      }
+      targetArch = autoArchArgs[0];
+      console.log(`🔨 Auto-selected architectures: ${autoArchArgs.join(', ')} (host ${buildMachineArch})`);
+    }
   }
 } else {
   // Explicit architecture or default to build machine
@@ -729,8 +742,30 @@ try {
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n');
   }
 
+  // 1.5 Micro-app bundling: point the renderer at the assets we're about to embed.
+  //
+  // These two must land in process.env BEFORE electron-vite build, because that is what
+  // bakes import.meta.env into the renderer bundle. Vite gives pre-existing process env
+  // priority over .env files, so writing them here is what overrides the
+  // VITE_MICRO_APP_ENABLED=false placeholder in packages/desktop/.env.production.
+  //
+  // Step 2 forces a renderer rebuild when this is set, so the env vars below always make it
+  // into the bundle.
+  const bundleMicroApps = process.env.MICRO_APP_BUNDLE === '1';
+  if (bundleMicroApps) {
+    console.log('🧩 Bundling micro apps into the installer (entry: app://microapps)');
+    process.env.VITE_MICRO_APP_ENABLED = 'true';
+    process.env.VITE_MICRO_APP_ASSET_BASE = 'app://microapps';
+  }
+
   // 2. Check if we can skip Vite build (incremental build)
-  const skipViteBuild = shouldSkipViteBuild(skipVite, forceBuild);
+  //
+  // MICRO_APP_BUNDLE=1 always rebuilds. The incremental cache keys on a source hash that
+  // cannot see the env vars we just injected, so a plain `bun run build` followed by
+  // `bun run build:all` would otherwise reuse a renderer bundle still carrying
+  // VITE_MICRO_APP_ENABLED=false — and step 4.5 would embed the micro apps next to a shell
+  // that never asks for them.
+  const skipViteBuild = bundleMicroApps ? false : shouldSkipViteBuild(skipVite, forceBuild);
 
   if (!skipViteBuild) {
     // Run electron-vite to build all bundles (main + preload + renderer)
@@ -773,6 +808,18 @@ try {
   const viteOutputValidation = validateViteBuildOutput();
   if (!viteOutputValidation.valid) {
     throw new Error(`Vite build output is incomplete:\n${viteOutputValidation.problems.join('\n')}`);
+  }
+
+  // 4.5 Build the micro apps and copy them next to the shell bundle.
+  //
+  // This MUST come after electron-vite build: that step empties out/, so copying any
+  // earlier would be undone. It must also come before electron-builder, which reads
+  // out/renderer/**/* per electron-builder.yml's files list.
+  if (bundleMicroApps) {
+    execSync(`node "${path.join(__dirname, 'build-micro-apps.mjs')}"`, {
+      stdio: 'inherit',
+      shell: process.platform === 'win32',
+    });
   }
 
   // If --pack-only, skip electron-builder distributable creation

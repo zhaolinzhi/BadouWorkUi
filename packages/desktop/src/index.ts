@@ -7,6 +7,9 @@
 // configureChromium sets app name (dev isolation) and Chromium flags — must run before
 // ANY module that calls app.getPath('userData'), because Electron caches the path on first call.
 import './process/utils/configureChromium';
+// Privileged-scheme declaration for app:// — must run before app.ready, so this stays a
+// bare side-effect import. See process/resources/microApps/scheme.ts.
+import './process/resources/microApps/scheme';
 import { installGpuCrashHandler } from './process/utils/gpuRecovery';
 import { captureBackendStartupFailure, initSentry, scheduleStartupLogReport, setSentryDeviceId } from './sentry';
 
@@ -39,6 +42,7 @@ import { startWebHost } from '@aionui/web-host';
 import { initializeZoomFactor, setupZoomForWindow } from './process/utils/zoom';
 import { hydrateWindowsProcessPath } from './process/startup/windowsPath';
 import { registerWindowsAppUserModelId } from './process/startup/windowsAppUserModelId';
+import { registerMicroAppAssetProtocol } from '@process/resources/microApps';
 import {
   MIN_WINDOW_WIDTH,
   MIN_WINDOW_HEIGHT,
@@ -634,6 +638,11 @@ const handleAppReady = async (): Promise<void> => {
   const t0 = performance.now();
   const mark = (label: string) => console.log(`[AionUi:ready] ${label} +${Math.round(performance.now() - t0)}ms`);
   mark('start');
+
+  // Serve bundled micro apps over app://. Cheap and idempotent, and it must happen before
+  // the window loads so the renderer can fetch app://microapps/<name>/index.html on the
+  // first navigation. No-op in dev: bun run dev uses localhost dev-server entries instead.
+  registerMicroAppAssetProtocol();
 
   if (!app.isPackaged) {
     try {

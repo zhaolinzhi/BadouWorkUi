@@ -75,19 +75,21 @@ AionUi 采用 **qiankun 微前端** 架构。主应用(Electron + WebUI 双形�
 
 **关键不变量**:
 
-- `name` 在所有出现处必须一致(qiankun 注册名 == UMD library == 子应用内部状态 key)
+- `name` 在所有出现处必须一致(qiankun 注册名 == `main.ts` 里 `window[name]` 生命周期注册名 == 子应用内部状态 key)
 - dev port 在 `getDevEntryPort()` 和子应用 `vite.config.ts` 的 `server.port` 两处必须一致,且子应用要开 `strictPort`
 - 子应用独立运行(`window.__POWERED_BY_QIANKUN__` 为 false)时,使用 mock props 直接 `render()`
 - 主应用未开启微应用时(`VITE_MICRO_APP_ENABLED !== 'true'`),`startMicroApps` 直接 return,qiankun 不会被加载
 
 ## 常用命令
 
-| 命令                                          | 起什么                                   |
-| --------------------------------------------- | ---------------------------------------- |
-| `bun run dev`                                 | 只起主应用(electron-vite dev),不拉子应用 |
-| `bun run dev:all`                             | 根目录:主应用 + 全部子应用一条命令拉起   |
-| `cd packages/microapps/<name> && bun run dev` | 单独起一个子应用                         |
+| 命令                                            | 起什么                                   |
+| ----------------------------------------------- | ---------------------------------------- |
+| `bun run dev`                                   | 只起主应用(electron-vite dev),不拉子应用 |
+| `bun run dev:all`                               | 根目录:主应用 + 全部子应用一条命令拉起   |
+| `cd packages/microapps/<name> && bun run dev`   | 单独起一个子应用                         |
+| `bun run build:all`                             | 打包主应用 + 把全部子应用打进安装包      |
+| `cd packages/microapps/<name> && bun run build` | 单独构建一个子应用,产物可直接传 CDN      |
 
 > `bun run dev` 下访问 `/knowledge-base` 会报 `ERR_CONNECTION_REFUSED` —— 子应用 dev server 没起,这是预期行为。要联调子应用就用 `bun run dev:all`。
 
-详见 [01-quickstart.md](01-quickstart.md)。
+子应用产物是标准 HTML(`dist/index.html`),不是 UMD;一份产物同时支持「打进安装包」和「独立部署到 CDN」两种形态,详见 [06-build-and-deploy.md](06-build-and-deploy.md)。`build` / `build:all` 打几个架构由构建机决定(Intel Mac 只出 x64,Apple Silicon 出 arm64 + x64),原因和 CI 的对应关系见 [06 的架构一节](06-build-and-deploy.md#方式一内置安装包bun-run-buildall)。联调见 [01-quickstart.md](01-quickstart.md)。

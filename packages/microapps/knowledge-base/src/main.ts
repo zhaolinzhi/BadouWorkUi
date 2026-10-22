@@ -56,9 +56,13 @@ export async function unmount(props: RenderProps) {
 const w = window as any;
 if (isQiankunHost()) {
   // dev 模式:vite-plugin-qiankun 注入的 HTML 包装读 `window.moudleQiankunAppLifeCycles`
-  // UMD 构建路径不走这里,UMD 直接 `window.knowledgeBase.mount(props)`
+  const lifeCycles = { bootstrap, mount, unmount };
   w.moudleQiankunAppLifeCycles = w.moudleQiankunAppLifeCycles || {};
-  w.moudleQiankunAppLifeCycles['knowledge-base'] = { bootstrap, mount, unmount };
+  w.moudleQiankunAppLifeCycles['knowledge-base'] = lifeCycles;
+  // 生产构建的 index.html 不带 vite-plugin-qiankun 的包装(见 vite.config.ts 注释),
+  // qiankun 走 `getLifecyclesFromExports` 的 window[name] 兜底分支 —— 必须挂到全局。
+  // 名字要和 MICRO_APP_DEFAULTS 里的 name 一致。
+  w['knowledge-base'] = lifeCycles;
 } else {
   try {
     const mockProps: RenderProps = {

@@ -56,7 +56,7 @@ VITE_MICRO_APP_ENABLED=false
 
 ## 方式 D:子应用发布空 stub(优雅降级)
 
-部署一个返回 200 但内容是 `export default {}` 的 UMD 文件,URL 指向该 stub。`loadMicroApp` 成功但页面空白,主应用菜单项仍可见但点击后无内容。
+部署一个返回 200 的 HTML stub(内含一段注册了空 `bootstrap / mount / unmount` 的脚本),URL 指向该 stub。`loadMicroApp` 成功但页面空白,主应用菜单项仍可见但点击后无内容。
 
 **适用范围**:需要保留菜单入口、避免 404 报错、对用户保留"功能即将上线"占位的场景。
 

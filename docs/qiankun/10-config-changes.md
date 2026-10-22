@@ -44,11 +44,11 @@
 
 走 [07-disable.md](07-disable.md) 方式 A:把 `VITE_<NAME>_APP_ENTRY` 指向一个无效 URL,`loadMicroApp` 加载失败但不影响主应用,MicroAppErrorBoundary 会渲染降级页面。
 
-| 场景         | 做法                                                                               |
-| ------------ | ---------------------------------------------------------------------------------- |
-| 临时调试     | shell 临时变量 `VITE_<NAME>_APP_ENTRY=https://invalid.local/<name>.js bun run dev` |
-| 个人持久覆盖 | [packages/desktop/.env.local](../../packages/desktop/.env.local)(gitignore)写一条  |
-| 生产灰度     | CI 注入 `VITE_<NAME>_APP_ENTRY` 指向 stub / invalid URL                            |
+| 场景         | 做法                                                                                       |
+| ------------ | ------------------------------------------------------------------------------------------ |
+| 临时调试     | shell 临时变量 `VITE_<NAME>_APP_ENTRY=https://invalid.local/<name>/index.html bun run dev` |
+| 个人持久覆盖 | [packages/desktop/.env.local](../../packages/desktop/.env.local)(gitignore)写一条          |
+| 生产灰度     | CI 注入 `VITE_<NAME>_APP_ENTRY` 指向 stub / invalid URL                                    |
 
 **代码、env 默认文件、测试全部不动**。
 
@@ -86,7 +86,7 @@
 | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
 | [packages/desktop/src/renderer/micro-app/config/micro-apps.ts](../../packages/desktop/src/renderer/micro-app/config/micro-apps.ts)       | `MICRO_APP_DEFAULTS` 的 key、name 字段、container 选择器(`#${name}-container`) |
 | [packages/desktop/src/renderer/components/layout/Router.tsx](../../packages/desktop/src/renderer/components/layout/Router.tsx)           | `microAppName='新名'`                                                          |
-| `packages/microapps/<name>/vite.config.ts`                                                                                               | `lib.name: '新名'`(UMD global,必须严格一致)                                    |
+| `packages/microapps/<name>/src/main.ts`                                                                                                  | `window['新名']` 生命周期注册的键名(必须严格一致)                              |
 | [packages/desktop/.env.development](../../packages/desktop/.env.development) / [.env.production](../../packages/desktop/.env.production) | 改 `VITE_<NAME>_APP_ENTRY=...` 的变量名                                        |
 | 子应用内部                                                                                                                               | `qiankun lifecycle`、state key、localStorage 命名空间等所有引用 name 的地方    |
 | 外部系统                                                                                                                                 | localStorage / API 路径中用到旧 name 的地方                                    |

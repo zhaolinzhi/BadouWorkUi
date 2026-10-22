@@ -8,7 +8,7 @@
 
 | 路径                                                                                                                                                               | 作用                                                          |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------- |
-| [packages/desktop/src/renderer/micro-app/config/micro-apps.ts](../../packages/desktop/src/renderer/micro-app/config/micro-apps.ts)                                 | 注册表 + 端口表 + entry 解析                                  |
+| [packages/desktop/src/renderer/micro-app/config/micro-apps.ts](../../packages/desktop/src/renderer/micro-app/config/micro-apps.ts)                                 | 注册表 + 端口表 + entry 解析(含 asset base 兜底层)            |
 | [packages/desktop/src/renderer/micro-app/services/micro-apps.ts](../../packages/desktop/src/renderer/micro-app/services/micro-apps.ts)                             | `startMicroApps` + `buildMicroAppProps` + `isMicroAppEnabled` |
 | [packages/desktop/src/renderer/micro-app/MicroAppBootstrap.tsx](../../packages/desktop/src/renderer/micro-app/MicroAppBootstrap.tsx)                               | 启动 + 主题/语言广播                                          |
 | [packages/desktop/src/renderer/micro-app/views/MicroAppPlaceholder.tsx](../../packages/desktop/src/renderer/micro-app/views/MicroAppPlaceholder.tsx)               | 容器 + ErrorBoundary                                          |
@@ -19,7 +19,7 @@
 
 ## 子应用侧
 
-三个子应用目录结构一致:`vite.config.ts`(UMD + CORS + qiankun plugin + shim + `server.port`)、`src/main.ts`(qiankun 生命周期 + 独立运行守卫)。
+三个子应用目录结构一致:`vite.config.ts`(相对 `base` + CORS + dev-only qiankun plugin/shim + `server.port`)、`src/main.ts`(qiankun 生命周期 + `window[name]` 兜底注册 + 独立运行守卫)。
 
 | 路径                                                                                                                             | 作用                                                                       |
 | -------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
@@ -41,11 +41,24 @@
 | [packages/microapps/shared/src/qiankun/adapter.ts](../../packages/microapps/shared/src/qiankun/adapter.ts) | 把 `token / userInfo / baseApi` 落到 `${systemCode}_` 前缀的 localStorage |
 | [packages/microapps/shared/src/qiankun/auth.ts](../../packages/microapps/shared/src/qiankun/auth.ts)       | `emitAuthExpired()`,401 统一上报,子应用不自己跳登录页                     |
 
+## 微应用资产服务(主进程)
+
+打包后子应用落在 asar 里,渲染进程在 `file://` origin 上 fetch 不到,主进程用 `app://` 协议把 `out/renderer/microapps/` 映射成可 fetch 的 URL。详见 [06-build-and-deploy.md](06-build-and-deploy.md)。
+
+| 路径                                                                                                                                                         | 作用                                                                                  |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
+| [packages/desktop/src/process/resources/microApps/scheme.ts](../../packages/desktop/src/process/resources/microApps/scheme.ts)                               | 副作用模块:`protocol.registerSchemesAsPrivileged('app')`,必须在 `app.ready` 前 import |
+| [packages/desktop/src/process/resources/microApps/assets.ts](../../packages/desktop/src/process/resources/microApps/assets.ts)                               | 纯函数:MIME 映射 + 路径解析(拒绝 `..` 穿越 / 越界 / 非法百分号编码)                   |
+| [packages/desktop/src/process/resources/microApps/index.ts](../../packages/desktop/src/process/resources/microApps/index.ts)                                 | `registerMicroAppAssetProtocol()`:`protocol.handle('app')` 处理器,统一带 CORS 头      |
+| [packages/desktop/src/process/resources/microApps/**tests**/assets.test.ts](../../packages/desktop/src/process/resources/microApps/__tests__/assets.test.ts) | 上面两个纯函数的单元测试                                                              |
+
 ## 编排脚本
 
-| 路径                                             | 作用                                                                     |
-| ------------------------------------------------ | ------------------------------------------------------------------------ |
-| [scripts/dev-all.mjs](../../scripts/dev-all.mjs) | 根目录 `bun run dev:all` 的入口:扫描子应用、端口预检、并发拉起、统一收尾 |
+| 路径                                                                 | 作用                                                                                             |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| [scripts/dev-all.mjs](../../scripts/dev-all.mjs)                     | 根目录 `bun run dev:all` 的入口:扫描子应用、端口预检、并发拉起、统一收尾                         |
+| [scripts/build-micro-apps.mjs](../../scripts/build-micro-apps.mjs)   | 构建全部子应用并复制到 `out/renderer/microapps/<name>/`;导出 `discoverMicroApps` 给 dev 脚本复用 |
+| [scripts/build-with-builder.js](../../scripts/build-with-builder.js) | 打包编排;`MICRO_APP_BUNDLE=1`(`bun run build:all`)时注入 `app://microapps` 基址并调用上一个脚本  |
 
 ## 设计 spec
 

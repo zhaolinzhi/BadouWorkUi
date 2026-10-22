@@ -1,115 +1,138 @@
-# 06. 构建与发布 / 部署
+# 06. 构建与部署
 
-> 适用对象:运维 / 发布工程师,或改 `VITE_<NAME>_APP_ENTRY` 默认值 / 上 CDN 的人。
+> 适用对象:运维 / 发布工程师,或要改子应用构建产物、决定子应用怎么分发的人。
 >
 > "只改配置不动代码"的下线 / 屏蔽流程见 [07-disable.md](07-disable.md)。完全从仓库删子应用见 [11-complete-removal.md](11-complete-removal.md)。
 
-## 4. 构建与发布
+## 4. 构建与部署
 
-### 4.1 子应用构建(UMD)
+### 4.1 子应用产物形态
 
-每个子应用的 `vite.config.ts` 声明 UMD 输出:
+子应用构建出的是**标准 Vite HTML 产物**,不是 UMD:
+
+```
+dist/
+├── index.html                 # qiankun 的 entry 就是这个文件
+└── assets/
+    ├── index-<hash>.js
+    ├── index-<hash>.css
+    └── ...(字体、图片等)
+```
+
+对应 `vite.config.ts` 里唯一一处关键配置:
 
 ```ts
 // packages/microapps/notes/vite.config.ts
-build: {
-  lib: {
-    entry: path.resolve(__dirname, 'src/main.ts'),
-    name: 'notes',  // UMD global 名,必须与 MICRO_APP_DEFAULTS.name 一致
-    formats: ['umd'],
-    fileName: () => 'notes.js',
-  },
-  rollupOptions: {
-    external: ['react', 'react-dom', 'react-router-dom', '@arco-design/web-react'],
-    output: {
-      globals: {
-        react: 'React',
-        'react-dom': 'ReactDOM',
-        'react-router-dom': 'ReactRouterDOM',
-        '@arco-design/web-react': 'ArcoDesign',
-      },
-    },
-  },
-}
+export default defineConfig(({ command }) => ({
+  base: './', // ← 相对 base,整节只有这一行是分发相关的
+  plugins: [
+    react(),
+    // vite-plugin-qiankun 和它的 shim 只装在 dev server 上,原因见文件里的注释
+    ...(command === 'serve' ? [qiankun('notes', { useDevMode: true }), qiankunHeadModuleShim] : []),
+  ],
+}));
 ```
+
+**entry 必须是 HTML,不能是裸 `.js`**。qiankun 的 `import-html-entry` 只从 HTML 里解析 `<script>` / `<link>`;喂一个 `.js` URL 会解析出零个 script,子应用表现为「加载了但什么都不渲染」,控制台没有任何报错。
+
+**`base: './'` 是两种分发方式共用的关键**。相对 base 让产物里的资源路径写成 `./assets/xxx.js`,由 entry HTML 自己解析。因为 entry 永远是 `<base>/<name>/index.html`,同一份 `dist/` 既能被安装包内的 `app://microapps/notes/index.html` 消费,也能被 CDN 的 `https://cdn.example.com/…/notes/v1.0.0/index.html` 消费 —— **不需要为两种分发各打一遍**。
 
 构建命令:
 
 ```bash
-cd packages/microapps/notes
-bun run build
-# 产物在 dist/notes.js(UMD)
+cd packages/microapps/notes && bun run build
 ```
 
-**关键约束**:
+### 4.2 两种分发方式
 
-- `name` 必须与 `MICRO_APP_DEFAULTS.name` 严格一致
-- `react / react-dom / react-router-dom / @arco-design/web-react` 等主应用已有的依赖必须 external,避免重复打包
-- externals 的 globals 名称要写对(`React` / `ReactDOM` / `ReactRouterDOM` / `ArcoDesign`)
+子应用和主应用有两种配合方式,**按版本二选一**,不做运行时回退:
 
-### 4.2 主应用构建
+|            | 命令                                    | 产物落在哪                               | 适合                       |
+| ---------- | --------------------------------------- | ---------------------------------------- | -------------------------- |
+| 内置安装包 | 根目录 `bun run build:all`              | `out/renderer/microapps/<name>/`,进 asar | 离线 / 内网 / 不方便挂 CDN |
+| 独立部署   | 各子应用目录 `bun run build`,产物传 CDN | 任意静态托管                             | 子应用要独立升级、灰度     |
+
+#### 方式一:内置安装包(`bun run build:all`)
 
 ```bash
-cd packages/desktop
+# 根目录
+bun run build:all
+```
+
+它等于 `bun run build` 再加一步:构建全部子应用并复制到 `out/renderer/microapps/<name>/`,同时给渲染进程注入 `VITE_MICRO_APP_ENABLED=true` 和 `VITE_MICRO_APP_ASSET_BASE=app://microapps`。
+
+细节都在 [`scripts/build-with-builder.js`](../../scripts/build-with-builder.js) 里,两个顺序是硬约束:
+
+- 子应用构建+复制**必须排在 `electron-vite build` 之后** —— 那一步会清空 `out/`,早一步做会被抹掉
+- 两个 `VITE_*` **必须在 `electron-vite build` 之前**写进 `process.env` —— 那一步才把 `import.meta.env` 烤进渲染进程 bundle(Vite 里已存在的 `process.env` 优先于 `.env` 文件,所以能盖过 `.env.production` 的占位值)
+
+另外 `MICRO_APP_BUNDLE=1` 会**强制跳过增量构建**。增量缓存按源码 hash 判断,它看不见刚注入的 env 变量 —— 不强制重建的话,「先 `bun run build` 再 `bun run build:all`」会复用上一次的渲染进程 bundle(里面还是 `VITE_MICRO_APP_ENABLED=false`),同时又把子应用拷进去,得到一个装了微应用但永远不会去加载它的安装包。
+
+**打几个架构由本机决定。** `bun run build:all` 等价于 `build-with-builder.js auto --mac`,不带硬编码的架构参数;脚本按 `process.arch` 选:
+
+| 构建机            | 打出来的架构 | 原因                         |
+| ----------------- | ------------ | ---------------------------- |
+| Intel Mac         | 只有 x64     | 跑不了 arm64 二进制          |
+| Apple Silicon Mac | arm64 + x64  | Rosetta 2 能跑 x86_64 二进制 |
+| x64 Windows       | 只有 x64     | 跑不了 arm64 exe             |
+| Windows on ARM    | arm64 + x64  | 系统级 x64 模拟              |
+
+这是硬约束,不是偏好:`prepareAioncore` 会 `execFileSync` **目标架构**的 aioncore 二进制去拉 managed-resources(里面是那个架构专属的 Node 运行时,如 `node-v24.11.0-darwin-x64`),本机跑不动就 `EBADARCH`(-86)失败。逻辑在 [`resolve-auto-arch-args.js`](../../packages/shared-scripts/src/resolve-auto-arch-args.js),和 CI 用的是同一套判据 —— `build-and-release.yml` 里 macos-arm64 和 macos-x64 两个 job 都跑在 arm64 的 `macos-14` 上。
+
+需要显式指定架构时用 `bun run build-mac:arm64` / `bun run build-mac:x64`(这两个不受本机限制,CI 就是这么调的)。
+
+**`app://` 协议从哪来。** 打包后渲染进程跑在 `file://` origin 上,而 Chromium 里 `fetch('file://…')` 必然抛 `TypeError`,asar 内的路径也没有 URL 形态。所以主进程注册了一个 `app://` scheme 把 `out/renderer/microapps/` 映射成可 fetch 的 URL,实现在 [`process/resources/microApps/`](../../packages/desktop/src/process/resources/microApps/index.ts)。dev 下没有这个目录时干净地回 404,不影响 `bun run dev`。
+
+> WebUI 形态(`bun run webui:prod`)的静态根也是 `out/renderer`,所以子应用会自动出现在 `/microapps/<name>/index.html`。但 WebUI 生产默认 `VITE_MICRO_APP_ENABLED=false`,启用它需要另外把 asset base 配成 `${location.origin}/microapps` —— 本轮没有做。
+
+#### 方式二:独立部署(CDN)
+
+```bash
+cd packages/microapps/notes && bun run build
+# 整个 dist/ 传到 CDN,例如
+# https://cdn.example.com/microapps/notes/v1.2.3/index.html
+```
+
+然后在主应用构建时指定基址:
+
+```bash
+VITE_MICRO_APP_ENABLED=true \
+VITE_MICRO_APP_ASSET_BASE=https://cdn.example.com/microapps \
 bun run build
 ```
 
-主应用在 `startMicroApps` 中通过 `import('qiankun')` 动态加载 qiankun,只有 `VITE_MICRO_APP_ENABLED=true` 时才会真正进入该路径,因此默认构建不会把 qiankun 拉进主 bundle。
+拼出来是 `https://cdn.example.com/microapps/notes/index.html`。用基址而不是逐个 entry,是因为三个子应用通常同批发布;要单独覆盖某个应用再用 `VITE_<NAME>_APP_ENTRY`(优先级更高)。
 
-### 4.3 发布流程
+**CORS 要求**:主应用 origin 拉取子应用资源属于跨源请求,CDN 必须返回 `Access-Control-Allow-Origin`。打包态主应用在 `file://` 上,同样需要 CORS 头 —— `app://` 那一侧由协议 handler 统一带上。
 
-子应用与主应用**独立发版**:
+### 4.3 entry 解析顺序
 
-1. **子应用发版**:
-   - `bun run build` 产出 `dist/notes.js`
-   - 上传至 CDN / 静态资源服务
-   - 记录公网 URL,例如 `https://cdn.example.com/microapps/notes/v1.2.3/notes.js`
-   - 通过环境变量 `VITE_NOTES_APP_ENTRY` 在主应用部署配置中覆盖(见第 5 节)
+`getMicroAppConfig()` 依次尝试,先命中先用:
 
-2. **主应用发版**:
-   - `bun run build` 产出桌面 / WebUI 产物
-   - 部署时设置 `VITE_MICRO_APP_ENABLED=true` 以及各个 `VITE_<NAME>_APP_ENTRY`
-   - 灰度策略:先灰度环境变量(URL 指向新版本子应用),再灰度主应用
+| 顺序 | 来源                        | 用途                                 |
+| ---- | --------------------------- | ------------------------------------ |
+| 1    | `VITE_<NAME>_APP_ENTRY`     | 单个应用覆盖(灰度、指向预发)         |
+| 2    | `VITE_MICRO_APP_ASSET_BASE` | 整批分发基址,内置和 CDN 共用这个变量 |
+| 3    | `//localhost:<dev port>`    | 本地联调兜底                         |
 
-**版本不绑定**:子应用可独立升级 / 回滚,主应用无需重新发版。
+前两个都留空时回落到 dev port。**生产环境不要留空** —— 生产那个端口没有服务,会走到 `MicroAppErrorBoundary` 降级页。
+
+### 4.4 主应用构建
+
+主应用在 `startMicroApps` 中通过 `import('qiankun')` 动态加载 qiankun,只有 `VITE_MICRO_APP_ENABLED=true` 时才会真正进入该路径,默认构建不会把 qiankun 拉进主 bundle。
+
+```bash
+# 只打主应用(子应用走 CDN 或干脆不启用)
+bun run build
+
+# 打主应用 + 把子应用嵌进安装包
+bun run build:all
+```
 
 ---
 
-## 5. 部署
+## 5. 已知约束
 
-### 5.1 子应用静态资源
-
-子应用构建产物是单个 UMD 文件(`dist/notes.js`),可部署到:
-
-- CDN(阿里云 / 腾讯云 / Cloudflare)
-- 对象存储 + CDN(OSS / COS / S3)
-- 任意能托管静态 JS 的 Web 服务器
-
-**CORS 要求**:子应用 dev server 必须返回 `Access-Control-Allow-Origin: *`(见 `vite.config.ts` 的 `server.headers`),否则主应用 origin 拉取会被浏览器拒绝。生产 CDN 一般也需配置 CORS。
-
-### 5.2 主应用部署配置
-
-主应用在 `electron.vite.config.ts` / `.env.*` 中读取 `VITE_*` 变量。生产环境典型配置:
-
-```bash
-# .env.production 或 CI 注入
-VITE_MICRO_APP_ENABLED=true
-VITE_MEETING_RECORDING_APP_ENTRY=https://cdn.example.com/microapps/meeting-recording/v2.1.0/meeting-recording.js
-VITE_NOTES_APP_ENTRY=https://cdn.example.com/microapps/notes/v1.0.0/notes.js
-VITE_KNOWLEDGE_BASE_APP_ENTRY=https://cdn.example.com/microapps/knowledge-base/v1.0.0/knowledge-base.js
-VITE_SHELL_VERSION=1.5.0  # 透传给子应用,子应用可基于此做兼容性判断
-```
-
-> 只发布其中一个子应用时,其余的 entry **留空即可**,不必指向 invalid URL —— 留空会回退到 `//localhost:<port>`,生产环境那个端口没有服务,`loadMicroApp` 同样失败并走 `MicroAppErrorBoundary` 降级页。
-
-### 5.3 容器占位
-
-主应用通过 `<MicroAppPlaceholder microAppName="notes" />` 在主路由中渲染容器节点 `<div id="notes-container" />`。**容器 ID 与 `MICRO_APP_DEFAULTS.container` 必须严格一致**。
-
-主应用菜单(通常由后端下发)命中 `activeRule` 时,路由指向占位组件,占位组件加载 `MicroAppHost`,后者调用 `qiankun.loadMicroApp` 把子应用挂到该容器。
-
-### 5.4 灰度与回滚
-
-- **子应用灰度**:切换 `VITE_<NAME>_APP_ENTRY` 指向新版本 URL,主应用无需重启
-- **子应用回滚**:把环境变量改回旧版本 URL 即可
-- **主应用灰度**:常规蓝绿 / 灰度发布策略,环境变量随主应用配置走
+- **子应用产物应是单个 JS chunk。** code-split 出来的动态 `import()` 在 qiankun 的 eval 上下文里,相对 specifier 会按 shell 的 document base URL 解析(打包后是 `file://`)而不是子应用 entry,所以会找不到模块。构建脚本检测到多个 chunk 会打黄色警告,不会拦下来。
+- **每个子应用自带一份 React / Arco / react-router。** 换取的是 dev / prod 同构,以及不再依赖一个需要 shell 预先挂 `globalThis.React` 的 UMD 全局约定。子应用之间不共享 React Context —— 它们的数据通道是 `window.ipcBridge`,不是 props / context 下钻,所以多份副本不造成功能问题。
+- **`VITE_SHELL_VERSION` 目前无处注入**,`buildMicroAppProps()` 一路回落到 `'0.0.0'`。要真的用起来需要在构建时注入。

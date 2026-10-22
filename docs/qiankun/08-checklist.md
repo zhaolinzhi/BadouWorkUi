@@ -11,18 +11,20 @@
 - [ ] `MICRO_APP_DEFAULTS[name].name`
 - [ ] `MICRO_APP_DEFAULTS[name].activeRule`(= 浏览器 URL 前缀)
 - [ ] `MICRO_APP_DEFAULTS[name].container`(= `<div id="${name}-container" />`)
-- [ ] 子应用 `vite.config.ts` 中 `lib.name`
+- [ ] 子应用 `main.ts` 里 `window['<name>']` 生命周期注册的键名
 - [ ] 子应用 `getDevEntryPort(name)` 分配的端口
 
 **子应用侧**(详细见 [05-subapp-guide.md](05-subapp-guide.md)):
 
-- [ ] `vite.config.ts` 装 `vite-plugin-qiankun` + `qiankunHeadModuleShim`,plugins 顺序 `react → qiankun → qiankunHeadModuleShim`(详见 [03-dev-mode.md](03-dev-mode.md))
+- [ ] `vite.config.ts` 装 `vite-plugin-qiankun` + `qiankunHeadModuleShim`,plugins 顺序 `react → qiankun → qiankunHeadModuleShim`,**且只在 `command === 'serve'` 时装**(详见 [03-dev-mode.md](03-dev-mode.md))
 - [ ] `vite.config.ts` 有 `cors: true` + `Access-Control-Allow-Origin: '*'`
 - [ ] `vite.config.ts` 的 `server.port` 与 `getDevEntryPort` 一致,且开了 `strictPort: true`(端口被占时直接失败,别静默顺延成空白页)
 - [ ] `vite.config.ts` 的 alias 里有 `@aionui/microapp-shared` → `../shared/src`
-- [ ] `vite.config.ts` 的 `build.lib` external 含 `react / react-dom / react-router-dom / @arco-design/web-react`
+- [ ] `vite.config.ts` 配了 `base: './'`(相对 base,两种分发方式共用同一份产物的前提)
+- [ ] `vite.config.ts` **没有** `build.lib` —— 要的是标准 HTML 产物,不是 UMD(详见 [06-build-and-deploy.md](06-build-and-deploy.md))
+- [ ] `bun run build` 后 `dist/index.html` **存在**;`dist/assets/*.js` **只有 1 个 chunk**(多 chunk 会打黄色警告,qiankun eval 环境下动态 `import()` 的相对路径解析不到)
 - [ ] `main.ts` 导出 `bootstrap / mount / unmount`,`unmount` 清 React root + 容器 DOM + `${systemCode}_` 前缀的 localStorage
-- [ ] `main.ts` 的 `__POWERED_BY_QIANKUN__` 分支注册 `window.moudleQiankunAppLifeCycles['<name>']`(详见 [03-dev-mode.md](03-dev-mode.md))
+- [ ] `main.ts` 的 `__POWERED_BY_QIANKUN__` 分支注册 `window.moudleQiankunAppLifeCycles['<name>']` **和** `window['<name>']`(前者 dev 走,后者生产 HTML 产物走)
 - [ ] `main.ts` 的 standalone 兜底有 mockProps + try/catch
 - [ ] `adapter` / `auth` / `createIpcResolver` 从 `@aionui/microapp-shared` 引,**不要**在子应用里复制一份(详见 [12-related-files.md](12-related-files.md)「共享包」)
 - [ ] API endpoint 路径不带 `/api` 前缀(由 `client.ts:joinUrl` 拼,详见 [04-baseurl.md](04-baseurl.md))
@@ -33,6 +35,7 @@
 **主应用侧 / 跨应用**:
 
 - [ ] `VITE_<NAME>_APP_ENTRY` 命名严格符合规范
+- [ ] entry URL **以 `.html` 结尾**(`import-html-entry` 只认 HTML entry,喂 `.js` 会静默渲染空白)
 - [ ] `index.html` 包含 `<div id="root">` + 引用 `src/main.ts`
 - [ ] 子应用新增 `micro-app/__tests__/micro-apps-config.test.ts` 条目(端口、entry、container)
 - [ ] 主应用路由中加 `<MicroAppPlaceholder microAppName={name} />`

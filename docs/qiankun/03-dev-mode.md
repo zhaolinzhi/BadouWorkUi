@@ -20,7 +20,7 @@ Uncaught (in promise) SyntaxError: Cannot use import statement outside a module
     at exec (qiankun.js:2176:11)
 ```
 
-> 注意:UMD 构建路径(`bun run build` 出的 `dist/<name>.js`)**不需要**这个插件,UMD 是单文件,global 挂在 `window.<name>` 上,qiankun 直接调 `window.<name>.mount(props)`。
+> 注意:**生产构建不需要这个插件**。`bun run build` 出的是标准 Vite HTML 产物,脚本已经是可 eval 的 ESM。详见 [06-build-and-deploy.md](06-build-and-deploy.md)。
 
 ### 子应用 `vite.config.ts` 配置
 
@@ -30,15 +30,19 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import qiankun from 'vite-plugin-qiankun';
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
+  base: './',
   plugins: [
     react(),
-    // dev 模式兼容 qiankun 加载:重写入口 HTML/JS,让 qiankun 可 eval
-    // UMD 构建路径不受影响
-    qiankun('<name>', { useDevMode: true }),
+    // 只在 dev server 上装:重写入口 HTML/JS,让 qiankun 可 eval。
+    // 生产必须排除 —— vite-plugin-qiankun 的 transformIndexHtml 没有 production guard,
+    // 它给 inline import() 加的 __INJECTED_PUBLIC_PATH_BY_QIANKUN__ 前缀又是
+    // `useDevMode && !isProduction` 门控的,生产下会留一个相对 specifier 解析到 shell 的
+    // document base(打包后是 file://)。原因详见各子应用 vite.config.ts 里的注释。
+    ...(command === 'serve' ? [qiankun('<name>', { useDevMode: true })] : []),
   ],
-  // ...resolve / server / build.lib / external 等
-});
+  // ...resolve / server 等
+}));
 ```
 
 ### 子应用 `main.ts` 注册生命周期
@@ -48,18 +52,21 @@ export default defineConfig({
 ```ts
 // qiankun dev 模式:把生命周期挂到 window.moudleQiankunAppLifeCycles 上
 // vite-plugin-qiankun 注入的 HTML 包装会读这个对象绑定 proxy
-// (UMD 构建路径不走这里,UMD 直接 window.<name>.mount(props))
 const w = window as any;
+const lifeCycles = { bootstrap, mount, unmount };
 if (w.__POWERED_BY_QIANKUN__) {
   w.moudleQiankunAppLifeCycles = w.moudleQiankunAppLifeCycles || {};
-  w.moudleQiankunAppLifeCycles['<name>'] = { bootstrap, mount, unmount };
+  w.moudleQiankunAppLifeCycles['<name>'] = lifeCycles;
+  // 生产产物没有插件的 HTML 包装,qiankun 走 getLifecyclesFromExports 的
+  // window[name] 兜底分支 —— 必须同时挂一份到全局。
+  w['<name>'] = lifeCycles;
 } else {
   // 独立运行时:mock props 直接 render
   render(mockProps);
 }
 ```
 
-> 这段是 dev + qiankun 模式专用。独立运行时走 `else` 分支(原 `__POWERED_BY_QIANKUN__` 守卫),UMD 构建时由 `vite.config.ts` 的 `build.lib` 处理 `window.<name>` 挂载。
+> `window['<name>']` 这一行 dev / prod 都要写:qiankun 拿生命周期时依次试 exports → `__POWERED_BY_QIANKUN_INJECTED_PUBLIC_PATH_BY_QIANKUN__` → `window[appName]`,生产走的是最后那个兜底分支。
 
 ### ⚠️ 还需要 head module shim 补丁
 
@@ -112,14 +119,17 @@ const qiankunHeadModuleShim: Plugin = {
   },
 };
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
+  base: './',
   plugins: [
     react(),
-    qiankun('<name>', { useDevMode: true }),
-    qiankunHeadModuleShim, // ← 必须加在 qiankun 之后
+    // 生产必须排除:见上文「子应用 vite.config.ts 配置」的注释
+    ...(command === 'serve'
+      ? [qiankun('<name>', { useDevMode: true }), qiankunHeadModuleShim] // ← shim 必须加在 qiankun 之后
+      : []),
   ],
   // ...
-});
+}));
 ```
 
 > **为什么 noop 掉 React Refresh 是安全的**:
@@ -128,7 +138,6 @@ export default defineConfig({
 > - React 18 dev 模式通过 `@vitejs/plugin-react` 的 Babel transform 在每个组件里调用 `$RefreshReg$(type, id)` 拿回原函数
 > - 只要 `window.$RefreshReg$` / `$RefreshSig$` / `$RefreshRuntime$` 这三个全局存在(哪怕是 noop),React 就能正常渲染
 > - HMR 热更新功能在 qiankun 模式下本来就没用,组件改动需要重新 mount 子应用
-> - UMD 构建路径不受影响(`bun run build` 产出的 bundle 没有这些 module script)
 >
 > **为什么必须用 `indirect eval` 拿 window**:
 >
@@ -137,7 +146,7 @@ export default defineConfig({
 > - 但 `plugin-react` 注入的 preamble check 跑在主应用域的 ES module scope,检查的是**真正**的 global window
 > - 所以必须用 `(0, eval)('window')` (indirect eval,在 global scope 执行)拿真正 window 再设
 
-> UMD 构建路径不受影响(Vite 产出的 UMD bundle 没有这些 module script)。
+> 生产构建同样不受影响:Vite 的 index.html 产物里没有这些 module script。
 > 如果将来 `vite-plugin-qiankun` 修复了这个 selector bug,这个 shim 就可以删了。
 
 ### 验证生效

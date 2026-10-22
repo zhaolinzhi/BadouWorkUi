@@ -11,10 +11,10 @@ const aliases = {
   '@mcp/': path.resolve(__dirname, './packages/desktop/src/common') + '/',
   // Used by `packages/microapps/notes` to share adapter/mapper with main app.
   '@common/': path.resolve(__dirname, './packages/desktop/src/common') + '/',
-  // Shared qiankun helpers consumed by both `meeting-recording` and `notes` micro-apps.
-  // The microapp-level Vite alias still wins at build time (so the UMD bundle resolves
-  // the alias during qiankun eval), but vitest transforms with the root config — this
-  // root-level alias keeps tests in sync.
+  // Shared qiankun helpers consumed by all three micro-apps.
+  // The microapp-level Vite alias still wins at build time (so each sub-app's bundle
+  // resolves it), but vitest transforms with the root config — this root-level alias
+  // keeps tests in sync.
   '@aionui/microapp-shared': path.resolve(__dirname, './packages/microapps/shared/src/index.ts'),
 };
 
@@ -39,6 +39,7 @@ export default defineConfig({
             'packages/web-host/src/**/*.test.ts',
             'packages/desktop/src/renderer/micro-app/**/*.test.ts',
             'packages/desktop/src/renderer/shared/**/*.test.ts',
+            'packages/desktop/src/process/resources/**/*.test.ts',
             'packages/microapps/**/*.test.ts',
             'tests/unit/**/*.test.ts',
             'tests/unit/**/test_*.ts',

@@ -14,12 +14,16 @@
  * 避免留下孤儿 vite 进程占着 7991/7992/7993。
  *
  * 只想起主应用(调试 qiankun 之外的东西)用 `bun run dev`。
+ *
+ * 子应用发现逻辑与构建态(`scripts/build-micro-apps.mjs`,即 `bun run build:all`)共用
+ * 同一个 discoverMicroApps —— 两份判据迟早会漂,新增子应用时只改一处。
  */
 import { spawn, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
+import { discoverMicroApps } from './build-micro-apps.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const MICROAPPS_DIR = path.join(ROOT, 'packages', 'microapps');
@@ -37,32 +41,6 @@ const COLOR = {
 // TTY 才上色,重定向到文件时不污染日志
 const useColor = process.stdout.isTTY;
 const paint = (color, text) => (useColor ? `${color}${text}${COLOR.reset}` : text);
-
-/**
- * 扫描 packages/microapps,返回所有「有 dev script」的子应用目录名。
- *
- * 判据用「有没有 dev script」而不是硬编码名字列表:新增子应用时只要
- * package.json 里写了 dev,这里就自动带上。
- */
-function discoverMicroApps() {
-  if (!fs.existsSync(MICROAPPS_DIR)) return [];
-  return fs
-    .readdirSync(MICROAPPS_DIR, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => entry.name)
-    .filter((name) => {
-      const manifest = path.join(MICROAPPS_DIR, name, 'package.json');
-      if (!fs.existsSync(manifest)) return false;
-      try {
-        const pkg = JSON.parse(fs.readFileSync(manifest, 'utf8'));
-        return typeof pkg.scripts?.dev === 'string';
-      } catch {
-        // manifest 坏了不该让整个 dev 起不来,跳过即可
-        return false;
-      }
-    })
-    .sort();
-}
 
 /**
  * 从子应用的 vite.config.* 里读出 dev server 端口。
@@ -214,7 +192,7 @@ function start(label, color, cwd, args) {
 }
 
 function main() {
-  const microApps = discoverMicroApps();
+  const microApps = discoverMicroApps('dev');
   assertPortsFree(microApps);
 
   // 前缀对齐用:最长的一路决定宽度,输出看起来才是一列

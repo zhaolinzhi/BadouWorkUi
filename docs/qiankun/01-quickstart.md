@@ -27,11 +27,11 @@ bun run dev:all
 
 当前子应用与端口:
 
-| 子应用              | activeRule           | dev 端口 | UMD global         |
-| ------------------- | -------------------- | -------- | ------------------ |
-| `meeting-recording` | `/meeting-recording` | 7991     | `meetingRecording` |
-| `notes`             | `/notes`             | 7992     | `notes`            |
-| `knowledge-base`    | `/knowledge-base`    | 7993     | `knowledgeBase`    |
+| 子应用              | activeRule           | dev 端口 |
+| ------------------- | -------------------- | -------- |
+| `meeting-recording` | `/meeting-recording` | 7991     |
+| `notes`             | `/notes`             | 7992     |
+| `knowledge-base`    | `/knowledge-base`    | 7993     |
 
 > **只想起主应用**(`bun run dev`):子应用 dev server 不会启动,访问 `/knowledge-base` 这类子应用路由会报 `ERR_CONNECTION_REFUSED` —— entry 指向 `//localhost:7993` 但那里没有服务。这是有意的:调试主应用本身(路由、布局、非微应用的业务)时不需要背三个 vite 的内存开销。
 >
@@ -53,7 +53,7 @@ cd packages/microapps/notes && bun run dev
 
 ## 3.3 屏蔽某个子应用(临时调试)
 
-- **临时调试**:shell 临时变量 `VITE_<NAME>_APP_ENTRY=https://invalid.local/<name>.js bun run dev`,改完即生效
+- **临时调试**:shell 临时变量 `VITE_<NAME>_APP_ENTRY=https://invalid.local/<name>/index.html bun run dev`,改完即生效
 - **个人持久覆盖**:`packages/desktop/.env.local`(gitignore)写 `VITE_<NAME>_APP_ENTRY=`
 - **生产灰度**:CI 注入 `VITE_<NAME>_APP_ENTRY` 指向 stub / invalid URL
 

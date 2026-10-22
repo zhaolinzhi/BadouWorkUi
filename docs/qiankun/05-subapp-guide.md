@@ -12,7 +12,7 @@
 
 ```
 packages/microapps/notes/
-├── vite.config.ts                    # 必填:Vite 配置(qiankun plugin + CORS + UMD)
+├── vite.config.ts                    # 必填:Vite 配置(相对 base + CORS + dev-only qiankun plugin)
 ├── tsconfig.json                     # 必填:继承根 tsconfig,加路径别名
 ├── index.html                        # 必填:<div id="root"> + 引用 /src/main.ts
 ├── package.json                      # 必填:dev / build 脚本
@@ -50,11 +50,12 @@ const qiankunHeadModuleShim: Plugin = {
   /* ... 见 [03-dev-mode.md](03-dev-mode.md) ... */
 };
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
+  base: './', // ← 必需,相对 base:同一份 dist/ 既能进安装包也能传 CDN
   plugins: [
     react(),
-    qiankun('<name>', { useDevMode: true }), // ← dev 模式必需
-    qiankunHeadModuleShim, // ← dev 模式必需,加在 qiankun 之后
+    // ⚠️ 生产必须排除这两个 plugin —— 原因见 [03-dev-mode.md](03-dev-mode.md)
+    ...(command === 'serve' ? [qiankun('<name>', { useDevMode: true }), qiankunHeadModuleShim] : []),
   ],
   resolve: {
     alias: {
@@ -72,41 +73,18 @@ export default defineConfig({
       'Access-Control-Allow-Origin': '*', // ← 必需,同上
     },
   },
-  build: {
-    lib: {
-      entry: path.resolve(__dirname, 'src/main.ts'),
-      name: '<name>', // ← 必须等于 MICRO_APP_DEFAULTS.<name>.name
-      formats: ['umd'],
-      fileName: () => '<name>.js',
-    },
-    rollupOptions: {
-      external: [
-        // 共享依赖不要打进 bundle
-        'react',
-        'react-dom',
-        'react-router-dom',
-        '@arco-design/web-react',
-        // 按需加其它共享依赖
-      ],
-      output: {
-        globals: {
-          react: 'React',
-          'react-dom': 'ReactDOM',
-          'react-router-dom': 'ReactRouterDOM',
-          '@arco-design/web-react': 'ArcoDesign',
-        },
-      },
-    },
-  },
-});
+}));
 ```
+
+**注意**:这里**没有** `build.lib`。子应用产物是标准 Vite HTML(`dist/index.html`),不是 UMD —— qiankun 的 entry 必须是 HTML,而且 `base: './'` 让同一份产物既能打进安装包(`app://microapps/<name>/index.html`)也能传 CDN(`https://cdn/…/<name>/index.html`)。详见 [06-build-and-deploy.md](06-build-and-deploy.md)。
 
 **易错点**:
 
 - 路径别名必须和主应用一致(都用 `@renderer` / `@common`),因为子应用常 import 共享的 `notebookMapper.ts` 等
-- `lib.name` 改名 = 整个微应用改名,见 [10.7](10-config-changes.md#107-修改子应用-name高风险)
+- `main.ts` 里 `window['<name>']` 的键名改名 = 整个微应用改名,见 [10.7](10-config-changes.md#107-修改子应用-name高风险)
 - dev 端口改了要在 `MICRO_APP_DEFAULTS.getDevEntryPort` 同步,见 [10.2](10-config-changes.md#102-修改-dev-端口)
 - `cors: true` + `Access-Control-Allow-Origin: *` 二选一都不够,**两个都加**
+- 别把 qiankun plugin 装到生产构建上,原因见 [03-dev-mode.md](03-dev-mode.md)
 
 ### 3.6.3 `main.ts` 必填模式
 
@@ -168,11 +146,13 @@ export async function unmount(props: RenderProps) {
 
 // Standalone run(独立运行时走这里,qiankun 模式下 vite-plugin-qiankun 跳过此分支)
 const w = window as any;
+const lifeCycles = { bootstrap, mount, unmount };
 if (w.__POWERED_BY_QIANKUN__) {
   // dev 模式:把生命周期挂到 vite-plugin-qiankun 注入的全局对象
-  // UMD 构建路径不走这里(UMD 直接 window.<name>.mount(props))
   w.moudleQiankunAppLifeCycles = w.moudleQiankunAppLifeCycles || {};
-  w.moudleQiankunAppLifeCycles['<name>'] = { bootstrap, mount, unmount };
+  w.moudleQiankunAppLifeCycles['<name>'] = lifeCycles;
+  // 生产:HTML 产物没有插件包装,qiankun 走 window[name] 兜底分支
+  w['<name>'] = lifeCycles;
 } else {
   try {
     // ⚠️ 必填:standalone mock props,字段必须和 MicroAppProps 对齐
@@ -324,14 +304,14 @@ fetch(`${baseApi}/fs/image-base64`, { ... })
 
 新建 / 改动子应用时,以下每项都要确认:
 
-- [ ] `vite.config.ts` 装了 `vite-plugin-qiankun` + `qiankunHeadModuleShim`,plugin 顺序 `react → qiankun → qiankunHeadModuleShim`
+- [ ] `vite.config.ts` 装了 `vite-plugin-qiankun` + `qiankunHeadModuleShim`,plugin 顺序 `react → qiankun → qiankunHeadModuleShim`,**且只在 `command === 'serve'` 时装**
 - [ ] `vite.config.ts` 有 `cors: true` + `Access-Control-Allow-Origin: '*'`
-- [ ] `vite.config.ts` 的 `lib.name` 等于 `MICRO_APP_DEFAULTS.<name>.name`
+- [ ] `vite.config.ts` 有 `base: './'`,且**没有** `build.lib`
 - [ ] `vite.config.ts` 的 server.port 等于 `getDevEntryPort(name)`
-- [ ] `vite.config.ts` 的 `build.lib` external 含 `react` / `react-dom` / `react-router-dom` / `@arco-design/web-react`
+- [ ] `bun run build` 后 `dist/index.html` 存在,`dist/assets/*.js` 只有 1 个 chunk
 - [ ] `main.ts` 导出 `bootstrap / mount / unmount`,三个都正确清理 React root + 容器 DOM
 - [ ] `main.ts` 的 `unmount` 清掉 `${systemCode}_` 前缀的 localStorage 键
-- [ ] `main.ts` 的 `__POWERED_BY_QIANKUN__` 分支注册了 `window.moudleQiankunAppLifeCycles['<name>']`
+- [ ] `main.ts` 的 `__POWERED_BY_QIANKUN__` 分支注册了 `window.moudleQiankunAppLifeCycles['<name>']` **和** `window['<name>']`(键名等于 `MICRO_APP_DEFAULTS.<name>.name`)
 - [ ] `main.ts` 的 `else` 分支(standalone)有 mockProps,**且捕获 try/catch**(测试环境无 #root 时静默跳过)
 - [ ] `__qiankun__/adapter.ts` 把 `token / userInfo / baseApi` 都写到 localStorage(用 `${systemCode}_` 前缀)
 - [ ] `__qiankun__/auth.ts` 提供 `emitAuthExpired()`,业务侧 401 走它,**不要**自己跳登录页

@@ -28,11 +28,11 @@ export const MICRO_APP_DEFAULTS: Record<string, Omit<MicroAppConfig, 'entry'>> =
 
 每个子应用必须声明:
 
-| 字段         | 含义           | 约束                                                                       |
-| ------------ | -------------- | -------------------------------------------------------------------------- |
-| `name`       | qiankun 注册名 | 全局唯一,被用于 UMD library、container id、localStorage key 命名空间       |
-| `activeRule` | 路由前缀       | 与浏览器 URL 一一对应,通常来自后端菜单                                     |
-| `container`  | 挂载点选择器   | 必须是 `#${name}-container` 风格,由 `MicroAppPlaceholder` 提前渲染同名节点 |
+| 字段         | 含义           | 约束                                                                                        |
+| ------------ | -------------- | ------------------------------------------------------------------------------------------- |
+| `name`       | qiankun 注册名 | 全局唯一,被用于 container id、子应用 `window[name]` 生命周期注册、localStorage key 命名空间 |
+| `activeRule` | 路由前缀       | 与浏览器 URL 一一对应,通常来自后端菜单                                                      |
+| `container`  | 挂载点选择器   | 必须是 `#${name}-container` 风格,由 `MicroAppPlaceholder` 提前渲染同名节点                  |
 
 ## 2.2 端口约定
 
@@ -56,18 +56,26 @@ return ports[name] ?? 7999;
 | 变量名                             | 作用                                | 默认               | 备注                                            |
 | ---------------------------------- | ----------------------------------- | ------------------ | ----------------------------------------------- |
 | `VITE_MICRO_APP_ENABLED`           | 总开关                              | `false`            | 仅在 `true` 时主应用会加载 qiankun 并启动子应用 |
-| `VITE_MEETING_RECORDING_APP_ENTRY` | meeting-recording 子应用 entry 覆盖 | `//localhost:7991` | 留空走 dev port,生产环境填公网 URL              |
+| `VITE_MICRO_APP_ASSET_BASE`        | 整批子应用的分发基址                | 空                 | 填了就把 entry 拼成 `<base>/<name>/index.html`  |
+| `VITE_MEETING_RECORDING_APP_ENTRY` | meeting-recording 子应用 entry 覆盖 | `//localhost:7991` | 优先级最高,单个应用覆盖;留空走 dev port         |
 | `VITE_NOTES_APP_ENTRY`             | notes 子应用 entry 覆盖             | `//localhost:7992` | 同上                                            |
 | `VITE_KNOWLEDGE_BASE_APP_ENTRY`    | knowledge-base 子应用 entry 覆盖    | `//localhost:7993` | 同上                                            |
+
+**entry 解析优先级**:`VITE_<NAME>_APP_ENTRY` → `VITE_MICRO_APP_ASSET_BASE` → dev port。asset base 两种分发共用同一个变量:内置安装包是 `app://microapps`,CDN 独立部署是 `https://cdn.example.com/microapps`。完整说明见 [06-build-and-deploy.md](06-build-and-deploy.md)。
+
+**entry 必须是 HTML URL**,不能是裸 `.js` —— qiankun 的 `import-html-entry` 只从 HTML 里解析 script。
 
 **命名规范**:`VITE_<UPPER_SNAKE_NAME>_APP_ENTRY`,由 `getMicroAppConfig` 运行时拼接:
 
 ```ts
 const envKey = `VITE_${name.toUpperCase().replace(/-/g, '_')}_APP_ENTRY`;
-const entry = envEntry.trim() || `${DEFAULT_DEV_ENTRY_BASE}${getDevEntryPort(name)}`;
+const entry =
+  envEntry.trim() || // 1. 单个应用覆盖
+  (assetBase && `${assetBase}/${name}/index.html`) || // 2. 整批分发基址
+  `${DEFAULT_DEV_ENTRY_BASE}${getDevEntryPort(name)}`; // 3. dev port 兜底
 ```
 
-子应用自身的 `.env.development` / `.env.production` 仅供子应用独立运行时使用,主应用通过 `VITE_<NAME>_APP_ENTRY` 注入 entry URL。
+子应用自身的 `.env.development` / `.env.production` 仅供子应用独立运行时使用,主应用通过 `VITE_<NAME>_APP_ENTRY` 或 `VITE_MICRO_APP_ASSET_BASE` 注入 entry URL。
 
 ### 2.3.1 `VITE_MICRO_APP_ENABLED` 在哪里设置
 
@@ -96,6 +104,7 @@ const entry = envEntry.trim() || `${DEFAULT_DEV_ENTRY_BASE}${getDevEntryPort(nam
 # GitHub Actions 示例
 env:
   VITE_MICRO_APP_ENABLED: ${{ vars.MICRO_APP_ENABLED }}
+  VITE_MICRO_APP_ASSET_BASE: ${{ vars.MICRO_APP_ASSET_BASE }}
   VITE_NOTES_APP_ENTRY: ${{ vars.NOTES_APP_ENTRY }}
 ```
 
