@@ -302,7 +302,8 @@ describe('updateModelSettings', () => {
       { existing: { image_input: 'unsupported' } },
       ['gpt-4o', 'gpt-5.6-sol'],
       'supported',
-      'responses'
+      'responses',
+      'auto'
     );
 
     expect(result.existing).toEqual({ image_input: 'unsupported' });
@@ -318,6 +319,7 @@ describe('updateModelSettings', () => {
       },
       ['gpt-4o'],
       'unsupported',
+      'auto',
       'auto'
     );
 
@@ -328,11 +330,11 @@ describe('updateModelSettings', () => {
   });
 
   it('keeps a newly configured model on automatic capability detection', () => {
-    expect(updateModelSettings(undefined, ['gpt-4o'], 'auto', 'auto')).toEqual({});
+    expect(updateModelSettings(undefined, ['gpt-4o'], 'auto', 'auto', 'auto')).toEqual({});
   });
 
   it('stores only API mode when vision remains automatic', () => {
-    expect(updateModelSettings(undefined, ['gpt-4o'], 'auto', 'responses')).toEqual({
+    expect(updateModelSettings(undefined, ['gpt-4o'], 'auto', 'responses', 'auto')).toEqual({
       'gpt-4o': { openai_api_mode: 'responses' },
     });
   });
@@ -345,6 +347,7 @@ describe('updateModelSettings', () => {
           other: { image_input: 'supported' },
         },
         ['gpt-4o'],
+        'auto',
         'auto',
         'auto'
       )

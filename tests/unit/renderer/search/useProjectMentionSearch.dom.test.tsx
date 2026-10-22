@@ -74,11 +74,12 @@ describe('useProjectMentionSearch gating', () => {
     expect(fs.cancel).toHaveBeenCalled();
   });
 
-  it('exposes ranked hits as project chat-ref items (capped to limit)', () => {
+  it('exposes ranked hits as project chat-ref items (no longer capped by limit)', () => {
     setView({ hits: [hit('a.tsx'), hit('b.tsx'), hit('c.tsx')], status: 'done' });
+    // `limit` 仍留在签名里(调用方不用改),但不再参与截断
     const { result } = render({ query: 'x', isOpen: true, limit: 2 });
     expect(result.current.active).toBe(true);
-    expect(result.current.items).toHaveLength(2);
+    expect(result.current.items).toHaveLength(3);
     expect(result.current.items[0].chatRef).toEqual({ kind: 'project', pe_id: 'pe1', relative_path: 'src/a.tsx' });
   });
 

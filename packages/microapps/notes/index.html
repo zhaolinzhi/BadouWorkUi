@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AionUi Notes</title>
+  </head>
+  <body>
+    <!-- 刻意不用 #root:shell 的 index.html 里就有 <div id="root">,同名的话
+         standalone 分支一旦在 shell 里跑起来就会把整个 shell 当挂载点抹掉。
+         见 src/main.ts 的 STANDALONE_ROOT_ID 注释。 -->
+    <div id="notes-root"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

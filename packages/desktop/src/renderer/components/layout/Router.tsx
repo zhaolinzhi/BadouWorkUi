@@ -2,6 +2,7 @@ import React, { Suspense } from 'react';
 import { HashRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import AppLoader from '@renderer/components/layout/AppLoader';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
+import { MicroAppPlaceholder } from '@renderer/micro-app/views/MicroAppPlaceholder';
 import { TEAM_MODE_ENABLED } from '@/common/config/constants';
 const Conversation = React.lazy(() => import('@renderer/pages/conversation'));
 const Guid = React.lazy(() => import('@renderer/pages/guid'));
@@ -22,12 +23,9 @@ const ComponentsShowcase = React.lazy(() => import('@renderer/pages/TestShowcase
 const ScheduledTasksPage = React.lazy(() => import('@renderer/pages/cron/ScheduledTasksPage'));
 const TaskDetailPage = React.lazy(() => import('@renderer/pages/cron/ScheduledTasksPage/TaskDetailPage'));
 const TeamIndex = React.lazy(() => import('@renderer/pages/team'));
-const KnowledgeBasePage = React.lazy(() => import('@renderer/pages/knowledge-base'));
 const KbChatPage = React.lazy(() => import('@renderer/pages/kb-chat/KbChatPage'));
-const NotesPage = React.lazy(() => import('@renderer/pages/notes'));
 const WorkbenchPage = React.lazy(() => import('@renderer/pages/workbench/WorkbenchPage'));
 const TaskCenterPage = React.lazy(() => import('@renderer/pages/task-center'));
-const MeetingRecordingPage = React.lazy(() => import('@renderer/pages/meeting-recording'));
 const InAppBrowserDemo = React.lazy(() => import('@renderer/pages/_dev/InAppBrowserDemo'));
 
 const withRouteFallback = (Component: React.LazyExoticComponent<React.ComponentType>) => (
@@ -108,12 +106,12 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
           <Route path='/test/components' element={withRouteFallback(ComponentsShowcase)} />
           <Route path='/scheduled' element={withRouteFallback(ScheduledTasksPage)} />
           <Route path='/scheduled/:job_id' element={withRouteFallback(TaskDetailPage)} />
-          <Route path='/knowledge-base' element={withRouteFallback(KnowledgeBasePage)} />
+          <Route path='/knowledge-base' element={<MicroAppPlaceholder microAppName='knowledge-base' />} />
           <Route path='/kb-chat/:kbId' element={withRouteFallback(KbChatPage)} />
-          <Route path='/notes' element={withRouteFallback(NotesPage)} />
+          <Route path='/notes' element={<MicroAppPlaceholder microAppName='notes' />} />
           <Route path='/workbench' element={withRouteFallback(WorkbenchPage)} />
           <Route path='/task-center' element={withRouteFallback(TaskCenterPage)} />
-          <Route path='/meeting-recording' element={withRouteFallback(MeetingRecordingPage)} />
+          <Route path='/meeting-recording' element={<MicroAppPlaceholder microAppName='meeting-recording' />} />
           <Route path='/test/browser-demo' element={withRouteFallback(InAppBrowserDemo)} />
         </Route>
         <Route path='*' element={<Navigate to={status === 'authenticated' ? '/guid' : '/login'} replace />} />

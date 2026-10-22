@@ -10,6 +10,7 @@ Documentation is organized by reader intent, not by document type.
 | [`specs/`](specs)               | Engineering-driven specs | Feature design docs, requirements, implementation plans (ACP rewrite, extension market, remote agent, wake prompt, PR notes). |
 | [`prds/`](prds)                 | Product team             | Formal Product Requirement Documents maintained by the product team. **Do not reorganize without their consent.**             |
 | [`readme/`](readme)             | Global users             | Translated copies of the root `readme.md` (Chinese, Japanese, Korean, Spanish, etc.).                                         |
+| [`qiankun/`](qiankun)           | Micro-app contributors   | qiankun sub-app guide: quickstart, config, dev-mode shim, baseUrl, sub-app guide, build/deploy, disable, FAQ, removal.        |
 
 ## Quick pointers
 
@@ -17,6 +18,7 @@ Documentation is organized by reader intent, not by document type.
 - Setting up a dev environment? See [`contributing/development.md`](contributing/development.md).
 - Writing code? The entry point for code-style, linting, formatting, and commit rules is [`AGENTS.md`](../AGENTS.md) at the repo root.
 - Deploying a server? [`guides/deploy-server.md`](guides/deploy-server.md).
+- Adding or troubleshooting a qiankun sub-app? [`qiankun/README.md`](qiankun/README.md).
 
 ## Where to put new docs
 
@@ -28,4 +30,5 @@ Documentation is organized by reader intent, not by document type.
 | Exploratory research, analysis reports                     | `architecture/research/`    |
 | Feature requirements / design drafts driven by engineering | `specs/<feature-name>/`     |
 | Formal PRD owned by product team                           | `prds/` (coordinate first)  |
+| qiankun sub-app guide (add / troubleshoot / remove)        | `qiankun/`                  |
 | README translation                                         | `readme/readme_<locale>.md` |

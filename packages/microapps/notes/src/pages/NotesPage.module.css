@@ -1,0 +1,13 @@
+/**
+ * Notes editor area overrides for Vditor.
+ * Adapts Vditor's defaults to the app theme — applied within NotesPage
+ * so the sidebar / toolbar stay on UnoCSS layout primitives.
+ */
+
+.editorContainer {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}

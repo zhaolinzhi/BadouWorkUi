@@ -3,7 +3,7 @@ import { updateModelSettings } from '@/common/utils/modelCapabilities';
 
 describe('updateModelSettings', () => {
   it('writes three new limit fields on a fresh model entry', () => {
-    const result = updateModelSettings(undefined, ['gpt-4o'], 'auto', 'auto', {
+    const result = updateModelSettings(undefined, ['gpt-4o'], 'auto', 'auto', 'auto', {
       contextWindowSize: 128000,
       maxContentLength: 64000,
       maxResponseLength: 4096,
@@ -25,7 +25,7 @@ describe('updateModelSettings', () => {
       'gpt-4o': { image_input: 'supported' as const },
     };
 
-    const result = updateModelSettings(current, ['gpt-4o'], 'auto', 'auto', { contextWindowSize: 200000 });
+    const result = updateModelSettings(current, ['gpt-4o'], 'auto', 'auto', 'auto', { contextWindowSize: 200000 });
 
     expect(result['gpt-4o']).toEqual({
       context_window_size: 200000,
@@ -37,7 +37,7 @@ describe('updateModelSettings', () => {
       'gpt-3.5': { image_input: 'unsupported' as const },
     };
 
-    const result = updateModelSettings(current, ['gpt-4o'], 'auto', 'auto', { maxResponseLength: 8192 });
+    const result = updateModelSettings(current, ['gpt-4o'], 'auto', 'auto', 'auto', { maxResponseLength: 8192 });
 
     expect(result['gpt-3.5']).toEqual({ image_input: 'unsupported' });
     expect(result['gpt-4o']).toEqual({ max_response_length: 8192 });
@@ -51,7 +51,7 @@ describe('updateModelSettings', () => {
       },
     };
 
-    const result = updateModelSettings(current, ['gpt-4o'], 'auto', 'auto', undefined);
+    const result = updateModelSettings(current, ['gpt-4o'], 'auto', 'auto', 'auto', undefined);
 
     expect(result).toEqual({});
   });
@@ -63,7 +63,7 @@ describe('updateModelSettings', () => {
       'gpt-4o': { image_input: 'supported' as const },
     };
 
-    const result = updateModelSettings(current, ['gpt-4o'], 'auto', 'auto', undefined);
+    const result = updateModelSettings(current, ['gpt-4o'], 'auto', 'auto', 'auto', undefined);
 
     expect(result).toEqual({});
   });
@@ -73,7 +73,7 @@ describe('updateModelSettings', () => {
       'gpt-4o': { max_response_length: 4096 },
     };
 
-    const result = updateModelSettings(current, ['gpt-4o'], 'auto', 'auto', { contextWindowSize: undefined });
+    const result = updateModelSettings(current, ['gpt-4o'], 'auto', 'auto', 'auto', { contextWindowSize: undefined });
 
     expect(result).toEqual({});
   });

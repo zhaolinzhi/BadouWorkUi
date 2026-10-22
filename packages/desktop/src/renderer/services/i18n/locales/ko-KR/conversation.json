@@ -1,4 +1,9 @@
 {
+  "atMenu": {
+    "kbSectionTitle": "지식 베이스",
+    "loadingKb": "지식 베이스를 불러오는 중…",
+    "kbBadgeTitle": "참조된 지식 베이스"
+  },
   "welcome": {
     "title": "안녕하세요 {{name}}, 오늘의 계획은 무엇인가요?",
     "placeholder": "메시지 전송, 파일 업로드, 폴더 열기, 예약 작업 만들기 또는 / 로 명령 호출...",

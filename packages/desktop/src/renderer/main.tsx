@@ -112,6 +112,7 @@ import {
   showInstallationIntegrityModal,
 } from './components/layout/InstallationIntegrityDialog';
 import { createRuntimeInstallationReconciler } from './services/runtime/runtimeInstallationReconciler';
+import { MicroAppBootstrap } from './micro-app/MicroAppBootstrap';
 
 // Patch Korean locale with missing properties from English locale
 const koKRComplete = {
@@ -330,6 +331,12 @@ const Main = () => {
       layout={
         <ConversationHistoryProvider>
           <PerfProfiler id='app.layout'>
+            {/* MicroAppBootstrap uses react-router's useNavigate() to drive qiankun
+                child-app navigation, so it MUST be rendered inside <Router> (which
+                is what `layout` becomes after PanelRoute/ProtectedLayout clone it
+                under <HashRouter>). Mounting it earlier — sibling to <Main/> — makes
+                useNavigate throw "may be used only in the context of a <Router>". */}
+            <MicroAppBootstrap />
             <Layout sider={<Sider />} />
           </PerfProfiler>
         </ConversationHistoryProvider>

@@ -126,7 +126,14 @@ export function getAllAtFileQueries(value: string): ActiveAtFileQuery[] {
 
 export function buildAtFileInsertion(item: FileOrFolderItem): string | null {
   if (item.kind === 'kb') {
-    // KB items carry `path: 'kb:<id>'` from useKbMentionSearch.
+    // Renderer-visible token now stores the KB name; the kbId is recovered at
+    // send time via the page-level resolver (see GuidPage.resolveKbId).
+    // `item.name` comes from useKbMentionSearch which sources it from the
+    // live KnowledgeBaseList. We fall back to the legacy id form only as a
+    // safety net for callers that synthesise KB items without a name.
+    if (item.name) {
+      return `@kb:${item.name}`;
+    }
     const kbId = item.path.startsWith('kb:') ? item.path.slice(3) : item.path;
     if (!kbId) {
       return null;
@@ -138,6 +145,21 @@ export function buildAtFileInsertion(item: FileOrFolderItem): string | null {
     return null;
   }
   return `@${escapeAtFilePath(path)}`;
+}
+
+/**
+ * Build the text inserted by the `@`-mention dropdown.
+ *
+ * Knowledge-base mentions get a trailing space so the user can keep typing
+ * immediately after selecting one. The space is omitted when the text after
+ * the replaced query already starts with whitespace, which would otherwise
+ * produce two spaces. File mentions keep their existing exact-path form.
+ */
+export function buildAtMentionInsertion(item: FileOrFolderItem, followingText = ''): string | null {
+  const insertion = buildAtFileInsertion(item);
+  if (!insertion) return null;
+  if (item.kind !== 'kb') return insertion;
+  return /^\s/.test(followingText) ? insertion : `${insertion} `;
 }
 
 /** An action the `@`-mention dropdown takes for a keydown (null = not handled). */

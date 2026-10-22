@@ -65,6 +65,15 @@ vi.mock('@/renderer/hooks/context/ConversationContext', () => ({
   }),
 }));
 
+vi.mock('@/renderer/hooks/kb-chat/useKnowledgeBaseList', () => ({
+  useKnowledgeBaseList: () => ({
+    personalItems: [],
+    sharedItems: [],
+    personalLoading: false,
+    sharedLoading: false,
+  }),
+}));
+
 vi.mock('@/renderer/hooks/context/LayoutContext', () => ({
   useLayoutContext: () => ({ isMobile: false }),
 }));

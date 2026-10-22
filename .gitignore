@@ -96,6 +96,9 @@ typings/
 # Electron-Forge
 out/
 
+# electron-vite atomic build backups (renamed from out/ before each rebuild)
+.tmp-out-backup-*
+
 # IDE and Editor files
 .idea
 .vscode
@@ -191,6 +194,7 @@ vx.toml
 .taichuy/*
 kylindoc/
 .workspace/
+/data/
 lint-results.txt
 
 # Git worktrees

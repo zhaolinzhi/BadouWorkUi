@@ -2,6 +2,7 @@ import type { IProvider } from '@/common/config/storage';
 import {
   type ModelImageInputChoice,
   type ModelOpenAiApiModeChoice,
+  type ModelToolWireShapeChoice,
   type ModelLimitInput,
   supportsOpenAiApiMode,
   updateModelSettings,
@@ -27,6 +28,7 @@ const AddModelModal = ModalHOC<{ data?: IProvider; model?: string; onSubmit: (mo
     const [modelProtocol, setModelProtocol] = useState<string>('openai');
     const [imageInput, setImageInput] = useState<ModelImageInputChoice>('auto');
     const [openAiApiMode, setOpenAiApiMode] = useState<ModelOpenAiApiModeChoice>('auto');
+    const [toolWireShape, setToolWireShape] = useState<ModelToolWireShapeChoice>('auto');
     const [contextWindowSize, setContextWindowSize] = useState<number | undefined>(undefined);
     const [maxContentLength, setMaxContentLength] = useState<number | undefined>(undefined);
     const [maxResponseLength, setMaxResponseLength] = useState<number | undefined>(undefined);
@@ -36,6 +38,7 @@ const AddModelModal = ModalHOC<{ data?: IProvider; model?: string; onSubmit: (mo
     const { data: modelList, isLoading } = useModeModeList(data?.platform, data?.base_url, data?.api_key);
     const existingModels = data?.models || [];
     const showOpenAiApiMode = supportsOpenAiApiMode(data?.platform ?? '', modelProtocol);
+    const showToolWireShape = supportsOpenAiApiMode(data?.platform ?? '', modelProtocol);
 
     const protocolOf = (platform: string): ProtocolFamily => {
       const lower = (platform ?? '').toLowerCase();
@@ -66,6 +69,7 @@ const AddModelModal = ModalHOC<{ data?: IProvider; model?: string; onSubmit: (mo
       const settings = editingModel ? data?.model_settings?.[editingModel] : undefined;
       setImageInput(settings?.image_input ?? 'auto');
       setOpenAiApiMode(settings?.openai_api_mode ?? 'auto');
+      setToolWireShape(settings?.tool_wire_shape ?? 'auto');
 
       if (editingModel) {
         setContextWindowSize(settings?.context_window_size);
@@ -96,6 +100,7 @@ const AddModelModal = ModalHOC<{ data?: IProvider; model?: string; onSubmit: (mo
           targetModels,
           imageInput,
           showOpenAiApiMode ? openAiApiMode : 'auto',
+          showToolWireShape ? toolWireShape : 'auto',
           limits
         ),
       };
@@ -122,6 +127,8 @@ const AddModelModal = ModalHOC<{ data?: IProvider; model?: string; onSubmit: (mo
       openAiApiMode,
       modalCtrl,
       showOpenAiApiMode,
+      showToolWireShape,
+      toolWireShape,
       contextWindowSize,
       maxContentLength,
       maxResponseLength,
@@ -230,6 +237,23 @@ const AddModelModal = ModalHOC<{ data?: IProvider; model?: string; onSubmit: (mo
                 ]}
               />
               <div className='text-11px text-t-secondary leading-4'>{t('settings.openAiApiModeTip')}</div>
+            </div>
+          )}
+          {showToolWireShape && (
+            <div className='space-y-8px'>
+              <div className='text-13px font-500 text-t-secondary'>{t('settings.toolWireShape')}</div>
+              <Select
+                value={toolWireShape}
+                onChange={(value) => setToolWireShape(value as ModelToolWireShapeChoice)}
+                options={[
+                  { label: t('settings.modelSettingAuto'), value: 'auto' },
+                  { label: t('settings.toolWireShapeNative'), value: 'native' },
+                  { label: t('settings.toolWireShapeOpenAiFunction'), value: 'open_ai_function' },
+                  { label: t('settings.toolWireShapeOpenAiFlatFunction'), value: 'open_ai_flat_function' },
+                  { label: t('settings.toolWireShapeAnthropicInputSchema'), value: 'anthropic_input_schema' },
+                ]}
+              />
+              <div className='text-11px text-t-secondary leading-4'>{t('settings.toolWireShapeTip')}</div>
             </div>
           )}
           <div className='space-y-8px border-t border-line pt-12px'>

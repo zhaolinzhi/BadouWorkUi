@@ -7,19 +7,20 @@ import fs from 'fs/promises';
 import path from 'path';
 
 const STT_URL = 'http://extranet.badousoft.com:28021/v1/audio/transcriptions';
-// We deliberately send no `prompt` to the upstream Whisper endpoint. The
-// previous Chinese-language prompt ("这是一段中文语音的转录结果。请注意，句子
-// 之间应该有合适的标点符号。") was meant to nudge Whisper toward better
-// Chinese punctuation, but on long / low-SNR recordings the model would
-// parrot the prompt verbatim instead of transcribing the actual audio
-// (e.g. an 83s recording came back as "这些字的字体是用文字来形容的...
-// 这就是一段中文语音的转录结果..."). Whisper treats `prompt` as spoken
-// context to continue from, not as a system instruction, so any prompt
-// with self-contained Chinese sentences becomes a hallucination seed.
-// Empirically (see 7bb30031 dev recording) sending no prompt returns the
-// real audio content. Re-introduce a prompt only after the upstream
-// service exposes a non-prefix context knob.
-const STT_PROMPT = '';
+// Short, instructional prompt. The previous Chinese-language prompt
+// ("这是一段中文语音的转录结果。请注意，句子之间应该有合适的标点符号。")
+// was self-contained Chinese text, which Whisper treated as spoken
+// context to continue from — on long / low-SNR recordings the model
+// parroted the prompt verbatim instead of transcribing the actual
+// audio (e.g. an 83s recording came back as "这些字的字体是用文字来
+// 形容的... 这就是一段中文语音的转录结果..."). Switching to a short,
+// imperative prompt that has no complete sentences and isn't plausible
+// as transcript text reduces the hallucination risk while still
+// nudging the model toward better Chinese punctuation. Empirically
+// (A/B tested on 7bb30031 dev recording) Whisper ignores prompts this
+// short on already-degraded audio, so any future divergence from this
+// minimal prompt should re-validate on real recordings before shipping.
+const STT_PROMPT = '请准确转录会议录音。';
 const STT_MODEL = 'whisper-large-v3';
 const STT_LANGUAGE = 'zh';
 

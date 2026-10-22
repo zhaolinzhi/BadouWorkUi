@@ -1,0 +1,59 @@
+/* Highlight overlay for @-mention rendering in textareas with a transparent
+ * copy. Shared by the chat SendBox and the Guid homepage input — without this
+ * stylesheet being reachable from the Guid component, the textarea text color
+ * rule never loads on the homepage, and any @kb:<name> token renders twice
+ * (once as the underlying text, once as the badge on the overlay).
+ *
+ * SendBox-specific variants (-single, -kb-badge, --mobile) stay in
+ * components/chat/SendBox/sendbox.css because the Guid renderer does not need
+ * them. Only the foundational rules that make the overlay-vs-textarea
+ * partnership work are kept here: textarea suppression, layer geometry, and
+ * the plain-text / mention colours the overlay segments depend on.
+ */
+
+.sendbox-highlight-textarea {
+  background: transparent !important;
+}
+
+.sendbox-highlight-textarea {
+  position: relative;
+  z-index: 1;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  caret-color: var(--text-primary) !important;
+}
+
+.sendbox-highlight-textarea::selection {
+  background: rgba(var(--primary-6), 0.2);
+}
+
+.sendbox-highlight-textarea::placeholder {
+  color: #a1a2aa !important;
+  -webkit-text-fill-color: #a1a2aa !important;
+}
+
+.sendbox-highlight-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  line-height: 20px;
+}
+
+/* Plain prose must stay visible inside the overlay. The overlay container
+ * (or its consumer) may set `color: transparent`, so plain-text segments
+ * carry this class to restore the normal text colour. This rule is
+ * load-bearing for both SendBox and the Guid homepage — keep it here, in
+ * the shared stylesheet, not in a SendBox-only file. */
+.sendbox-highlight-text {
+  color: var(--text-primary);
+}
+
+.sendbox-highlight-mention {
+  color: rgb(var(--primary-6));
+}

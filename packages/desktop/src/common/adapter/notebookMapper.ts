@@ -61,7 +61,36 @@ export interface ApiStarToggleResponse {
   star: boolean;
 }
 
-import type { NoteItem, Notebook, TagItem } from '@/renderer/pages/notes/types';
+// ---------------------------------------------------------------------------
+// Renderer-facing types (camelCase) — moved here from the deleted
+// `pages/notes/types.ts` so the mapper is self-contained and the notes
+// micro-app can import them via the `@common/adapter/notebookMapper` alias.
+// ---------------------------------------------------------------------------
+
+export interface Notebook {
+  id: string;
+  name: string;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NoteItem {
+  id: string;
+  title: string;
+  notebookId: string | null;
+  filePath: string;
+  summary?: string;
+  tags: string[];
+  star: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TagItem {
+  name: string;
+  count: number;
+}
 
 function msToIso(ms: number): string {
   return new Date(ms).toISOString();
