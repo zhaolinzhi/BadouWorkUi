@@ -18,6 +18,11 @@ export const MICRO_APP_DEFAULTS: Record<string, Omit<MicroAppConfig, 'entry'>> =
     activeRule: '/notes',
     container: '#notes-container',
   },
+  'knowledge-base': {
+    name: 'knowledge-base',
+    activeRule: '/knowledge-base',
+    container: '#knowledge-base-container',
+  },
 };
 ```
 
@@ -37,11 +42,14 @@ export const MICRO_APP_DEFAULTS: Record<string, Omit<MicroAppConfig, 'entry'>> =
 const ports: Record<string, number> = {
   'meeting-recording': 7991,
   notes: 7992,
+  'knowledge-base': 7993,
 };
 return ports[name] ?? 7999;
 ```
 
 每个子应用独立 dev port,避免本地联调冲突。新增子应用时**必须**分配新端口并写进此表。
+
+> 同一个端口还要在子应用自己的 `vite.config.ts` 的 `server.port` 里配一遍,并开 `strictPort: true`。两边不一致时,`strictPort` 会让 vite **直接失败**而不是静默顺延 —— 否则 `getMicroAppConfig()` 仍按约定端口拼 entry,主应用拿到的是一个查不出原因的空白页。
 
 ## 2.3 环境变量
 
@@ -50,6 +58,7 @@ return ports[name] ?? 7999;
 | `VITE_MICRO_APP_ENABLED`           | 总开关                              | `false`            | 仅在 `true` 时主应用会加载 qiankun 并启动子应用 |
 | `VITE_MEETING_RECORDING_APP_ENTRY` | meeting-recording 子应用 entry 覆盖 | `//localhost:7991` | 留空走 dev port,生产环境填公网 URL              |
 | `VITE_NOTES_APP_ENTRY`             | notes 子应用 entry 覆盖             | `//localhost:7992` | 同上                                            |
+| `VITE_KNOWLEDGE_BASE_APP_ENTRY`    | knowledge-base 子应用 entry 覆盖    | `//localhost:7993` | 同上                                            |
 
 **命名规范**:`VITE_<UPPER_SNAKE_NAME>_APP_ENTRY`,由 `getMicroAppConfig` 运行时拼接:
 

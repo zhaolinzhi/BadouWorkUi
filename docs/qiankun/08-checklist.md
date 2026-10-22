@@ -18,12 +18,13 @@
 
 - [ ] `vite.config.ts` 装 `vite-plugin-qiankun` + `qiankunHeadModuleShim`,plugins 顺序 `react → qiankun → qiankunHeadModuleShim`(详见 [03-dev-mode.md](03-dev-mode.md))
 - [ ] `vite.config.ts` 有 `cors: true` + `Access-Control-Allow-Origin: '*'`
+- [ ] `vite.config.ts` 的 `server.port` 与 `getDevEntryPort` 一致,且开了 `strictPort: true`(端口被占时直接失败,别静默顺延成空白页)
+- [ ] `vite.config.ts` 的 alias 里有 `@aionui/microapp-shared` → `../shared/src`
 - [ ] `vite.config.ts` 的 `build.lib` external 含 `react / react-dom / react-router-dom / @arco-design/web-react`
 - [ ] `main.ts` 导出 `bootstrap / mount / unmount`,`unmount` 清 React root + 容器 DOM + `${systemCode}_` 前缀的 localStorage
 - [ ] `main.ts` 的 `__POWERED_BY_QIANKUN__` 分支注册 `window.moudleQiankunAppLifeCycles['<name>']`(详见 [03-dev-mode.md](03-dev-mode.md))
 - [ ] `main.ts` 的 standalone 兜底有 mockProps + try/catch
-- [ ] `__qiankun__/adapter.ts` 把 `token / userInfo / baseApi` 落到 `${systemCode}_` 前缀的 localStorage
-- [ ] `__qiankun__/auth.ts` 提供 `emitAuthExpired()`,业务侧 401 走它,**不要**自己跳登录页
+- [ ] `adapter` / `auth` / `createIpcResolver` 从 `@aionui/microapp-shared` 引,**不要**在子应用里复制一份(详见 [12-related-files.md](12-related-files.md)「共享包」)
 - [ ] API endpoint 路径不带 `/api` 前缀(由 `client.ts:joinUrl` 拼,详见 [04-baseurl.md](04-baseurl.md))
 - [ ] 直接 fetch(Vditor 上传 / 图片 base64)用 `ctx.baseApi`,不要硬编码 `localhost:<port>`
 - [ ] `App.tsx` 用 `useAppContext()` 拿 `baseApi / token / systemCode / userInfo`,不读 `import.meta.env`

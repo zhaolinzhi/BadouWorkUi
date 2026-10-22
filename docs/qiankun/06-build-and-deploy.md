@@ -96,8 +96,11 @@ bun run build
 VITE_MICRO_APP_ENABLED=true
 VITE_MEETING_RECORDING_APP_ENTRY=https://cdn.example.com/microapps/meeting-recording/v2.1.0/meeting-recording.js
 VITE_NOTES_APP_ENTRY=https://cdn.example.com/microapps/notes/v1.0.0/notes.js
+VITE_KNOWLEDGE_BASE_APP_ENTRY=https://cdn.example.com/microapps/knowledge-base/v1.0.0/knowledge-base.js
 VITE_SHELL_VERSION=1.5.0  # 透传给子应用,子应用可基于此做兼容性判断
 ```
+
+> 只发布其中一个子应用时,其余的 entry **留空即可**,不必指向 invalid URL —— 留空会回退到 `//localhost:<port>`,生产环境那个端口没有服务,`loadMicroApp` 同样失败并走 `MicroAppErrorBoundary` 降级页。
 
 ### 5.3 容器占位
 

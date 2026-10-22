@@ -73,6 +73,9 @@ export default defineConfig({
   },
   server: {
     port: 7992,
+    // 端口被占用时直接报错:默认行为是静默顺延到下一个端口,而主应用的
+    // `getMicroAppConfig()` 仍按约定端口拼 entry,结果是一个查不出原因的空白页。
+    strictPort: true,
     cors: true,
     headers: {
       'Access-Control-Allow-Origin': '*',

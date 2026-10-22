@@ -61,10 +61,12 @@ export default defineConfig({
       '@renderer': path.resolve(__dirname, '../../desktop/src/renderer'),
       '@common': path.resolve(__dirname, '../../desktop/src/common'),
       '@': path.resolve(__dirname, '../../desktop/src'),
+      '@aionui/microapp-shared': path.resolve(__dirname, '../shared/src'), // ← 三个子应用都有
     },
   },
   server: {
     port: 7992, // 和 MICRO_APP_DEFAULTS.getDevEntryPort 一致
+    strictPort: true, // ← 必需,端口被占时直接失败,不要静默顺延
     cors: true, // ← 必需,否则主应用跨源拉 entry 失败
     headers: {
       'Access-Control-Allow-Origin': '*', // ← 必需,同上

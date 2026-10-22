@@ -52,20 +52,42 @@ AionUi 采用 **qiankun 微前端** 架构。主应用(Electron + WebUI 双形�
 │  MicroAppHost (loadMicroApp 真正驱动挂载)   ▼                  │
 └──────────────────────────────┬──────────────────────────────────┘
                                │ 运行时通过 entry 拉取 HTML/JS
-        ┌──────────────────────┼──────────────────────┐
-        ▼                      ▼                      ▼
-  ┌─────────────┐      ┌─────────────┐        ┌─────────────┐
-  │ meeting-    │      │   notes     │        │  (future)   │
-  │ recording   │      │ @aionui/    │        │             │
-  │             │      │ microapp-   │        │             │
-  │ :7991       │      │ notes       │        │             │
-  │             │      │ :7992       │        │             │
-  └─────────────┘      └─────────────┘        └─────────────┘
-   packages/microapps/meeting-recording/    packages/microapps/notes/
+   ┌───────────────────┬───────┴────────┬──────────────┐
+   ▼                   ▼                ▼              ▼
+┌─────────────┐ ┌─────────────┐ ┌─────────────┐  ┌─────────────┐
+│ meeting-    │ │   notes     │ │ knowledge-  │  │  (future)   │
+│ recording   │ │             │ │ base        │  │   子应用     │
+│             │ │             │ │             │  │             │
+│ :7991       │ │ :7992       │ │ :7993       │  │             │
+└─────────────┘ └─────────────┘ └─────────────┘  └─────────────┘
 ```
+
+对应的 workspace 包(`packages/microapps/` 下):
+
+| 目录                 | npm 包名                             | 子应用 |
+| -------------------- | ------------------------------------ | ------ |
+| `meeting-recording/` | `@aionui/microapp-meeting-recording` | 是     |
+| `notes/`             | `@aionui/microapp-notes`             | 是     |
+| `knowledge-base/`    | `@aionui/microapp-knowledge-base`    | 是     |
+| `shared/`            | `@aionui/microapp-shared`            | 否     |
+
+`shared` **不是子应用**,只是 `createIpcResolver` / `adapter` / `auth` 等跨应用公共代码的载体。它没有 `dev` script,所以根目录 `bun run dev:all` 的扫描会自动跳过。
 
 **关键不变量**:
 
 - `name` 在所有出现处必须一致(qiankun 注册名 == UMD library == 子应用内部状态 key)
+- dev port 在 `getDevEntryPort()` 和子应用 `vite.config.ts` 的 `server.port` 两处必须一致,且子应用要开 `strictPort`
 - 子应用独立运行(`window.__POWERED_BY_QIANKUN__` 为 false)时,使用 mock props 直接 `render()`
 - 主应用未开启微应用时(`VITE_MICRO_APP_ENABLED !== 'true'`),`startMicroApps` 直接 return,qiankun 不会被加载
+
+## 常用命令
+
+| 命令                                          | 起什么                                   |
+| --------------------------------------------- | ---------------------------------------- |
+| `bun run dev`                                 | 只起主应用(electron-vite dev),不拉子应用 |
+| `bun run dev:all`                             | 根目录:主应用 + 全部子应用一条命令拉起   |
+| `cd packages/microapps/<name> && bun run dev` | 单独起一个子应用                         |
+
+> `bun run dev` 下访问 `/knowledge-base` 会报 `ERR_CONNECTION_REFUSED` —— 子应用 dev server 没起,这是预期行为。要联调子应用就用 `bun run dev:all`。
+
+详见 [01-quickstart.md](01-quickstart.md)。
