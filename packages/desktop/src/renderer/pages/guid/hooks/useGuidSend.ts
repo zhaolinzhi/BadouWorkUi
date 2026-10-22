@@ -15,9 +15,8 @@ import { updateWorkspaceTime } from '@/renderer/utils/workspace/workspaceHistory
 import { Message } from '@arco-design/web-react';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { findAllKbTokens, extractKbMcpServerIdsFromInput } from '@/renderer/utils/kb/atKbInsertion';
-import { kbIdToMcpServerId } from '@/renderer/utils/kb/kbToMcpId';
 import { buildKbTailHint } from '@/renderer/utils/kb/injectKbPrompt';
-import { useKnowledgeBaseList } from '@/renderer/hooks/knowledge-base';
+import { useKnowledgeBaseList } from '@/renderer/hooks/kb-chat/useKnowledgeBaseList';
 import { type TFunction } from 'i18next';
 import type { NavigateFunction } from 'react-router-dom';
 import { mutate as swrMutate } from 'swr';
@@ -354,6 +353,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     availableMcpServers,
     selectedMcpServerIds,
     assistantDefaultMcpIds,
+    knownKbIds,
     navigate,
     t,
     localeKey,

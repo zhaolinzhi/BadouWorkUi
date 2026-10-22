@@ -65,6 +65,7 @@ const baseProps: MicroAppProps = {
   shellVersion: '0.0.0',
   theme: 'light',
   locale: 'zh-CN',
+  isMobile: false,
   on: () => () => {},
   emit: () => {},
   navigate: () => {},

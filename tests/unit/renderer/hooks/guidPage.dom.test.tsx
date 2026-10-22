@@ -149,14 +149,13 @@ vi.mock('@/renderer/hooks/mcp/catalog', () => ({
   ensureBackendMcpCatalog: vi.fn().mockResolvedValue({ allServers: [] }),
 }));
 
-vi.mock('@/renderer/hooks/knowledge-base', () => ({
+vi.mock('@/renderer/hooks/kb-chat/useKnowledgeBaseList', () => ({
   useKnowledgeBaseList: () => ({
     personalItems: [],
     sharedItems: [],
     personalLoading: false,
     sharedLoading: false,
   }),
-  useKnowledgeBaseEditor: () => ({}),
 }));
 
 vi.mock('@/renderer/hooks/chat/useAtMentionItems', () => ({

@@ -31,7 +31,7 @@ vi.mock('@/renderer/hooks/chat/useCompositionInput', () => ({
     isComposing: { current: false },
   }),
 }));
-vi.mock('@/renderer/hooks/knowledge-base', () => ({
+vi.mock('@/renderer/hooks/kb-chat/useKnowledgeBaseList', () => ({
   useKnowledgeBaseList: () => ({
     personalItems: [],
     sharedItems: [],
@@ -153,9 +153,7 @@ describe('GuidInputCard — KB highlight badge', () => {
   it('lets Backspace delete the bare trailing @ that just opened the KB menu', async () => {
     const { default: GuidInputCard } = await import('@/renderer/pages/guid/components/GuidInputCard');
     const onKeyDown = vi.fn();
-    const { container } = render(
-      <GuidInputCard {...baseProps} input='@kb:Docs @kb:Wiki @' onKeyDown={onKeyDown} />
-    );
+    const { container } = render(<GuidInputCard {...baseProps} input='@kb:Docs @kb:Wiki @' onKeyDown={onKeyDown} />);
     const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
     textarea.setSelectionRange(textarea.value.length, textarea.value.length);
     fireEvent.select(textarea);

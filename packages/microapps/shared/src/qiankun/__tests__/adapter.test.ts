@@ -53,6 +53,7 @@ const fullProps: MicroAppProps = {
   shellVersion: '0.0.0',
   theme: 'dark',
   locale: 'zh-CN',
+  isMobile: false,
   on: () => () => {},
   emit: () => {},
   navigate: () => {},

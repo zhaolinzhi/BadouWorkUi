@@ -34,7 +34,7 @@ import { BoundBadge } from './components/BoundBadge';
 import { useTypewriterPlaceholder } from './hooks/useTypewriterPlaceholder';
 import { ensureBackendMcpCatalog } from '@/renderer/hooks/mcp/catalog';
 import { resolveGuidAssistantDefaults } from './utils/assistantDefaults';
-import { useKnowledgeBaseList } from '@/renderer/hooks/knowledge-base';
+import { useKnowledgeBaseList } from '@/renderer/hooks/kb-chat/useKnowledgeBaseList';
 import SpeechInputButton from '@/renderer/components/chat/SpeechInputButton';
 import { chatFileRefPath, uploadFileRef } from '@/common/types/chatFile';
 import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';

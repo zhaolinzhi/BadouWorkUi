@@ -61,8 +61,6 @@ describe('RecordingListItem retry-transcribe button', () => {
           chunk({ index: 1, transcription: 'b', status: 'transcribed' }),
         ])}
         onDelete={() => {}}
-        autoOpenTranscript={false}
-        onAutoOpenConsumed={() => {}}
       />
     );
     const btn = screen.getByTestId('retry-transcribe-button');
@@ -77,8 +75,6 @@ describe('RecordingListItem retry-transcribe button', () => {
           chunk({ index: 1, status: 'pending' }),
         ])}
         onDelete={() => {}}
-        autoOpenTranscript={false}
-        onAutoOpenConsumed={() => {}}
       />
     );
     const btn = screen.getByTestId('retry-transcribe-button');
@@ -93,8 +89,6 @@ describe('RecordingListItem retry-transcribe button', () => {
           chunk({ index: 1, status: 'failed' }),
         ])}
         onDelete={() => {}}
-        autoOpenTranscript={false}
-        onAutoOpenConsumed={() => {}}
       />
     );
     const btn = screen.getByTestId('retry-transcribe-button');
@@ -112,8 +106,6 @@ describe('RecordingListItem retry-transcribe button', () => {
           chunk({ index: 1, status: 'failed' }),
         ])}
         onDelete={() => {}}
-        autoOpenTranscript={false}
-        onAutoOpenConsumed={() => {}}
       />
     );
     await user_.click(screen.getByTestId('retry-transcribe-button'));
@@ -129,28 +121,14 @@ describe('RecordingListItem retry-transcribe button', () => {
       chunk({ index: 0, transcription: 'a', status: 'transcribed' }),
       chunk({ index: 1, status: 'failed' }),
     ]);
-    const { rerender } = render(
-      <RecordingListItem
-        recording={recording}
-        onDelete={() => {}}
-        autoOpenTranscript={false}
-        onAutoOpenConsumed={() => {}}
-      />
-    );
+    const { rerender } = render(<RecordingListItem recording={recording} onDelete={() => {}} />);
     // First click: kicks off retry (no Popconfirm — we're starting, not stopping).
     fireEvent.click(screen.getByTestId('retry-transcribe-button'));
     expect(mocks.transcribeMock).toHaveBeenCalledTimes(1);
     expect(mocks.cancelTranscribeMock).not.toHaveBeenCalled();
     // Rerender with the same recording still has the failed chunk, so the
     // spinner stays on and the button is "armed" for a cancel click.
-    rerender(
-      <RecordingListItem
-        recording={recording}
-        onDelete={() => {}}
-        autoOpenTranscript={false}
-        onAutoOpenConsumed={() => {}}
-      />
-    );
+    rerender(<RecordingListItem recording={recording} onDelete={() => {}} />);
     // Second click: should open a Popconfirm instead of immediately firing
     // transcribe again.
     mocks.transcribeMock.mockClear();
@@ -172,14 +150,7 @@ describe('RecordingListItem retry-transcribe button', () => {
       chunk({ index: 0, transcription: 'a', status: 'transcribed' }),
       chunk({ index: 1, status: 'failed' }),
     ]);
-    const { rerender } = render(
-      <RecordingListItem
-        recording={recording}
-        onDelete={() => {}}
-        autoOpenTranscript={false}
-        onAutoOpenConsumed={() => {}}
-      />
-    );
+    const { rerender } = render(<RecordingListItem recording={recording} onDelete={() => {}} />);
     // Sanity: before the click the icon has no spin class.
     expect(screen.getByTestId('retry-transcribe-spin').className).not.toMatch(/spin/);
     await user_.click(screen.getByTestId('retry-transcribe-button'));
@@ -196,14 +167,7 @@ describe('RecordingListItem retry-transcribe button', () => {
     // Simulate the main process emitting a chunkTranscribed event by
     // handing the row an updated recording where the failed chunk is now
     // still failed (e.g. upstream still down) — the spin must persist.
-    rerender(
-      <RecordingListItem
-        recording={recording}
-        onDelete={() => {}}
-        autoOpenTranscript={false}
-        onAutoOpenConsumed={() => {}}
-      />
-    );
+    rerender(<RecordingListItem recording={recording} onDelete={() => {}} />);
     expect(screen.getByTestId('retry-transcribe-spin').className).toMatch(/spin/);
     // Now simulate the chunk going through: spin must clear.
     rerender(
@@ -213,8 +177,6 @@ describe('RecordingListItem retry-transcribe button', () => {
           chunk({ index: 1, transcription: 'b', status: 'transcribed' }),
         ])}
         onDelete={() => {}}
-        autoOpenTranscript={false}
-        onAutoOpenConsumed={() => {}}
       />
     );
     expect(screen.getByTestId('retry-transcribe-spin').className).not.toMatch(/spin/);

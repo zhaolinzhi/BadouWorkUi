@@ -59,6 +59,8 @@ if (isQiankunHost()) {
       shellVersion: '0.0.0',
       theme: (localStorage.getItem('aionui_theme') as 'light' | 'dark') ?? 'light',
       locale: localStorage.getItem('aionui_locale') ?? 'zh-CN',
+      // 独立运行时没有 shell 的 LayoutContext,按 shell 的 768px 断点自行判定
+      isMobile: typeof window === 'undefined' ? false : window.innerWidth < 768,
       on: () => () => {},
       emit: () => {},
       navigate: (path: string) => {

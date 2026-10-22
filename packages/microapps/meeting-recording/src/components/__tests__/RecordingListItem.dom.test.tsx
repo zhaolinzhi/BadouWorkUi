@@ -67,42 +67,21 @@ const baseRecording: MeetingRecording = {
 
 describe('RecordingListItem (chunked)', () => {
   it('renders all chunks with appropriate status text', () => {
-    render(
-      <RecordingListItem
-        recording={baseRecording}
-        onDelete={() => {}}
-        autoOpenTranscript={false}
-        onAutoOpenConsumed={() => {}}
-      />
-    );
+    render(<RecordingListItem recording={baseRecording} onDelete={() => {}} />);
     expect(screen.getByText('第一段')).toBeTruthy();
     expect(screen.getByText('meeting-recording.transcriptionPending')).toBeTruthy();
     expect(screen.getByText('meeting-recording.transcriptionFailed (HTTP 500)')).toBeTruthy();
   });
 
   it('shows chunk label with 1-based index', () => {
-    render(
-      <RecordingListItem
-        recording={baseRecording}
-        onDelete={() => {}}
-        autoOpenTranscript={false}
-        onAutoOpenConsumed={() => {}}
-      />
-    );
+    render(<RecordingListItem recording={baseRecording} onDelete={() => {}} />);
     expect(screen.getByText('meeting-recording.chunkLabel:{"index":1}')).toBeTruthy();
     expect(screen.getByText('meeting-recording.chunkLabel:{"index":3}')).toBeTruthy();
   });
 
   it('invokes onDelete when Popconfirm OK is clicked', async () => {
     const onDelete = vi.fn();
-    render(
-      <RecordingListItem
-        recording={baseRecording}
-        onDelete={onDelete}
-        autoOpenTranscript={false}
-        onAutoOpenConsumed={() => {}}
-      />
-    );
+    render(<RecordingListItem recording={baseRecording} onDelete={onDelete} />);
     const trigger = screen.getByLabelText('Delete');
     trigger.click();
     const okButton = await screen.findByText('OK');
@@ -111,14 +90,7 @@ describe('RecordingListItem (chunked)', () => {
   });
 
   it('toggles an inline <audio> for the clicked chunk', async () => {
-    render(
-      <RecordingListItem
-        recording={baseRecording}
-        onDelete={() => {}}
-        autoOpenTranscript={false}
-        onAutoOpenConsumed={() => {}}
-      />
-    );
+    render(<RecordingListItem recording={baseRecording} onDelete={() => {}} />);
     expect(screen.queryByTestId('audio-rec-1-0')).toBeNull();
     const toggle = screen.getAllByRole('button').find((b) => b.getAttribute('aria-controls') === 'audio-rec-1-0');
     expect(toggle).toBeTruthy();

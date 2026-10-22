@@ -45,7 +45,8 @@ describe('adoptShellI18n', () => {
     (window as unknown as Carrier).i18n = { language: 'zh-CN', t: (key: unknown) => key };
 
     const originalEval = globalThis.eval;
-    // @ts-expect-error —— 只为构造 CSP 场景,运行时替换全局 eval
+    // 只为构造 CSP 场景,运行时替换全局 eval;`(0, eval)` 是间接 eval,
+    // 调用时才从全局作用域取值,所以这个替换能生效。
     globalThis.eval = () => {
       throw new Error('unsafe-eval disabled');
     };

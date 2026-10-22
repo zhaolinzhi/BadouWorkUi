@@ -36,7 +36,7 @@ vi.mock('@/common', () => ({
 vi.mock('@/renderer/components/chat/SendBox', () => ({ default: () => <div data-testid='sendbox-shell' /> }));
 vi.mock('@/renderer/components/agent/AgentModeSelector', () => ({ default: () => null }));
 vi.mock('@/renderer/components/chat/CommandQueuePanel', () => ({ default: () => null }));
-vi.mock('@/renderer/hooks/knowledge-base/useKnowledgeBaseList', () => ({
+vi.mock('@/renderer/hooks/kb-chat/useKnowledgeBaseList', () => ({
   useKnowledgeBaseList: () => ({
     personalItems: [],
     sharedItems: [],

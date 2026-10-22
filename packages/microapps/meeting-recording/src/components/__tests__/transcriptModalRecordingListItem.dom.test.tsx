@@ -54,8 +54,6 @@ describe('RecordingListItem transcript button', () => {
       <RecordingListItem
         recording={makeRecording([chunk({ index: 0, status: 'pending' }), chunk({ index: 1, status: 'failed' })])}
         onDelete={() => {}}
-        autoOpenTranscript={false}
-        onAutoOpenConsumed={() => {}}
       />
     );
     const btn = screen.getByTestId('transcript-view-button');
@@ -67,8 +65,6 @@ describe('RecordingListItem transcript button', () => {
       <RecordingListItem
         recording={makeRecording([chunk({ index: 0, transcription: 'hi', status: 'transcribed' })])}
         onDelete={() => {}}
-        autoOpenTranscript={false}
-        onAutoOpenConsumed={() => {}}
       />
     );
     const btn = screen.getByTestId('transcript-view-button');
@@ -80,8 +76,6 @@ describe('RecordingListItem transcript button', () => {
       <RecordingListItem
         recording={makeRecording([chunk({ index: 0, transcription: 'hi', status: 'transcribed' })])}
         onDelete={() => {}}
-        autoOpenTranscript={false}
-        onAutoOpenConsumed={() => {}}
       />
     );
     expect(screen.queryByText('Test')).toBeTruthy();
