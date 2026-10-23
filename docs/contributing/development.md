@@ -143,6 +143,8 @@ Use the Rust MSVC toolchain and install Microsoft C++ Build Tools. After install
 | Command                     | Description                                                                                                    |
 | --------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | `bun start`                 | Start Electron app in development mode (desktop)                                                               |
+| `bun run dev`               | Alias for `bun start`                                                                                          |
+| `bun run dev:all`           | Start the desktop app plus every micro app dev server in one command                                           |
 | `bun run start:multi`       | Start a second Electron instance alongside an existing one (see [Multi-Instance](#multi-instance-development)) |
 | `bun run cli`               | Alias for `bun start`                                                                                          |
 | `bun run webui`             | Start in WebUI mode (browser-based, no Electron window)                                                        |
@@ -153,22 +155,83 @@ Use the Rust MSVC toolchain and install Microsoft C++ Build Tools. After install
 
 ### Build & Distribution
 
-| Command                   | Description                                             |
-| ------------------------- | ------------------------------------------------------- |
-| `bun run package`         | Build all processes (main, preload, renderer) to `out/` |
-| `bun run make`            | Alias for `bun run package`                             |
-| `bun run dist`            | Build and package distributable for current platform    |
-| `bun run dist:mac`        | Build distributable for macOS                           |
-| `bun run dist:win`        | Build distributable for Windows                         |
-| `bun run dist:linux`      | Build distributable for Linux                           |
-| `bun run build-mac`       | Build macOS distributable for both arm64 and x64        |
-| `bun run build-mac:arm64` | Build macOS distributable for Apple Silicon only        |
-| `bun run build-mac:x64`   | Build macOS distributable for Intel only                |
-| `bun run build-win`       | Build Windows distributable                             |
-| `bun run build-win:arm64` | Build Windows distributable for ARM64                   |
-| `bun run build-win:x64`   | Build Windows distributable for x64                     |
-| `bun run build-deb`       | Build Linux (.deb) distributable                        |
-| `bun run build`           | Alias for `bun run build-mac`                           |
+| Command                   | Description                                                         |
+| ------------------------- | ------------------------------------------------------------------- |
+| `bun run package`         | Build all processes (main, preload, renderer) to `out/`             |
+| `bun run make`            | Alias for `bun run package`                                         |
+| `bun run dist`            | Build and package distributable for current platform                |
+| `bun run dist:mac`        | Build distributable for macOS                                       |
+| `bun run dist:win`        | Build distributable for Windows                                     |
+| `bun run dist:linux`      | Build distributable for Linux                                       |
+| `bun run build-mac`       | Build macOS distributable (architectures chosen by host)            |
+| `bun run build-mac:arm64` | Build macOS distributable for Apple Silicon only                    |
+| `bun run build-mac:x64`   | Build macOS distributable for Intel only                            |
+| `bun run build-win`       | Build Windows distributable (architectures chosen by host)          |
+| `bun run build-win:arm64` | Build Windows distributable for ARM64                               |
+| `bun run build-win:x64`   | Build Windows distributable for x64                                 |
+| `bun run build-deb`       | Build Linux (.deb) distributable                                    |
+| `bun run build`           | Alias for `bun run build-mac`                                       |
+| `bun run build:all`       | Same as `build`, but also bundle every micro app into the installer |
+
+#### Where the Output Lands
+
+`packages/desktop/electron-builder.yml` sets `directories.output: out`, so **the installers land in `out/` alongside the compiled processes** — there is no separate `release/` directory. Expect roughly this layout after `bun run build-mac`:
+
+```text
+out/
+├── main/                  # main process bundle (electron-vite)
+├── preload/               # preload bundle
+├── renderer/              # renderer bundle (+ microapps/ when bundling)
+├── mac-arm64/             # unpacked .app, one directory per built arch
+├── mac-x64/
+├── BadouWorklocal-<version>-mac-arm64.dmg
+├── BadouWorklocal-<version>-mac-arm64.zip
+├── BadouWorklocal-<version>-mac-x64.dmg
+└── BadouWorklocal-<version>-mac-x64.zip
+```
+
+| Platform | Targets      | Artifacts                                       |
+| -------- | ------------ | ----------------------------------------------- |
+| macOS    | `dmg`, `zip` | `BadouWorklocal-<version>-mac-<arch>.{dmg,zip}` |
+| Windows  | `nsis`       | `BadouWorklocal-<version>-win-<arch>.exe`       |
+| Linux    | `deb`        | `BadouWorklocal-<version>-linux-<arch>.deb`     |
+
+Names follow `artifactName: ${productName}-${version}-${os}-${arch}.${ext}` in the same config file; `productName` is `BadouWorklocal`.
+
+**Backend binaries do not land in `out/`.** `prepareAioncore` downloads them into `resources/bundled-aioncore/<platform>-<arch>/` (gitignored), and electron-builder ships that directory through `extraResources` — inside the installed app it ends up at `Contents/Resources/bundled-aioncore/` on macOS and `resources/bundled-aioncore/` on Windows. `resources/hub/` follows the same route.
+
+Only one other output directory exists: `out-fast-builds/`, written exclusively by `scripts/build-fast-debug-versions.ps1` for bulk Windows debug builds.
+
+`out/` and `out-fast-builds/` are both gitignored. `electron-vite build` clears `out/` on every run, so a stale installer from a previous build does not survive — and micro app output copied in by `build:all` is wiped by the next plain `bun run build`.
+
+#### Micro Apps
+
+`build` and `build:all` embed the micro apps under `packages/microapps/` into the installer (`out/renderer/microapps/`), and inject `VITE_MICRO_APP_ENABLED=true` plus a `app://microapps` asset base so the packaged app can load them offline. `build:all` always does a full renderer rebuild — the incremental cache keys on a source hash that cannot see those injected env vars, so a cached bundle would carry `VITE_MICRO_APP_ENABLED=false`.
+
+`build:all` currently targets macOS. To embed micro apps in a Windows or Linux installer, set the flag manually:
+
+```bash
+# Windows (PowerShell / cmd)
+set MICRO_APP_BUNDLE=1 && bun run build-win
+
+# macOS / Linux
+MICRO_APP_BUNDLE=1 bun run build-win
+```
+
+#### Architectures Chosen by the Build Host
+
+`build`, `build-mac`, `build-win`, `build-deb`, and `build:all` pass no architecture flags — the build script picks them from `process.arch`:
+
+| Build host        | Architectures produced | Why                              |
+| ----------------- | ---------------------- | -------------------------------- |
+| Intel Mac         | x64 only               | cannot execute arm64 binaries    |
+| Apple Silicon Mac | arm64 + x64            | Rosetta 2 runs x86_64 binaries   |
+| x64 Windows       | x64 only               | cannot execute arm64 executables |
+| Windows on ARM    | arm64 + x64            | system-level x64 emulation       |
+
+This is a hard constraint, not a preference: the build executes the _target_ architecture's `aioncore` binary to download managed resources, which include an architecture-specific Node runtime (for example `node-v24.11.0-darwin-x64`). A host that cannot run it fails with `EBADARCH` (-86). The `:arm64` / `:x64` scripts bypass this check and are what CI uses.
+
+See [Micro Frontend Build & Deploy](../qiankun/06-build-and-deploy.md) for the full micro app build pipeline.
 
 ### Standalone Server (non-Electron)
 

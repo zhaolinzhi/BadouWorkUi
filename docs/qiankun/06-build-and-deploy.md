@@ -81,6 +81,32 @@ bun run build:all
 
 需要显式指定架构时用 `bun run build-mac:arm64` / `bun run build-mac:x64`(这两个不受本机限制,CI 就是这么调的)。
 
+**`build:all` 只打 mac 包。** 它固定等价于 `build-with-builder.js auto --mac`,Windows / Linux 上没有对应的 script,要打带微应用的 exe / deb 得自己设环境变量:
+
+```bash
+# Windows(PowerShell 或 cmd)
+set MICRO_APP_BUNDLE=1 && bun run build-win
+
+# macOS / Linux
+MICRO_APP_BUNDLE=1 bun run build-deb
+```
+
+`MICRO_APP_BUNDLE=1` 就是 `build:all` 全部的作用 —— 注入两个 `VITE_*`、构建并复制子应用、强制全量重建渲染进程。所以打完的 exe 和 `build:all` 打出来的 dmg 是等价的,只是少了那层 npm script 的糖。
+
+**产物落在 `out/`,没有 `release/`。** `electron-builder.yml` 的 `directories.output` 就是 `out`,安装包和 `out/main`、`out/renderer`、`out/preload` 并列躺在同一个目录里 —— 找包时别去翻 `release/`。文件名是 `BadouWorklocal-<version>-<os>-<arch>.<ext>`,例如 `BadouWorklocal-1.0.0-mac-arm64.dmg`。
+
+```
+out/
+├── main/  preload/  renderer/     # 编译产物
+├── renderer/microapps/<name>/     # build:all 才有
+├── mac-arm64/  mac-x64/           # 解包的 .app
+└── BadouWorklocal-<version>-mac-<arch>.dmg / .zip
+```
+
+Windows 出 `.exe`(nsis)、Linux 出 `.deb`。**后端二进制不在 `out/`** —— `prepareAioncore` 把它下载到 `resources/bundled-aioncore/<platform>-<arch>/`(gitignored),再经 electron-builder 的 `extraResources` 进包,装好后落在 `Contents/Resources/bundled-aioncore/`(macOS)或 `resources/bundled-aioncore/`(Windows)。
+
+两个坑:`out/` 和 `out-fast-builds/` 都在 gitignore 里,不会误提交;`electron-vite build` 每次会清空 `out/`,所以上一次打的安装包不会残留 —— 但 `build:all` 拷进去的微应用也会被下一次普通 `bun run build` 一起抹掉。
+
 **`app://` 协议从哪来。** 打包后渲染进程跑在 `file://` origin 上,而 Chromium 里 `fetch('file://…')` 必然抛 `TypeError`,asar 内的路径也没有 URL 形态。所以主进程注册了一个 `app://` scheme 把 `out/renderer/microapps/` 映射成可 fetch 的 URL,实现在 [`process/resources/microApps/`](../../packages/desktop/src/process/resources/microApps/index.ts)。dev 下没有这个目录时干净地回 404,不影响 `bun run dev`。
 
 > WebUI 形态(`bun run webui:prod`)的静态根也是 `out/renderer`,所以子应用会自动出现在 `/microapps/<name>/index.html`。但 WebUI 生产默认 `VITE_MICRO_APP_ENABLED=false`,启用它需要另外把 asset base 配成 `${location.origin}/microapps` —— 本轮没有做。
@@ -122,12 +148,17 @@ bun run build
 主应用在 `startMicroApps` 中通过 `import('qiankun')` 动态加载 qiankun,只有 `VITE_MICRO_APP_ENABLED=true` 时才会真正进入该路径,默认构建不会把 qiankun 拉进主 bundle。
 
 ```bash
-# 只打主应用(子应用走 CDN 或干脆不启用)
+# 只编译到 out/,不跑 electron-builder(调试用)
+bun run package
+
+# 打主应用安装包 —— 微应用走 CDN 或干脆不启用
 bun run build
 
-# 打主应用 + 把子应用嵌进安装包
+# 打主应用安装包 + 把子应用嵌进去
 bun run build:all
 ```
+
+注意 `build` 和 `build:all` **都会出安装包**,区别只在微应用是否随包分发;只编译不打包的是 `package`。
 
 ---
 

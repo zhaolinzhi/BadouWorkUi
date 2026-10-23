@@ -54,11 +54,12 @@
 
 ## 编排脚本
 
-| 路径                                                                 | 作用                                                                                             |
-| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| [scripts/dev-all.mjs](../../scripts/dev-all.mjs)                     | 根目录 `bun run dev:all` 的入口:扫描子应用、端口预检、并发拉起、统一收尾                         |
-| [scripts/build-micro-apps.mjs](../../scripts/build-micro-apps.mjs)   | 构建全部子应用并复制到 `out/renderer/microapps/<name>/`;导出 `discoverMicroApps` 给 dev 脚本复用 |
-| [scripts/build-with-builder.js](../../scripts/build-with-builder.js) | 打包编排;`MICRO_APP_BUNDLE=1`(`bun run build:all`)时注入 `app://microapps` 基址并调用上一个脚本  |
+| 路径                                                                                                                 | 作用                                                                                             |
+| -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| [scripts/dev-all.mjs](../../scripts/dev-all.mjs)                                                                     | 根目录 `bun run dev:all` 的入口:扫描子应用、端口预检、并发拉起、统一收尾                         |
+| [scripts/build-micro-apps.mjs](../../scripts/build-micro-apps.mjs)                                                   | 构建全部子应用并复制到 `out/renderer/microapps/<name>/`;导出 `discoverMicroApps` 给 dev 脚本复用 |
+| [scripts/build-with-builder.js](../../scripts/build-with-builder.js)                                                 | 打包编排;`MICRO_APP_BUNDLE=1`(`bun run build:all`)时注入 `app://microapps` 基址并调用上一个脚本  |
+| [packages/shared-scripts/src/resolve-auto-arch-args.js](../../packages/shared-scripts/src/resolve-auto-arch-args.js) | `auto` 模式下按构建机能力决定架构(Intel Mac 只出 x64,Apple Silicon 出 arm64 + x64)               |
 
 ## 设计 spec
 
