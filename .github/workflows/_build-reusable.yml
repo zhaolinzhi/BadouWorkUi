@@ -308,58 +308,13 @@ jobs:
           Write-Host "Rebuilding native modules for Electron $electronVer ($arch)"
           Write-Host "=========================================="
 
-          # Strategy: Try prebuild-install first (faster, more reliable)
-          # Fallback to electron-rebuild only if prebuild-install fails
-          $success = $false
-
-          # Step 1: Try prebuild-install (downloads prebuilt binaries)
-          Write-Host ""
-          Write-Host "[Step 1] Trying prebuild-install..."
-          $prebuildResult = $null
-          try {
-          $prebuildResult = bun x --yes prebuild-install --runtime=electron --target=$electronVer --platform=win32 --arch=$arch --force 2>&1
-            if ($LASTEXITCODE -eq 0) {
-              Write-Host "✅ prebuild-install succeeded"
-              $success = $true
-            } else {
-              Write-Host "⚠️ prebuild-install exited with code $LASTEXITCODE"
-            }
-          } catch {
-            Write-Host "⚠️ prebuild-install failed: $_"
-          }
-
-          # Step 2: Verify or fallback to electron-rebuild
-          $sqliteNode = "node_modules/better-sqlite3/build/Release/better_sqlite3.node"
-          if (-not (Test-Path $sqliteNode)) {
-            Write-Host ""
-            Write-Host "[Step 2] prebuild-install didn't produce binary, trying electron-rebuild..."
-            try {
-              # Use the project's pinned @electron/rebuild@4.x (which depends on node-gyp@12
-              # and correctly resolves Electron headers via npm_config_target).
-              # 'bunx electron-rebuild' would pull the registry's @latest, which drags
-              # in node-gyp@9 — that version ignores --electron-version and falls back
-              # to process.versions.node, so it 404s on the disturl (Electron headers
-              # don't exist for raw Node versions).
-              # --only keeps the rebuild scope to better-sqlite3 so transitive native
-              # modules (lzma-native, etc.) without arm64 prebuilds aren't pulled in.
-              bunx --no-install @electron/rebuild -f --only better-sqlite3 -w better-sqlite3 --electron-version $electronVer --arch $arch
-              if ($LASTEXITCODE -eq 0) {
-                Write-Host "✅ electron-rebuild succeeded"
-                $success = $true
-              }
-            } catch {
-              Write-Host "❌ electron-rebuild failed: $_"
-            }
-          }
-
-          # Final verification
-          Write-Host ""
-          Write-Host "Verifying native modules..."
-          if (Test-Path $sqliteNode) {
-            $size = [math]::Round((Get-Item $sqliteNode).Length / 1MB, 1)
-            Write-Host "✅ better-sqlite3 found: $sqliteNode ($size MB)"
-          } else {
-            Write-Error "❌ better-sqlite3 native module not found at: $sqliteNode"
+          # Single source of truth: scripts/rebuildNativeModules.js.
+          # It runs prebuild-install inside the module directory first, then falls
+          # back to @electron/rebuild's programmatic API. The programmatic API has
+          # no CLI flags, so upstream flag renames can no longer break CI.
+          node scripts/rebuildNativeModules.js --platform win32 --arch $arch --electron-version $electronVer
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "❌ Native module rebuild failed"
             exit 1
           }
 
