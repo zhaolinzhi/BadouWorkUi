@@ -42,20 +42,22 @@ This is the core module that handles all native module rebuilding. It provides:
 #### Functions
 
 1. **`rebuildWithElectronRebuild(options)`**
-   - Used by: `beforeBuild.js`
-   - Rebuilds all native modules in source directory
+   - Rebuilds native modules in the source directory
+   - Uses the `@electron/rebuild` programmatic API (not the CLI)
    - Modules: `better-sqlite3`
 
 2. **`rebuildSingleModule(options)`**
    - Used by: `afterPack.js`
-   - Rebuilds a single module in packaged app
-   - Strategy: Try prebuild-install first, fall back to electron-rebuild
+   - Rebuilds a single module in the packaged app
+   - Strategy: Try prebuild-install first, fall back to the `@electron/rebuild` programmatic API
 
 3. **`verifyModuleBinary(moduleRoot, moduleName)`**
    - Verifies native binary exists after rebuild
 
 4. **Helper utilities**:
-   - `normalizeArch()`: Normalize architecture names
+   - `normalizeArch()`: Normalize architecture names (`x86_64` → `x64`, `aarch64` → `arm64`)
+   - `normalizePlatform()`: Normalize platform names (`windows` → `win32`)
+   - `getElectronVersion()`: Read the pinned Electron version from `package.json`
    - `getModulesToRebuild()`: Get platform-specific module list
    - `buildEnvironment()`: Create rebuild environment variables
 
@@ -96,12 +98,20 @@ npm run dist:win
 npm run dist:linux
 ```
 
+### CLI
+
+```bash
+# Rebuild and verify native modules for a target platform/arch.
+# The Electron version defaults to the one pinned in package.json.
+node scripts/rebuildNativeModules.js --platform win32 --arch x64 --electron-version 37.3.1
+```
+
 ### Manual native module rebuild
 
 ```javascript
 const { rebuildWithElectronRebuild } = require('./scripts/rebuildNativeModules');
 
-rebuildWithElectronRebuild({
+await rebuildWithElectronRebuild({
   platform: 'linux',
   arch: 'arm64',
   electronVersion: '37.3.1',
@@ -113,7 +123,7 @@ rebuildWithElectronRebuild({
 ```javascript
 const { rebuildSingleModule } = require('./scripts/rebuildNativeModules');
 
-rebuildSingleModule({
+await rebuildSingleModule({
   moduleName: 'better-sqlite3',
   moduleRoot: '/path/to/app.asar.unpacked/node_modules/better-sqlite3',
   platform: 'linux',
@@ -122,18 +132,18 @@ rebuildSingleModule({
 });
 ```
 
-## Why Two Rebuild Stages?
+## Rebuild Stages
 
-### beforeBuild (All Platforms)
+### CI pre-build (Windows)
 
-- Rebuilds modules in **source directory** (`node_modules/`)
-- Ensures correct binaries are packaged
-- Uses `electron-rebuild` for all modules
+- Rebuilds modules in the **source directory** (`node_modules/`)
+- Invokes the shared CLI (`scripts/rebuildNativeModules.js`)
+- Uses `prebuild-install` first, then the `@electron/rebuild` programmatic API
 
-### afterPack (Linux Only)
+### afterPack
 
-- Rebuilds `better-sqlite3` in **packaged app** (`app.asar.unpacked/`)
-- Handles cross-compilation issues
+- Rebuilds `better-sqlite3` in the **packaged app** (`app.asar.unpacked/`)
+- Runs for Windows same-arch builds and cross-architecture builds
 - Uses `prebuild-install` for faster builds (downloads prebuilt binary)
 
 ## Troubleshooting

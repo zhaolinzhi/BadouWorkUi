@@ -10,6 +10,7 @@
 const { execSync, execFileSync, spawnSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const { parseArgs } = require('node:util');
 
 /**
  * Check if vx is available in the system
@@ -58,11 +59,64 @@ function getCommandPrefix(platform, useVx = true) {
 function normalizeArch(arch) {
   const archMap = {
     x64: 'x64',
+    x86_64: 'x64',
     arm64: 'arm64',
+    aarch64: 'arm64',
     ia32: 'ia32',
     armv7l: 'arm',
   };
   return archMap[arch] || arch;
+}
+
+/**
+ * Normalize platform names to the values expected by @electron/rebuild.
+ */
+function normalizePlatform(platform) {
+  return platform === 'windows' ? 'win32' : platform;
+}
+
+/**
+ * Read the pinned Electron version from package.json.
+ */
+function getElectronVersion(projectRoot = path.resolve(__dirname, '..')) {
+  const packageJsonPath = path.join(projectRoot, 'package.json');
+  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+  const version = packageJson.devDependencies?.electron ?? packageJson.dependencies?.electron;
+
+  if (!version) {
+    throw new Error(`Unable to determine Electron version from ${packageJsonPath}`);
+  }
+
+  return version.replace(/^[\^~]/, '');
+}
+
+/**
+ * Temporarily expose native build variables to process.env.
+ * @electron/rebuild inherits process.env when spawning node-gyp, so Windows
+ * toolchain variables must be present while the rebuild runs.
+ *
+ * @returns {() => void} Restores the previous environment.
+ */
+function applyProcessEnv(env) {
+  const keys = ['MSVS_VERSION', 'GYP_MSVS_VERSION', 'WindowsTargetPlatformVersion', '_WIN32_WINNT'];
+  const previous = new Map();
+
+  for (const key of keys) {
+    if (env[key] !== undefined && process.env[key] !== env[key]) {
+      previous.set(key, process.env[key]);
+      process.env[key] = env[key];
+    }
+  }
+
+  return () => {
+    for (const [key, value] of previous) {
+      if (value === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
+    }
+  };
 }
 
 /**
@@ -107,7 +161,7 @@ function buildEnvironment(platform, targetArch, electronVersion) {
 }
 
 /**
- * Rebuild native modules using electron-rebuild
+ * Rebuild native modules using the @electron/rebuild programmatic API
  *
  * @param {Object} options
  * @param {string} options.platform - Platform name (win32, darwin, linux)
@@ -116,7 +170,7 @@ function buildEnvironment(platform, targetArch, electronVersion) {
  * @param {string} options.cwd - Working directory (default: project root)
  * @param {string[]} [options.modules] - Modules to rebuild (default: auto-detect by platform)
  */
-function rebuildWithElectronRebuild(options) {
+async function rebuildWithElectronRebuild(options) {
   const {
     platform,
     arch,
@@ -125,17 +179,30 @@ function rebuildWithElectronRebuild(options) {
     modules = getModulesToRebuild(platform),
   } = options;
 
+  const targetPlatform = normalizePlatform(platform);
   const targetArch = normalizeArch(arch);
-  const env = buildEnvironment(platform, targetArch, electronVersion);
+  const restoreEnv = applyProcessEnv(buildEnvironment(platform, targetArch, electronVersion));
 
-  const bunxCmd = getBunxCommand();
-  const rebuildCmd = `${bunxCmd} electron-rebuild --only ${modules.join(',')} --force --arch ${targetArch} --electron-version ${electronVersion}`;
+  try {
+    // Use the programmatic API instead of the `electron-rebuild` CLI so the
+    // rebuild never breaks when the upstream CLI renames or removes flags.
+    const { rebuild } = await import('@electron/rebuild');
 
-  execSync(rebuildCmd, {
-    stdio: 'inherit',
-    cwd,
-    env,
-  });
+    console.log(
+      `Rebuilding ${modules.join(', ')} for Electron ${electronVersion} (${targetPlatform}-${targetArch})...`
+    );
+    await rebuild({
+      buildPath: cwd,
+      projectRootPath: cwd,
+      electronVersion,
+      arch: targetArch,
+      platform: targetPlatform,
+      onlyModules: modules,
+      force: true,
+    });
+  } finally {
+    restoreEnv();
+  }
 }
 
 /**
@@ -159,7 +226,7 @@ function canCrossCompileFromSource(buildArch, targetArch, platform) {
 
 /**
  * Rebuild a single module using prebuild-install (faster for prebuilt binaries)
- * Falls back to electron-rebuild if prebuild-install fails
+ * Falls back to @electron/rebuild (programmatic API) if prebuild-install fails
  *
  * @param {Object} options
  * @param {string} options.moduleName - Module name (e.g., 'better-sqlite3')
@@ -170,8 +237,9 @@ function canCrossCompileFromSource(buildArch, targetArch, platform) {
  * @param {string} [options.projectRoot] - Project root for fallback rebuild
  * @param {boolean} [options.forceRebuild] - Force rebuild from source (skip prebuild-install)
  * @param {string} [options.buildArch] - Build machine architecture (for cross-compilation detection)
+ * @returns {Promise<boolean>} Whether the module was rebuilt successfully
  */
-function rebuildSingleModule(options) {
+async function rebuildSingleModule(options) {
   const {
     moduleName,
     moduleRoot,
@@ -276,52 +344,40 @@ function rebuildSingleModule(options) {
         return false;
       }
       // For other cases, fall back to rebuild
-      console.log(`     prebuild-install failed, falling back to electron-rebuild...`);
+      console.log(`     prebuild-install failed, falling back to @electron/rebuild...`);
     }
   }
 
-  // Use electron-rebuild to build from source
+  // Build from source with @electron/rebuild
   if (!canCrossCompileFromSource(normalizedBuildArch, targetArch, platform)) {
     console.error(`     ✗ Cross-compilation from ${normalizedBuildArch} to ${targetArch} not supported on ${platform}`);
     return false;
   }
 
+  const restoreEnv = applyProcessEnv(env);
   try {
-    env.npm_config_build_from_source = 'true';
-    const rebuildArgs = [
-      '--yes',
-      'electron-rebuild',
-      '--only',
-      moduleName,
-      '--force',
-      `--platform=${platform}`,
-      `--arch=${targetArch}`,
-    ];
+    // Use the programmatic API instead of the `electron-rebuild` CLI so the
+    // rebuild never breaks when the upstream CLI renames or removes flags.
+    const { rebuild } = await import('@electron/rebuild');
 
-    const fullCmd = cmdPrefix
-      ? `${cmdPrefix} ${bunxCmd} ${rebuildArgs.join(' ')}`
-      : `${bunxCmd} ${rebuildArgs.join(' ')}`;
-    console.log(`     Running: ${fullCmd}`);
-
-    if (useShell) {
-      execSync(fullCmd, {
-        cwd: projectRoot,
-        env,
-        stdio: 'inherit',
-        shell: true,
-      });
-    } else {
-      execFileSync(bunxCmd, rebuildArgs, {
-        cwd: projectRoot,
-        env,
-        stdio: 'inherit',
-        shell: true,
-      });
-    }
+    console.log(
+      `     Running: @electron/rebuild (Electron ${electronVersion}, ${normalizePlatform(platform)}-${targetArch})`
+    );
+    await rebuild({
+      buildPath: projectRoot,
+      projectRootPath: projectRoot,
+      electronVersion,
+      arch: targetArch,
+      platform: normalizePlatform(platform),
+      onlyModules: [moduleName],
+      force: true,
+    });
     return true;
   } catch (error) {
     console.error(`❌ Failed to rebuild ${moduleName}:`, error.message);
     return false;
+  } finally {
+    restoreEnv();
   }
 }
 
@@ -387,8 +443,98 @@ function verifyModuleBinary(moduleRoot, moduleName) {
   return false;
 }
 
+/**
+ * CLI entry point: rebuild and verify the native modules for one platform/arch.
+ * Used by CI so the workflow no longer hand-rolls electron-rebuild flags.
+ *
+ * Usage:
+ *   node scripts/rebuildNativeModules.js --platform win32 --arch x64 --electron-version 37.10.3
+ *
+ * @returns {Promise<number>} Process exit code.
+ */
+async function runCli(argv) {
+  const { values } = parseArgs({
+    args: argv,
+    options: {
+      platform: { type: 'string' },
+      arch: { type: 'string' },
+      'electron-version': { type: 'string' },
+      'project-root': { type: 'string' },
+      help: { type: 'boolean', short: 'h' },
+    },
+    allowPositionals: false,
+  });
+
+  if (values.help) {
+    console.log(
+      'Usage: node scripts/rebuildNativeModules.js --platform <win32|darwin|linux> --arch <x64|arm64> [--electron-version <version>] [--project-root <dir>]'
+    );
+    return 0;
+  }
+
+  const platform = values.platform || process.platform;
+  const arch = values.arch || process.arch;
+  const projectRoot = path.resolve(values['project-root'] || path.resolve(__dirname, '..'));
+  const electronVersion = values['electron-version'] || getElectronVersion(projectRoot);
+
+  console.log(`Rebuilding native modules for Electron ${electronVersion} (${platform}-${arch})`);
+
+  let failed = false;
+
+  for (const moduleName of getModulesToRebuild(platform)) {
+    const moduleRoot = path.join(projectRoot, 'node_modules', moduleName);
+
+    if (!fs.existsSync(moduleRoot)) {
+      console.error(`   ✗ ${moduleName} not found at ${moduleRoot}`);
+      failed = true;
+      continue;
+    }
+
+    const success = await rebuildSingleModule({
+      moduleName,
+      moduleRoot,
+      platform,
+      arch,
+      electronVersion,
+      projectRoot,
+      buildArch: process.arch,
+    });
+
+    if (!success) {
+      failed = true;
+      continue;
+    }
+
+    if (!verifyModuleBinary(moduleRoot, moduleName)) {
+      failed = true;
+    }
+  }
+
+  if (failed) {
+    console.error('❌ Native module rebuild failed');
+    return 1;
+  }
+
+  console.log('✅ All critical native modules verified');
+  return 0;
+}
+
+if (require.main === module) {
+  runCli(process.argv.slice(2)).then(
+    (code) => {
+      process.exitCode = code;
+    },
+    (error) => {
+      console.error('❌ Native module rebuild failed:', error);
+      process.exitCode = 1;
+    }
+  );
+}
+
 module.exports = {
   normalizeArch,
+  normalizePlatform,
+  getElectronVersion,
   getModulesToRebuild,
   buildEnvironment,
   rebuildWithElectronRebuild,
@@ -398,4 +544,5 @@ module.exports = {
   isVxAvailable,
   getBunxCommand,
   getCommandPrefix,
+  runCli,
 };
