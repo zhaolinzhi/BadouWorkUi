@@ -41,6 +41,7 @@
     "build-win:x64:debug-versions": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-fast-debug-versions.ps1",
     "build": "node scripts/build-with-builder.js auto --mac",
     "build:all": "cross-env MICRO_APP_BUNDLE=1 node scripts/build-with-builder.js auto --mac",
+    "build:offline": "cross-env MICRO_APP_BUNDLE=1 AIONUI_HUB_SKIP=1 ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ node scripts/build-with-builder.js auto --mac",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "format": "oxfmt",
