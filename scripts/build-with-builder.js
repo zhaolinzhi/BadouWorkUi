@@ -828,17 +828,43 @@ try {
     return;
   }
 
-  // 5. Prepare aioncore binary (for packaged runtime usage)
+  // 5. Prepare aioncore binaries (for packaged runtime usage)
+  //
+  // Every architecture being packaged needs its own prepared bundle. electron-builder.yml
+  // copies the WHOLE resources/bundled-aioncore directory into each installer via
+  // extraResources, so an arch we skipped here would ship with no backend at all — or with
+  // whatever stale remnant happened to be lying around.
+  //
+  // Prepare each arch we target. That set is safe to execute: resolveAutoArchArgs only ever
+  // emits architectures this host can run (Rosetta 2 covers x86_64 on Apple Silicon), which
+  // is the same constraint prepareAioncore's execFileSync imposes.
   const { prepareAioncore } = require('../packages/shared-scripts/src/prepare-aioncore.js');
+  const { pruneStaleAioncoreBundles } = require('../packages/shared-scripts/src/prune-stale-aioncore-bundles.js');
   const { resolveAioncoreVersion } = require('./resolveAioncoreVersion.js');
   const projectRoot = path.resolve(__dirname, '..');
   writeGeneratedSentryDsnInclude(projectRoot);
-  prepareAioncore({
-    projectRoot,
-    platform: process.platform,
-    arch: targetArch,
-    version: resolveAioncoreVersion(projectRoot),
-  });
+
+  const aioncoreArchs = multiArch ? archArgs : [targetArch];
+  const aioncoreVersion = resolveAioncoreVersion(projectRoot);
+  for (const arch of aioncoreArchs) {
+    prepareAioncore({
+      projectRoot,
+      platform: process.platform,
+      arch,
+      version: aioncoreVersion,
+    });
+  }
+
+  // Drop leftovers from earlier or failed builds so they cannot ride along in extraResources.
+  // A failed prepare stops before fetching managed resources, leaving a directory that exists
+  // but is missing manifest.json and managed-resources/ — the runtime can still select it.
+  const pruneResult = pruneStaleAioncoreBundles(
+    path.join(projectRoot, 'resources', 'bundled-aioncore'),
+    aioncoreArchs.map((arch) => `${process.platform}-${arch}`)
+  );
+  if (pruneResult.removed.length > 0) {
+    console.log(`🧹 Removed stale aioncore bundles not targeted by this build: ${pruneResult.removed.join(', ')}`);
+  }
 
   // 6. Prepare hub resources (index.json + extension zips for offline fallback)
   execSync('node scripts/prepareHubResources.js', { stdio: 'inherit', env: process.env });
