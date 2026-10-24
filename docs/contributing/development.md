@@ -172,6 +172,29 @@ Use the Rust MSVC toolchain and install Microsoft C++ Build Tools. After install
 | `bun run build-deb`       | Build Linux (.deb) distributable                                    |
 | `bun run build`           | Alias for `bun run build-mac`                                       |
 | `bun run build:all`       | Same as `build`, but also bundle every micro app into the installer |
+| `bun run build:offline`   | Same as `build:all`, but for hosts that cannot reach GitHub         |
+
+#### Building Without GitHub Access
+
+`build:all` reaches the network three times: the aioncore backend binary, the AionHub
+resources, and the Electron distribution. On a host behind a firewall that blocks GitHub
+(`curl https://github.com` times out) each of those fails, and the build stops at the first
+one. `build:offline` is the same command with the three network steps pointed at sources
+that are reachable:
+
+```bash
+AIONUI_HUB_SKIP=1 ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ bun run build:all
+```
+
+- `AIONUI_HUB_SKIP=1` skips the AionHub download. The script deletes `resources/hub/`
+  **before** it downloads, so restore it from a previously built app first if you want the
+  offline hub fallback in the installer — otherwise the installer ships without it.
+- `ELECTRON_MIRROR` points electron-builder at a mirror for the Electron zip and its
+  `SHASUMS256.txt`. The checksum file is fetched on every build even when the zip is
+  already cached, so this one is required even with a warm cache.
+- aioncore needs no flag: `prepareAioncore` skips the download when
+  `resources/bundled-aioncore/<platform>-<arch>/aioncore` already exists, and
+  `AIONUI_BACKEND_LOCAL_BUNDLE_DIR` points it at a bundle to copy in wholesale.
 
 #### Where the Output Lands
 
@@ -182,13 +205,14 @@ out/
 ├── main/                  # main process bundle (electron-vite)
 ├── preload/               # preload bundle
 ├── renderer/              # renderer bundle (+ microapps/ when bundling)
-├── mac-arm64/             # unpacked .app, one directory per built arch
-├── mac-x64/
+├── mac/                   # unpacked .app — see the note below on this name
 ├── BadouWorklocal-<version>-mac-arm64.dmg
 ├── BadouWorklocal-<version>-mac-arm64.zip
 ├── BadouWorklocal-<version>-mac-x64.dmg
 └── BadouWorklocal-<version>-mac-x64.zip
 ```
+
+The unpacked `.app` directory is named `mac` when a single architecture was built and `mac-<arch>` when several were — do not hard-code either. `findAppDir` in `scripts/build-with-builder.js` probes `mac`, `mac-arm64`, `mac-x64`, and `mac-universal` in that order for exactly this reason. Apple Silicon hosts therefore see `out/mac/`, while Intel hosts building both architectures see `out/mac-arm64/` and `out/mac-x64/`.
 
 | Platform | Targets      | Artifacts                                       |
 | -------- | ------------ | ----------------------------------------------- |
@@ -200,9 +224,55 @@ Names follow `artifactName: ${productName}-${version}-${os}-${arch}.${ext}` in t
 
 **Backend binaries do not land in `out/`.** `prepareAioncore` downloads them into `resources/bundled-aioncore/<platform>-<arch>/` (gitignored), and electron-builder ships that directory through `extraResources` — inside the installed app it ends up at `Contents/Resources/bundled-aioncore/` on macOS and `resources/bundled-aioncore/` on Windows. `resources/hub/` follows the same route.
 
+Because `extraResources` copies that directory **whole**, with no per-arch filtering, two things matter:
+
+- Every architecture being packaged gets prepared, not just the primary one. A multi-arch build calls `prepareAioncore` for each target arch, so the x64 installer on an Apple Silicon host has its own `darwin-x64/` bundle instead of relying on whatever was already on disk.
+- Remnants from an earlier or failed build are pruned before packaging. A failed prepare stops before fetching managed resources, leaving a directory that holds only `aioncore` — no `manifest.json`, no `managed-resources/` — which would otherwise add ~96 MB of dead weight to every installer and leave a directory that exists but cannot run. The logic is in [`prune-stale-aioncore-bundles.js`](../../packages/shared-scripts/src/prune-stale-aioncore-bundles.js); pruning never inspects content, because an architecture the host cannot execute could never be validated by running prepare.
+
+CI is unaffected: each of its macOS/Windows jobs builds a single architecture, so the prune removes nothing there.
+
 Only one other output directory exists: `out-fast-builds/`, written exclusively by `scripts/build-fast-debug-versions.ps1` for bulk Windows debug builds.
 
 `out/` and `out-fast-builds/` are both gitignored. `electron-vite build` clears `out/` on every run, so a stale installer from a previous build does not survive — and micro app output copied in by `build:all` is wiped by the next plain `bun run build`.
+
+#### Repackaging Without Rebuilding
+
+If `out/main`, `out/preload`, and `out/renderer` are already populated — for example a full `bun run build:all` just finished but electron-builder failed, or you only need to change packaging options — call electron-builder directly instead of re-running the whole script. This skips `prepareAioncore`, which otherwise re-executes the backend binary to re-download ~100 MB of managed resources every single time (it is not cached).
+
+```bash
+# macOS, host architecture only
+bunx electron-builder --config packages/desktop/electron-builder.yml --mac --publish=never
+
+# Pin to one architecture
+bunx electron-builder --config packages/desktop/electron-builder.yml --mac --x64 --publish=never
+
+# Windows / Linux
+bunx electron-builder --config packages/desktop/electron-builder.yml --win --publish=never
+bunx electron-builder --config packages/desktop/electron-builder.yml --linux --publish=never
+```
+
+- `--publish=never` is **not optional** — without it electron-builder tries to publish to GitHub Releases.
+- `--config` points at `packages/desktop/`, not the repository root.
+- This produces exactly the same artifacts as `build-with-builder.js`, which builds this same command internally and only adds a `--prepackaged` retry for the case where the `.app` is built but DMG creation failed.
+- Requirements: `out/main`, `out/preload`, and `out/renderer` must all exist, and `resources/bundled-aioncore/<platform>-<arch>/` must already contain `aioncore`, `manifest.json`, and a populated `managed-resources/` — electron-builder ships the last one through `extraResources`.
+
+#### Running an Unsigned macOS Build Locally
+
+Local builds are unsigned unless a certificate is available. With none, electron-builder logs a warning and skips signing rather than failing:
+
+```bash
+security find-identity -v -p codesigning   # "0 valid identities found" means unsigned
+```
+
+macOS will refuse to open an unsigned app downloaded via a browser quarantine attribute. Locally built artifacts are unaffected, but anything shared or downloaded needs one of:
+
+```bash
+# Drag to /Applications, then right-click → Open (one-time per machine)
+# or remove the quarantine attribute from the command line
+xattr -dr com.apple.quarantine /Applications/BadouWorklocal.app
+```
+
+The `.zip` artifact sidesteps this entirely — unzip and double-click, no Gatekeeper prompt. Prefer it for local debugging. Note that an x64 build runs only on Intel Macs; arm64 users need an arm64 package, since Rosetta 2 emulation is one-directional.
 
 #### Micro Apps
 

@@ -99,7 +99,7 @@ MICRO_APP_BUNDLE=1 bun run build-deb
 out/
 ├── main/  preload/  renderer/     # 编译产物
 ├── renderer/microapps/<name>/     # build:all 才有
-├── mac-arm64/  mac-x64/           # 解包的 .app
+├── mac/                          # 解包的 .app（单架构时叫 mac,多架构叫 mac-<arch>）
 └── BadouWorklocal-<version>-mac-<arch>.dmg / .zip
 ```
 
@@ -107,7 +107,22 @@ Windows 出 `.exe`(nsis)、Linux 出 `.deb`。**后端二进制不在 `out/`** �
 
 两个坑:`out/` 和 `out-fast-builds/` 都在 gitignore 里,不会误提交;`electron-vite build` 每次会清空 `out/`,所以上一次打的安装包不会残留 —— 但 `build:all` 拷进去的微应用也会被下一次普通 `bun run build` 一起抹掉。
 
+**构建机连不上 GitHub 时改用 `bun run build:offline`。** `build:all` 有三处联网:aioncore 后端二进制、AionHub 资源、Electron 发行包。GitHub 不通(`curl https://github.com` 直接超时)时这三步会依次失败,构建停在第一步;`build:offline` 是等价命令,只是把联网点指向可达的源:
+
+```bash
+bun run build:offline
+```
+
+它实际带的是 `MICRO_APP_BUNDLE=1 AIONUI_HUB_SKIP=1 ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/`,**微应用那部分一点不少** —— 两个 `VITE_*` 照常注入,子应用照常构建并复制到 `out/renderer/microapps/`。
+
+两个坑:
+
+- `prepareHubResources.js` 是**先清空 `resources/hub/` 再下载**的,跳过下载就等于把它清空。想要离线 hub 兜底,得先从已打好的 app(比如 `/Applications/BadouWorklocal.app/Contents/Resources/hub/`)把文件拷回 `resources/hub/`。
+- aioncore 不用管:`resources/bundled-aioncore/<platform>-<arch>/aioncore` 已存在时会跳过下载(`AIONUI_BACKEND_LOCAL_BUNDLE_DIR` 可以指定一份现成的整包)。
+
 **`app://` 协议从哪来。** 打包后渲染进程跑在 `file://` origin 上,而 Chromium 里 `fetch('file://…')` 必然抛 `TypeError`,asar 内的路径也没有 URL 形态。所以主进程注册了一个 `app://` scheme 把 `out/renderer/microapps/` 映射成可 fetch 的 URL,实现在 [`process/resources/microApps/`](../../packages/desktop/src/process/resources/microApps/index.ts)。dev 下没有这个目录时干净地回 404,不影响 `bun run dev`。
+
+> **特权声明必须排在 `initSentry()` 之后。** `@sentry/electron` 的 `init()` 自己也会调一次 `protocol.registerSchemesAsPrivileged([sentry-ipc])`,而 Electron 是按**这次调用传入的 scheme 列表**重建 `--fetch-schemes` / `--secure-schemes` / `--cors-schemes` 等命令行开关的,后写的覆盖先写的。所以 [`registerMicroAppSchemePrivileges()`](../../packages/desktop/src/process/resources/microApps/scheme.ts) 放在 `src/index.ts` 里紧跟 `initSentry()`,而不是做成 side-effect import —— 排错了 `app://` 会被削成只剩 `standard` / `stream`,渲染进程拉 entry 直接报 `URL scheme "app" is not supported`。**这个坑 dev 看不见**(dev 的 entry 是 localhost),只有装包后才暴露,所以 `scheme.test.ts` 把调用顺序钉成了断言。
 
 > WebUI 形态(`bun run webui:prod`)的静态根也是 `out/renderer`,所以子应用会自动出现在 `/microapps/<name>/index.html`。但 WebUI 生产默认 `VITE_MICRO_APP_ENABLED=false`,启用它需要另外把 asset base 配成 `${location.origin}/microapps` —— 本轮没有做。
 
@@ -156,9 +171,12 @@ bun run build
 
 # 打主应用安装包 + 把子应用嵌进去
 bun run build:all
+
+# 同 build:all,但构建机连不上 GitHub 时用
+bun run build:offline
 ```
 
-注意 `build` 和 `build:all` **都会出安装包**,区别只在微应用是否随包分发;只编译不打包的是 `package`。
+注意 `build` 和 `build:all` **都会出安装包**,区别只在微应用是否随包分发;只编译不打包的是 `package`。`build:offline` 的差别只在联网的三步,微应用部分与 `build:all` 完全一致。
 
 ---
 

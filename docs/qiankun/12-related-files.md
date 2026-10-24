@@ -45,21 +45,23 @@
 
 打包后子应用落在 asar 里,渲染进程在 `file://` origin 上 fetch 不到,主进程用 `app://` 协议把 `out/renderer/microapps/` 映射成可 fetch 的 URL。详见 [06-build-and-deploy.md](06-build-and-deploy.md)。
 
-| 路径                                                                                                                                                         | 作用                                                                                  |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
-| [packages/desktop/src/process/resources/microApps/scheme.ts](../../packages/desktop/src/process/resources/microApps/scheme.ts)                               | 副作用模块:`protocol.registerSchemesAsPrivileged('app')`,必须在 `app.ready` 前 import |
-| [packages/desktop/src/process/resources/microApps/assets.ts](../../packages/desktop/src/process/resources/microApps/assets.ts)                               | 纯函数:MIME 映射 + 路径解析(拒绝 `..` 穿越 / 越界 / 非法百分号编码)                   |
-| [packages/desktop/src/process/resources/microApps/index.ts](../../packages/desktop/src/process/resources/microApps/index.ts)                                 | `registerMicroAppAssetProtocol()`:`protocol.handle('app')` 处理器,统一带 CORS 头      |
-| [packages/desktop/src/process/resources/microApps/**tests**/assets.test.ts](../../packages/desktop/src/process/resources/microApps/__tests__/assets.test.ts) | 上面两个纯函数的单元测试                                                              |
+| 路径                                                                                                                                                         | 作用                                                                                                                                                              |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [packages/desktop/src/process/resources/microApps/scheme.ts](../../packages/desktop/src/process/resources/microApps/scheme.ts)                               | 导出 `registerMicroAppSchemePrivileges()`:声明 `app` 的特权 scheme(standard / secure / supportFetchAPI / corsEnabled / stream),**必须在 `initSentry()` 之后调用** |
+| [packages/desktop/src/process/resources/microApps/assets.ts](../../packages/desktop/src/process/resources/microApps/assets.ts)                               | 纯函数:MIME 映射 + 路径解析(拒绝 `..` 穿越 / 越界 / 非法百分号编码)                                                                                               |
+| [packages/desktop/src/process/resources/microApps/index.ts](../../packages/desktop/src/process/resources/microApps/index.ts)                                 | `registerMicroAppAssetProtocol()`:`protocol.handle('app')` 处理器,统一带 CORS 头                                                                                  |
+| [packages/desktop/src/process/resources/microApps/**tests**/assets.test.ts](../../packages/desktop/src/process/resources/microApps/__tests__/assets.test.ts) | 上面两个纯函数的单元测试                                                                                                                                          |
+| [packages/desktop/src/process/resources/microApps/**tests**/scheme.test.ts](../../packages/desktop/src/process/resources/microApps/__tests__/scheme.test.ts) | 特权声明的单元测试;并把「注册必须排在 `initSentry()` 之后」钉成断言(排错了只有装包才暴露)                                                                         |
 
 ## 编排脚本
 
-| 路径                                                                                                                 | 作用                                                                                             |
-| -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| [scripts/dev-all.mjs](../../scripts/dev-all.mjs)                                                                     | 根目录 `bun run dev:all` 的入口:扫描子应用、端口预检、并发拉起、统一收尾                         |
-| [scripts/build-micro-apps.mjs](../../scripts/build-micro-apps.mjs)                                                   | 构建全部子应用并复制到 `out/renderer/microapps/<name>/`;导出 `discoverMicroApps` 给 dev 脚本复用 |
-| [scripts/build-with-builder.js](../../scripts/build-with-builder.js)                                                 | 打包编排;`MICRO_APP_BUNDLE=1`(`bun run build:all`)时注入 `app://microapps` 基址并调用上一个脚本  |
-| [packages/shared-scripts/src/resolve-auto-arch-args.js](../../packages/shared-scripts/src/resolve-auto-arch-args.js) | `auto` 模式下按构建机能力决定架构(Intel Mac 只出 x64,Apple Silicon 出 arm64 + x64)               |
+| 路径                                                                                                                             | 作用                                                                                             |
+| -------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| [scripts/dev-all.mjs](../../scripts/dev-all.mjs)                                                                                 | 根目录 `bun run dev:all` 的入口:扫描子应用、端口预检、并发拉起、统一收尾                         |
+| [scripts/build-micro-apps.mjs](../../scripts/build-micro-apps.mjs)                                                               | 构建全部子应用并复制到 `out/renderer/microapps/<name>/`;导出 `discoverMicroApps` 给 dev 脚本复用 |
+| [scripts/build-with-builder.js](../../scripts/build-with-builder.js)                                                             | 打包编排;`MICRO_APP_BUNDLE=1`(`bun run build:all`)时注入 `app://microapps` 基址并调用上一个脚本  |
+| [packages/shared-scripts/src/resolve-auto-arch-args.js](../../packages/shared-scripts/src/resolve-auto-arch-args.js)             | `auto` 模式下按构建机能力决定架构(Intel Mac 只出 x64,Apple Silicon 出 arm64 + x64)               |
+| [packages/shared-scripts/src/prune-stale-aioncore-bundles.js](../../packages/shared-scripts/src/prune-stale-aioncore-bundles.js) | 打包前删掉不属于本次构建目标的后端架构目录(`extraResources` 整目录复制,残骸会进每个安装包)       |
 
 ## 设计 spec
 
