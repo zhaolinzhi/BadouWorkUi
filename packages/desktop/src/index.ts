@@ -7,13 +7,15 @@
 // configureChromium sets app name (dev isolation) and Chromium flags — must run before
 // ANY module that calls app.getPath('userData'), because Electron caches the path on first call.
 import './process/utils/configureChromium';
-// Privileged-scheme declaration for app:// — must run before app.ready, so this stays a
-// bare side-effect import. See process/resources/microApps/scheme.ts.
-import './process/resources/microApps/scheme';
 import { installGpuCrashHandler } from './process/utils/gpuRecovery';
 import { captureBackendStartupFailure, initSentry, scheduleStartupLogReport, setSentryDeviceId } from './sentry';
 
 initSentry();
+
+// Privileged-scheme declaration for app:// — must run before app.ready AND after
+// initSentry(), which registers sentry-ipc and would otherwise overwrite the fetch
+// privilege. See process/resources/microApps/scheme.ts.
+registerMicroAppSchemePrivileges();
 
 import './process/utils/configureConsoleLog';
 import { app, BrowserWindow, ipcMain, nativeImage, powerMonitor } from 'electron';
@@ -42,7 +44,7 @@ import { startWebHost } from '@aionui/web-host';
 import { initializeZoomFactor, setupZoomForWindow } from './process/utils/zoom';
 import { hydrateWindowsProcessPath } from './process/startup/windowsPath';
 import { registerWindowsAppUserModelId } from './process/startup/windowsAppUserModelId';
-import { registerMicroAppAssetProtocol } from '@process/resources/microApps';
+import { registerMicroAppAssetProtocol, registerMicroAppSchemePrivileges } from '@process/resources/microApps';
 import {
   MIN_WINDOW_WIDTH,
   MIN_WINDOW_HEIGHT,

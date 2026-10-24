@@ -14,10 +14,9 @@
  * - **不开本地 http 端口**:能work,但等于给整个应用开一个对外监听端口,而我们要的只是
  *   读几个打包进去的静态文件。`app://` 没有这个代价。
  *
- * 目录根用 `app.getAppPath()` 而不是 `__dirname`:主 bundle 一旦被 code-split 进
- * `out/main/chunks/`,`__dirname` 就会偏一级(同款坑见 `initStorage.ts` 的
- * `getBuiltinMcpBaseDir`)。`getAppPath()` 打包后是 `…/app.asar`、dev 下是仓库根,
- * 两种情况拼出来的都是对的 `out/renderer/microapps`。
+ * 目录根由 `resolveMicroAppAssetRoot` 从 `app.getAppPath()` 推出来,而不是直接 join:
+ * `getAppPath()` 未打包时是入口文件所在目录(`out/main`),直接拼会多出一级。详见该函数的
+ * 注释。
  *
  * Registers the bundled micro app directory as `app://microapps/<name>/...`.
  *
@@ -28,24 +27,19 @@
  * - **A local http port would work**, but it opens a listening port for the whole app just to
  *   read a few static files that ship inside the package. `app://` costs nothing extra.
  *
- * The directory root comes from `app.getAppPath()` rather than `__dirname`: once the main
- * bundle is code-split into `out/main/chunks/`, `__dirname` lands one level off (same trap
- * as `getBuiltinMcpBaseDir` in `initStorage.ts`). `getAppPath()` is `…/app.asar` when
- * packaged and the repo root in dev, and both produce the correct `out/renderer/microapps`.
+ * The directory root is derived from `app.getAppPath()` by `resolveMicroAppAssetRoot` rather
+ * than joined directly: unpackaged, `getAppPath()` is the entry file's directory (`out/main`),
+ * so a plain join adds a spurious level. See that function's comment for the full story.
  */
 
 import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
-import path from 'node:path';
 import { app, protocol } from 'electron';
-import { getContentType, MICRO_APP_HOST, resolveMicroAppAssetPath } from './assets';
+import { getContentType, MICRO_APP_HOST, resolveMicroAppAssetPath, resolveMicroAppAssetRoot } from './assets';
 import { MICRO_APP_SCHEME } from './scheme';
 
-/** `out/renderer/microapps` —— 子应用在产物里的落位,构建脚本负责写。/ Where builds put micro apps; the build script owns this. */
-export const MICRO_APP_ASSET_SUBDIR = path.join('out', 'renderer', 'microapps');
-
 /** 子应用资源根目录。/ Root directory of the bundled micro app assets. */
-export const getMicroAppAssetRoot = (): string => path.join(app.getAppPath(), MICRO_APP_ASSET_SUBDIR);
+export const getMicroAppAssetRoot = (): string => resolveMicroAppAssetRoot(app.getAppPath(), existsSync);
 
 /** 响应头。渲染进程 origin 是 file://,跨源 fetch 必须显式放行。/ The renderer is on file://, so cross-origin fetches need this explicitly. */
 const BASE_HEADERS: Record<string, string> = {
@@ -113,5 +107,5 @@ export const registerMicroAppAssetProtocol = (): void => {
   }
 };
 
-export { MICRO_APP_SCHEME } from './scheme';
-export { MICRO_APP_HOST, getContentType, resolveMicroAppAssetPath } from './assets';
+export { MICRO_APP_SCHEME, registerMicroAppSchemePrivileges } from './scheme';
+export { MICRO_APP_HOST, MICRO_APP_ASSET_SUBDIR, getContentType, resolveMicroAppAssetPath } from './assets';

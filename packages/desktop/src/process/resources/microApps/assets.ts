@@ -29,6 +29,50 @@ import path from 'node:path';
 /** entry 在 `app://` 下的 host 段。/ The `app://` host segment used by micro app entries. */
 export const MICRO_APP_HOST = 'microapps';
 
+/** 子应用资源相对 app 根的落位,构建脚本负责写。/ Where builds put micro apps, relative to the app root. */
+export const MICRO_APP_ASSET_SUBDIR = path.join('out', 'renderer', 'microapps');
+
+/**
+ * 从 `app.getAppPath()` 推出子应用资源根。
+ *
+ * 为什么不能直接 `path.join(app.getAppPath(), MICRO_APP_ASSET_SUBDIR)`:`getAppPath()` 在两种
+ * 形态下指向完全不同的东西 —— 打包后是 `…/app.asar`(子目录就在它下面),而**未打包时是入口
+ * 文件所在目录**(`out/main`),直接拼会得到 `out/main/out/renderer/microapps`,恒不存在。
+ * 症状很隐蔽:协议注册成功、dev 下一切正常,只有「`bun run package` 之后直接起 Electron」
+ * 这条验证路径会莫名其妙地全部 404。
+ *
+ * 这里用候选探测而不是 `app.isPackaged` 分支:前者对「main bundle 被 code-split 进
+ * `out/main/chunks/`」这类层级变化免疫(同款坑见 `initStorage.ts` 的
+ * `getBuiltinMcpBaseDir`),也不需要在纯函数里把 Electron 的 `isPackaged` 传进来。
+ *
+ * Resolves the micro app asset root from `app.getAppPath()`.
+ *
+ * A plain `path.join(app.getAppPath(), MICRO_APP_ASSET_SUBDIR)` is wrong because
+ * `getAppPath()` points somewhere different per shape: `…/app.asar` when packaged (the assets sit
+ * directly beneath it) but the **entry file's directory** (`out/main`) when not, which would
+ * yield `out/main/out/renderer/microapps` — a path that never exists. The failure is easy to
+ * miss: the protocol registers fine and everything works in dev, so only the "run Electron
+ * straight after `bun run package`" verification path mysteriously 404s.
+ *
+ * Candidate probing beats branching on `app.isPackaged` here: it survives level shifts such as the
+ * main bundle being code-split into `out/main/chunks/` (same trap as `getBuiltinMcpBaseDir` in
+ * `initStorage.ts`), and it keeps Electron's `isPackaged` out of a pure function.
+ *
+ * @param appPath Value of `app.getAppPath()`.
+ * @param exists Existence probe, injected so this stays testable without touching the disk.
+ * @returns First candidate that exists, or the first candidate when none do (so the handler can
+ *   answer 404 rather than throw on a build that has never produced assets).
+ */
+export const resolveMicroAppAssetRoot = (appPath: string, exists: (candidate: string) => boolean): string => {
+  const candidates = [
+    path.join(appPath, MICRO_APP_ASSET_SUBDIR),
+    // 未打包时 appPath 是 out/main,回退两级才是仓库根。/ Unpackaged: out/main, so the project
+    // root is two levels up.
+    path.resolve(appPath, '..', '..', MICRO_APP_ASSET_SUBDIR),
+  ];
+  return candidates.find(exists) ?? candidates[0];
+};
+
 /**
  * 扩展名 → Content-Type。
  *
