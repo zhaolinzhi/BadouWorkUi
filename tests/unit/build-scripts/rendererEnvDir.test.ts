@@ -38,9 +38,10 @@ describe('渲染进程的 env 解析', () => {
     expect(dev.VITE_MICRO_APP_ASSET_BASE).toBe('');
   });
 
-  it('从该 envDir 能读到 .env.production 的微应用变量(默认关)', () => {
+  it('从该 envDir 能读到 .env.production 的微应用变量', () => {
     const prod = loadEnv('production', DESKTOP_DIR, 'VITE_');
-    expect(prod.VITE_MICRO_APP_ENABLED).toBe('false');
+    expect(prod.VITE_MICRO_APP_ENABLED).toBe('true');
+    expect(prod.VITE_MICRO_APP_ASSET_BASE).toBe('');
   });
 
   it('仓库根和 renderer root 下都没有 .env —— 这正是必须显式设 envDir 的原因', () => {
@@ -49,14 +50,15 @@ describe('渲染进程的 env 解析', () => {
   });
 
   it('构建时的 process.env 盖过 .env 文件 —— build:all 靠这条注入 app://microapps', () => {
-    // .env.production 里 VITE_MICRO_APP_ENABLED=false,而打包脚本(build-with-builder.js)
-    // 在构建前把 VITE_MICRO_APP_ENABLED=true / VITE_MICRO_APP_ASSET_BASE=app://microapps
-    // 写进 process.env。Vite 里 process.env 优先于 .env 文件,注入才盖得住占位值。
-    process.env.VITE_MICRO_APP_ENABLED = 'true';
+    // .env.production 里 VITE_MICRO_APP_ASSET_BASE 是空的、ENABLED 是 true,而打包脚本
+    // (build-with-builder.js)在构建前把 ASSET_BASE 写成 app://microapps。Vite 里
+    // process.env 优先于 .env 文件 —— 注入才盖得住文件里的值。
+    // 这里两个方向都验:ENABLED 从 true 盖成 false,ASSET_BASE 从空盖成 app://microapps。
+    process.env.VITE_MICRO_APP_ENABLED = 'false';
     process.env.VITE_MICRO_APP_ASSET_BASE = 'app://microapps';
     try {
       const env = loadEnv('production', DESKTOP_DIR, 'VITE_');
-      expect(env.VITE_MICRO_APP_ENABLED).toBe('true');
+      expect(env.VITE_MICRO_APP_ENABLED).toBe('false');
       expect(env.VITE_MICRO_APP_ASSET_BASE).toBe('app://microapps');
     } finally {
       delete process.env.VITE_MICRO_APP_ENABLED;
