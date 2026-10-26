@@ -192,9 +192,17 @@ AIONUI_HUB_SKIP=1 ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ bun ru
 - `ELECTRON_MIRROR` points electron-builder at a mirror for the Electron zip and its
   `SHASUMS256.txt`. The checksum file is fetched on every build even when the zip is
   already cached, so this one is required even with a warm cache.
-- aioncore needs no flag: `prepareAioncore` skips the download when
-  `resources/bundled-aioncore/<platform>-<arch>/aioncore` already exists, and
-  `AIONUI_BACKEND_LOCAL_BUNDLE_DIR` points it at a bundle to copy in wholesale.
+- aioncore needs no flag. `prepareAioncore` reuses a **complete** bundle that already
+  exists on this machine instead of downloading: the repo cache at
+  `resources/bundled-aioncore/<platform>-<arch>/`, or the copy shipped inside an
+  installed app (`/Applications/BadouWorklocal.app/Contents/Resources/bundled-aioncore/…`
+  on macOS, `…\resources\bundled-aioncore\…` on Windows). A bundle is only used when its
+  `manifest.json` records the **same version** the build asks for — shipping a stale
+  backend is worse than a failed build. `AIONUI_BACKEND_LOCAL_BUNDLE_DIR` points it at a
+  bundle directory explicitly, bypassing the version check.
+
+  Reusing a bundle also skips `prepareManagedResources`, which otherwise wipes
+  `managed-resources/` and re-downloads ~100 MB of Node runtime on every single build.
 
 #### Where the Output Lands
 
@@ -238,6 +246,8 @@ Only one other output directory exists: `out-fast-builds/`, written exclusively 
 #### Repackaging Without Rebuilding
 
 If `out/main`, `out/preload`, and `out/renderer` are already populated — for example a full `bun run build:all` just finished but electron-builder failed, or you only need to change packaging options — call electron-builder directly instead of re-running the whole script. This skips `prepareAioncore`, which otherwise re-executes the backend binary to re-download ~100 MB of managed resources every single time (it is not cached).
+
+A `prepareAioncore` run that finds a complete bundle on disk — the repo cache or an installed app's copy — reuses it and skips that download entirely, so the "re-download every time" cost only applies to a bundle that is missing or incomplete.
 
 ```bash
 # macOS, host architecture only
