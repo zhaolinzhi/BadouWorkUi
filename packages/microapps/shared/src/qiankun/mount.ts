@@ -44,6 +44,48 @@
  * shell 的 `index.html` 里就有 `<div id="root">`。就算把坑二修好,只要
  * 判据再出一次偏差,`#root` 兜底就会再次吃掉整个 shell。所以 standalone
  * 分支改用子应用私有的 `#<name>-root`,与 shell 永不同名。
+ *
+ * 坑四:打包后子应用彻底没有样式(dev 却是好的)
+ * ==========================================
+ * 这条只在 **打包产物**里出现,dev 一切正常,所以极难靠肉眼对比定位。
+ *
+ * 两条链路的样式来源完全不同:
+ *
+ * - dev:`index.html` 里没有 `<link rel="stylesheet">`,CSS 由 Vite 在
+ *   运行时用 JS 注入**真实的 `document.head`**。它在 wrapper 之外,
+ *   React 怎么清空容器都碰不到它。
+ * - 打包:产物 `index.html` 里有 `<link rel="stylesheet" href="...css">`。
+ *   qiankun 走 `import-html-entry`,`processTpl` 把它换成占位注释,
+ *   `getEmbedHTML` 再 `fetch` 回来内联成 `<style>…</style>`,塞进模板的
+ *   `<head>`;qiankun 的 `getDefaultTplWrapper` 把 `<head>` 改名成
+ *   `<qiankun-head>`,整个模板包进 wrapper 元素。于是 **CSS 被放进了
+ *   React 的挂载容器里面**。
+ *
+ * 而 React 的 `createRoot(container).render()` 在首次提交时会清空容器:
+ * 普通元素容器走 `root.textContent = ''`,把里面已有的子节点**全部**删掉
+ * (react-dom 的 `clearContainerSparingly` 只对 HTML/HEAD/BODY 容器保留
+ * `<style>` / `<script>` / `<link rel=stylesheet>`,对普通 div 不适用)。
+ * qiankun 刚放进去的 `<qiankun-head><style>`(以及模板自带的
+ * `<div id="xxx-root">`)就这样被抹掉,子应用从此**一条样式都没有**:
+ * 侧栏没有宽度、按钮不居中、高度撑不满。
+ *
+ * 实测(MutationObserver 抓挂载瞬间的 DOM 变更):
+ *
+ * ```
+ * ADDED   div#__qiankun_microapp_wrapper_for_notes__
+ *    +contains qiankun-head
+ *    +contains style{41959 bytes}   ← import-html-entry 内联的 CSS
+ * REMOVED qiankun-head                ← React createRoot 清空容器
+ * REMOVED div#notes-root
+ * ADDED   div.flex.h-full.min-h-0     ← 只剩 React 根节点,CSS 全丢
+ * ```
+ *
+ * 修法:在 `createRoot` **之前**把容器里的样式节点搬到真实的
+ * `document.head`,让 DOM 结构回到和 dev 一致(wrapper 里只剩 React 根
+ * 节点,样式在 head)。搬运用 `Element.prototype.appendChild` 绕开
+ * qiankun 的 dynamicAppend patcher —— 它会覆盖
+ * `HTMLHeadElement.prototype.appendChild`,把样式重新塞回 wrapper 内的
+ * `<qiankun-head>`,那样照样会被 React 清掉(见下方注释)。
  */
 import React from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -76,6 +118,43 @@ export function resolveMountContainer(container: MountContainer | undefined): HT
   if (!container) return null;
   if (typeof container === 'string') return document.querySelector<HTMLElement>(container);
   return container;
+}
+
+/** 容器里可能出现的样式节点:`import-html-entry` 内联出来的 `<style>`,或原样保留的 `<link rel="stylesheet">`。 */
+const STYLE_NODE_SELECTOR = 'style, link[rel="stylesheet"]';
+
+/**
+ * 把容器里的样式节点搬到真实的 `document.head`。
+ *
+ * 刻意用 `Element.prototype.appendChild` 而不是 `document.head.appendChild`:
+ * qiankun 的 dynamicAppend patcher(`sandbox/patchers/dynamicAppend/common.js`)
+ * 覆盖了 `HTMLHeadElement.prototype.appendChild`,凡是判定为"微应用自己追加"的
+ * 样式节点,都会被它重新塞回 wrapper 内的 `<qiankun-head>` —— 而那正是
+ * React 清空容器时要删掉的地方,搬了个寂寞。`Element.prototype.appendChild`
+ * 没有被 patch,是唯一能真正落到 `document.head` 的路径。
+ *
+ * 相对路径不受影响:内联 `<style>` 里的 `url()` 始终相对于**文档 base URL**
+ * 解析,和它在 DOM 里的位置无关;`<link>` 的 `href` 同样相对于文档解析。
+ */
+function hoistStyleNodes(container: HTMLElement): HTMLElement[] {
+  const moved: HTMLElement[] = [];
+  // NodeList 是静态快照,搬运过程中 DOM 变化不会导致漏项。
+  const nodes = Array.from(container.querySelectorAll<HTMLElement>(STYLE_NODE_SELECTOR));
+  for (const node of nodes) {
+    if (node.parentElement === document.head) continue;
+    Element.prototype.appendChild.call(document.head, node);
+    moved.push(node);
+  }
+  return moved;
+}
+
+/** 移除搬运过的样式节点(重新挂载时替换掉上一份,避免在 head 里越堆越多)。 */
+function removeStyleNodes(nodes: HTMLElement[]): void {
+  for (const node of nodes) {
+    const parent = node.parentElement;
+    if (!parent) continue;
+    Element.prototype.removeChild.call(parent, node);
+  }
 }
 
 export interface MicroAppRendererOptions<TContext> {
@@ -120,6 +199,8 @@ export function createMicroAppRenderer<TContext = undefined>(
   options: MicroAppRendererOptions<TContext>
 ): MicroAppRenderer {
   let rootInstance: Root | null = null;
+  /** 当前生效的、已从容器搬到 `document.head` 的样式节点。 */
+  let hoistedStyleNodes: HTMLElement[] = [];
 
   return {
     render(props: RenderProps): void {
@@ -135,6 +216,12 @@ export function createMicroAppRenderer<TContext = undefined>(
         rootInstance.unmount();
         rootInstance = null;
       }
+
+      // 顺序很关键:必须赶在 `createRoot` 之前。
+      // React 首次 `render` 会清空容器已有子节点,那时再搬就晚了 ——
+      // qiankun 内联进来的 `<style>` 已经被删掉了。
+      removeStyleNodes(hoistedStyleNodes);
+      hoistedStyleNodes = hoistStyleNodes(container);
 
       const context = options.createContext ? options.createContext(props) : (undefined as TContext);
       options.onContextCreated?.(context, props);
@@ -153,6 +240,10 @@ export function createMicroAppRenderer<TContext = undefined>(
       // 这里顺手清空以免下次 mount 看到旧 DOM。
       const container = resolveMountContainer(props.container);
       if (container) container.innerHTML = '';
+      // 样式也一并带走:子应用已经不在了,它的全局类名(UnoCSS 工具类之类)
+      // 不该继续影响 shell 的其它页面。重新挂载时会重新搬进来。
+      removeStyleNodes(hoistedStyleNodes);
+      hoistedStyleNodes = [];
     },
   };
 }

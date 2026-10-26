@@ -43,6 +43,21 @@ export default defineConfig(({ command }) => ({
 cd packages/microapps/notes && bun run build
 ```
 
+**打包后 CSS 的落点和 dev 完全不同** —— 这是「打包态没样式」这类问题的根源:
+
+| 形态 | CSS 从哪来                                       | 在 DOM 里的位置                                         |
+| ---- | ------------------------------------------------ | ------------------------------------------------------- |
+| dev  | Vite 运行时用 JS 注入                            | 真实 `document.head`,在 qiankun wrapper **之外**        |
+| 打包 | `import-html-entry` 把 `<link>` 内联成 `<style>` | wrapper 内的 `<qiankun-head>`,**在 React 挂载容器里面** |
+
+React 的 `createRoot(container).render()` 在首次提交时会清空容器(普通 div 容器走
+`textContent = ''`,`<style>` 也不豁免),打包态下 `<qiankun-head>` 连同里面的 `<style>`
+会被一起删掉 —— 子应用从此一条样式都没有(侧栏塌陷、按钮不居中、高度撑不满),而 dev
+因为 CSS 在容器之外,完全不受影响。
+
+`packages/microapps/shared/src/qiankun/mount.ts` 在 `createRoot` **之前**把容器里的样式节点
+搬到真实 `document.head`,让两种形态的 DOM 结构保持一致。详见 [09-faq.md](09-faq.md)。
+
 ### 4.2 两种分发方式
 
 子应用和主应用有两种配合方式,**按版本二选一**,不做运行时回退:
