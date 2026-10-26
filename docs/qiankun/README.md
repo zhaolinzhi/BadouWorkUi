@@ -78,7 +78,7 @@ AionUi 采用 **qiankun 微前端** 架构。主应用(Electron + WebUI 双形�
 - `name` 在所有出现处必须一致(qiankun 注册名 == `main.ts` 里 `window[name]` 生命周期注册名 == 子应用内部状态 key)
 - dev port 在 `getDevEntryPort()` 和子应用 `vite.config.ts` 的 `server.port` 两处必须一致,且子应用要开 `strictPort`
 - 子应用独立运行(`window.__POWERED_BY_QIANKUN__` 为 false)时,使用 mock props 直接 `render()`
-- 主应用未开启微应用时(`VITE_MICRO_APP_ENABLED !== 'true'`),`startMicroApps` 直接 return,qiankun 不会被加载
+- 主应用未开启微应用时(`VITE_MICRO_APP_ENABLED` 转小写后不等于 `'true'`),`startMicroApps` 直接 return,qiankun 不会被加载
 
 ## 常用命令
 

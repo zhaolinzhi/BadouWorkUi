@@ -19,6 +19,8 @@
 
 > [08-checklist.md](08-checklist.md)「新增子应用检查清单」已经列了 9 个一致点,按那个走最稳。
 
+> ⚠️ **`.env.development` / `.env.production` 只有在渲染进程的 `envDir` 指向 `packages/desktop/` 时才生效**。electron-vite 默认把 `envDir` 设成仓库根,那样这两个文件永远读不到(历史上就是这么翻车的)。现在 `packages/desktop/electron.vite.config.ts` 里已显式设 `envDir: resolve(__dirname)`,改这两处时不必再操心;回归测试见 [tests/unit/build-scripts/rendererEnvDir.test.ts](../../tests/unit/build-scripts/rendererEnvDir.test.ts)。
+
 ## 10.2 修改 dev 端口
 
 | 文件                                                                                                                               | 改什么                       |
@@ -38,7 +40,11 @@
 | -------------------------------------------------------------------------- | ----------------------------- |
 | [packages/desktop/.env.production](../../packages/desktop/.env.production) | `VITE_<NAME>_APP_ENTRY=新URL` |
 
+> `VITE_<NAME>_APP_ENTRY` 是**单应用覆盖** —— 只影响这一个子应用,其余仍走 `VITE_MICRO_APP_ASSET_BASE`。想让整批换分发地址,改 `VITE_MICRO_APP_ASSET_BASE`。解析链见 [02-config.md#232-为什么这些变量可以留空](02-config.md#232-为什么这些变量可以留空)。
+
 > 改完后必须 `bun run build` 重新构建。`import.meta.env.VITE_*` 是构建时常量,改 env 文件后浏览器读到的还是旧值。
+>
+> 变量名写错 / 拼错的话**不会有任何报错** —— Vite 只是把它当成一个无关的 `VITE_*` 变量注入,主应用读不到就回退到 dev port 或 asset base。改完用这个确认变量真的进去了:`bun run build` 后在 `out/renderer/assets/index-*.js` 里 grep 变量名,应该能看到 `"VITE_<NAME>_APP_ENTRY": "..."`。
 
 ## 10.4 临时屏蔽某个子应用(无需发版)
 

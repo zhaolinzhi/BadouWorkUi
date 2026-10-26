@@ -6,16 +6,29 @@
 
 ## 主应用侧(shell)
 
-| 路径                                                                                                                                                               | 作用                                                          |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------- |
-| [packages/desktop/src/renderer/micro-app/config/micro-apps.ts](../../packages/desktop/src/renderer/micro-app/config/micro-apps.ts)                                 | 注册表 + 端口表 + entry 解析(含 asset base 兜底层)            |
-| [packages/desktop/src/renderer/micro-app/services/micro-apps.ts](../../packages/desktop/src/renderer/micro-app/services/micro-apps.ts)                             | `startMicroApps` + `buildMicroAppProps` + `isMicroAppEnabled` |
-| [packages/desktop/src/renderer/micro-app/MicroAppBootstrap.tsx](../../packages/desktop/src/renderer/micro-app/MicroAppBootstrap.tsx)                               | 启动 + 主题/语言广播                                          |
-| [packages/desktop/src/renderer/micro-app/views/MicroAppPlaceholder.tsx](../../packages/desktop/src/renderer/micro-app/views/MicroAppPlaceholder.tsx)               | 容器 + ErrorBoundary                                          |
-| [packages/desktop/src/renderer/micro-app/components/MicroAppHost.tsx](../../packages/desktop/src/renderer/micro-app/components/MicroAppHost.tsx)                   | `loadMicroApp` 真正驱动                                       |
-| [packages/desktop/src/renderer/micro-app/types.ts](../../packages/desktop/src/renderer/micro-app/types.ts)                                                         | `MicroAppProps` / `MicroAppConfig`                            |
-| [packages/desktop/src/renderer/micro-app/**tests**/micro-apps-config.test.ts](../../packages/desktop/src/renderer/micro-app/__tests__/micro-apps-config.test.ts)   | 注册表配置测试                                                |
-| [packages/desktop/src/renderer/micro-app/**tests**/micro-apps-service.test.ts](../../packages/desktop/src/renderer/micro-app/__tests__/micro-apps-service.test.ts) | `startMicroApps` / `buildMicroAppProps` 单元测试              |
+| 路径                                                                                                                                                               | 作用                                                                                  |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
+| [packages/desktop/src/renderer/micro-app/config/micro-apps.ts](../../packages/desktop/src/renderer/micro-app/config/micro-apps.ts)                                 | 注册表 + 端口表 + entry 解析(含 asset base 兜底层)                                    |
+| [packages/desktop/src/renderer/micro-app/services/micro-apps.ts](../../packages/desktop/src/renderer/micro-app/services/micro-apps.ts)                             | `startMicroApps` + `buildMicroAppProps` + `isMicroAppEnabled`(只读 `import.meta.env`) |
+| [packages/desktop/src/renderer/micro-app/MicroAppBootstrap.tsx](../../packages/desktop/src/renderer/micro-app/MicroAppBootstrap.tsx)                               | 启动 + 主题/语言广播                                                                  |
+| [packages/desktop/src/renderer/micro-app/views/MicroAppPlaceholder.tsx](../../packages/desktop/src/renderer/micro-app/views/MicroAppPlaceholder.tsx)               | 容器 + ErrorBoundary                                                                  |
+| [packages/desktop/src/renderer/micro-app/components/MicroAppHost.tsx](../../packages/desktop/src/renderer/micro-app/components/MicroAppHost.tsx)                   | `loadMicroApp` 真正驱动                                                               |
+| [packages/desktop/src/renderer/micro-app/types.ts](../../packages/desktop/src/renderer/micro-app/types.ts)                                                         | `MicroAppProps` / `MicroAppConfig`                                                    |
+| [packages/desktop/src/renderer/micro-app/**tests**/micro-apps-config.test.ts](../../packages/desktop/src/renderer/micro-app/__tests__/micro-apps-config.test.ts)   | 注册表配置测试                                                                        |
+| [packages/desktop/src/renderer/micro-app/**tests**/micro-apps-service.test.ts](../../packages/desktop/src/renderer/micro-app/__tests__/micro-apps-service.test.ts) | `startMicroApps` / `buildMicroAppProps` 单元测试                                      |
+
+## 环境变量与构建配置
+
+渲染进程的 `VITE_*` 变量从哪来、什么时候被烘进 bundle,全在这几个文件里。
+
+| 路径                                                                                                     | 作用                                                                                          |
+| -------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| [packages/desktop/.env.development](../../packages/desktop/.env.development)                             | dev 模式的 env 默认值(`VITE_MICRO_APP_ENABLED=true`);**只有 `envDir` 指向本目录时才生效**     |
+| [packages/desktop/.env.production](../../packages/desktop/.env.production)                               | 生产模式的 env 默认值(`VITE_MICRO_APP_ENABLED=false`);CI 注入的 `process.env` 优先级更高      |
+| [packages/desktop/electron.vite.config.ts](../../packages/desktop/electron.vite.config.ts)               | 主进程 / 渲染进程构建配置;renderer 段的 `envDir: resolve(__dirname)` 决定 Vite 去哪找 `.env*` |
+| [tests/unit/build-scripts/rendererEnvDir.test.ts](../../tests/unit/build-scripts/rendererEnvDir.test.ts) | 回归测试:钉死 `envDir` 指向 `packages/desktop/`,以及 `process.env` 优先于 `.env` 文件         |
+
+> **`envDir` 为什么必须显式设**:electron-vite 默认把渲染进程的 `envDir` 设成 `options.root || process.cwd()` —— `bun run dev` / `bun run build` 的 CLI 没带 `[root]` 位置参数,于是它落在仓库根;Vite 自己的 `root` 又是 `packages/desktop/src/renderer`。两个目录都没有 `.env`,`packages/desktop/.env.*` 夹在中间永远读不到。详见 [02-config.md#231-vite_micro_app_enabled-在哪里设置](02-config.md#231-vite_micro_app_enabled-在哪里设置)。
 
 ## 子应用侧
 
@@ -34,12 +47,13 @@
 
 ## 共享包(不是子应用)
 
-| 路径                                                                                                       | 作用                                                                      |
-| ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| [packages/microapps/shared/package.json](../../packages/microapps/shared/package.json)                     | `@aionui/microapp-shared`,**无 `dev` script**,`dev:all` 会跳过            |
-| [packages/microapps/shared/src/qiankun/ipc.ts](../../packages/microapps/shared/src/qiankun/ipc.ts)         | `createIpcResolver<TBridge>` 工厂:间接 eval 拿真实 window 的 ipcBridge    |
-| [packages/microapps/shared/src/qiankun/adapter.ts](../../packages/microapps/shared/src/qiankun/adapter.ts) | 把 `token / userInfo / baseApi` 落到 `${systemCode}_` 前缀的 localStorage |
-| [packages/microapps/shared/src/qiankun/auth.ts](../../packages/microapps/shared/src/qiankun/auth.ts)       | `emitAuthExpired()`,401 统一上报,子应用不自己跳登录页                     |
+| 路径                                                                                                       | 作用                                                                                          |
+| ---------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| [packages/microapps/shared/package.json](../../packages/microapps/shared/package.json)                     | `@aionui/microapp-shared`,**无 `dev` script**,`dev:all` 会跳过                                |
+| [packages/microapps/shared/src/qiankun/ipc.ts](../../packages/microapps/shared/src/qiankun/ipc.ts)         | `createIpcResolver<TBridge>` 工厂:间接 eval 拿真实 window 的 ipcBridge                        |
+| [packages/microapps/shared/src/qiankun/adapter.ts](../../packages/microapps/shared/src/qiankun/adapter.ts) | 把 `token / userInfo / baseApi` 落到 `${systemCode}_` 前缀的 localStorage                     |
+| [packages/microapps/shared/src/qiankun/auth.ts](../../packages/microapps/shared/src/qiankun/auth.ts)       | `emitAuthExpired()`,401 统一上报,子应用不自己跳登录页                                         |
+| [packages/microapps/shared/src/qiankun/mount.ts](../../packages/microapps/shared/src/qiankun/mount.ts)     | `createMicroAppRenderer()`:qiankun 生命周期 → React root 的挂载/卸载;含"打包态样式丢失"的修复 |
 
 ## 微应用资产服务(主进程)
 

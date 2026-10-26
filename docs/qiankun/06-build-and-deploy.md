@@ -76,6 +76,8 @@ bun run build:all
 
 它等于 `bun run build` 再加一步:构建全部子应用并复制到 `out/renderer/microapps/<name>/`,同时给渲染进程注入 `VITE_MICRO_APP_ENABLED=true` 和 `VITE_MICRO_APP_ASSET_BASE=app://microapps`。
 
+> 注入的是**构建进程**的环境变量 —— Vite 里 `process.env` 优先于 `.env` 文件,所以 `packages/desktop/.env.production` 里那两项留空也照样打得出正确的包。完整推导见 [02-config.md#232-为什么这些变量可以留空](02-config.md#232-为什么这些变量可以留空)。
+
 细节都在 [`scripts/build-with-builder.js`](../../scripts/build-with-builder.js) 里,两个顺序是硬约束:
 
 - 子应用构建+复制**必须排在 `electron-vite build` 之后** —— 那一步会清空 `out/`,早一步做会被抹掉
