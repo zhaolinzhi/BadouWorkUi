@@ -195,6 +195,16 @@ export default defineConfig(({ mode }) => {
       // Make the root explicit so Vite emits page names relative to that directory
       // instead of leaking source-relative ../../ paths into HTML asset names.
       root: rendererRoot,
+      // `.env` 文件在 packages/desktop/ 下,不在 Vite 的 root(rendererRoot)里。
+      // electron-vite 默认把 envDir 设成 `options.root || process.cwd()` —— CLI 没带
+      // `[root]` 位置参数,所以是仓库根;那里一个 .env 都没有,于是
+      // packages/desktop/.env.production / .env.development 永远读不到,里面的
+      // VITE_* 变量全部失效(文档 02-config.md 2.3.1 描述的加载顺序因此从未成立)。
+      // 显式指到本包目录,让它们真正生效。
+      //
+      // 注意优先级:Vite 里 `process.env` 高于 .env 文件 —— 所以 `bun run build:all`
+      // 注入的 VITE_MICRO_APP_ENABLED=true / app://microapps 依旧盖得住这里的占位值。
+      envDir: resolve(__dirname),
       base: './',
       publicDir: resolve('public'),
       appType: 'mpa',
