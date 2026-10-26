@@ -24,7 +24,7 @@
 | 路径                                                                                                     | 作用                                                                                          |
 | -------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
 | [packages/desktop/.env.development](../../packages/desktop/.env.development)                             | dev 模式的 env 默认值(`VITE_MICRO_APP_ENABLED=true`);**只有 `envDir` 指向本目录时才生效**     |
-| [packages/desktop/.env.production](../../packages/desktop/.env.production)                               | 生产模式的 env 默认值(`VITE_MICRO_APP_ENABLED=false`);CI 注入的 `process.env` 优先级更高      |
+| [packages/desktop/.env.production](../../packages/desktop/.env.production)                               | 生产模式的 env 默认值(`VITE_MICRO_APP_ENABLED=true`);CI 注入的 `process.env` 优先级更高       |
 | [packages/desktop/electron.vite.config.ts](../../packages/desktop/electron.vite.config.ts)               | 主进程 / 渲染进程构建配置;renderer 段的 `envDir: resolve(__dirname)` 决定 Vite 去哪找 `.env*` |
 | [tests/unit/build-scripts/rendererEnvDir.test.ts](../../tests/unit/build-scripts/rendererEnvDir.test.ts) | 回归测试:钉死 `envDir` 指向 `packages/desktop/`,以及 `process.env` 优先于 `.env` 文件         |
 

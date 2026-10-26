@@ -17,6 +17,8 @@ VITE_NOTES_APP_ENTRY=https://invalid.local/notes-not-deployed.js
 
 > ⚠️ **单纯把它置空不算屏蔽**。空值只表示"不单独覆盖",entry 会落到 `VITE_MICRO_APP_ASSET_BASE`(打包态是 `app://microapps`,子应用照样能加载)—— 解析链见 [02-config.md#232-为什么这些变量可以留空](02-config.md#232-为什么这些变量可以留空)。要真正让它加载失败,必须给一个**不可达**的地址。
 
+> ✅ **这条路对 `bun run build:all` 也有效**。构建脚本只无条件覆写 `VITE_MICRO_APP_ENABLED` 和 `VITE_MICRO_APP_ASSET_BASE`,不碰单应用的 `VITE_<NAME>_APP_ENTRY`;而 entry 解析链里单应用覆盖优先级最高,排在 asset base 前面。
+
 > 注意:这不会从 MICRO_APP_DEFAULTS 移除条目,只是让 `loadMicroApp` 加载失败。主路由访问 `/notes` 时,`MicroAppHost` 会 catch error 并在 `MicroAppErrorBoundary` 中渲染降级页面。
 
 **适用范围**:临时屏蔽、紧急回滚、A/B 实验。
@@ -27,6 +29,8 @@ VITE_NOTES_APP_ENTRY=https://invalid.local/notes-not-deployed.js
 # 作用在构建进程上 —— 渲染进程读的是构建期烘进 bundle 的常量,不是运行时环境
 VITE_MICRO_APP_ENABLED=false bun run build
 ```
+
+> ⚠️ **只对普通 `bun run build` 有效**。`bun run build:all` 会**无条件**把 `VITE_MICRO_APP_ENABLED` 覆写成 `true`(见 [02-config.md#232-为什么这些变量可以留空](02-config.md#232-为什么这些变量可以留空)),用 `build:all` 打的包关不掉 —— 那种包要屏蔽单个子应用,走方式 A。
 
 dev 下则写进 `packages/desktop/.env.local`(gitignore,优先级高于 `.env.development`):
 

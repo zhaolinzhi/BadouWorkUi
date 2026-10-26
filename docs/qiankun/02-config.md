@@ -83,10 +83,10 @@ const entry =
 
 主应用在 `packages/desktop/` 下提供**已提交**的 env 默认值,按 mode 自动加载:
 
-| 文件                                | mode          | 默认值                         | 说明                                                 |
-| ----------------------------------- | ------------- | ------------------------------ | ---------------------------------------------------- |
-| `packages/desktop/.env.development` | `development` | `VITE_MICRO_APP_ENABLED=true`  | dev 模式默认开,`bun run dev` 直接生效                |
-| `packages/desktop/.env.production`  | `production`  | `VITE_MICRO_APP_ENABLED=false` | 生产构建默认关,防止未配置 entry 时尝试加载 localhost |
+| 文件                                | mode          | 默认值                        | 说明                                                     |
+| ----------------------------------- | ------------- | ----------------------------- | -------------------------------------------------------- |
+| `packages/desktop/.env.development` | `development` | `VITE_MICRO_APP_ENABLED=true` | dev 模式默认开,`bun run dev` 直接生效                    |
+| `packages/desktop/.env.production`  | `production`  | `VITE_MICRO_APP_ENABLED=true` | 生产构建默认开 —— `build:all` 打的安装包本来就自带子应用 |
 
 **Vite / electron-vite 加载优先级**(高优先级覆盖低优先级):
 
@@ -104,7 +104,7 @@ const entry =
 
 - 开发者跑 `bun run dev` → 加载 `.env.development` → `VITE_MICRO_APP_ENABLED=true` → 子应用自动加载
 - 个人想覆盖 → 创建 `packages/desktop/.env.local`,写自己的 entry URL(Vite 会优先读)
-- 生产部署 → 默认从 `.env.production` 读 `false` → CI 注入 `VITE_MICRO_APP_ENABLED=true` 才启用
+- 生产部署 → 默认从 `.env.production` 读 `true`(已开) → CI 注入 `VITE_MICRO_APP_ENABLED=false` 可关掉
 - CI/CD 注入(覆盖默认):
 
 ```yaml
@@ -124,7 +124,7 @@ env:
 **常见坑**:
 
 - `VITE_MICRO_APP_ENABLED` 的大小写不敏感(`TRUE` / `True` / `true` 都触发),但 `1` / `yes` / `on` 这类**不会** —— 代码只认字符串 `'true'`(`raw.toString().toLowerCase() === 'true'`)
-- `isMicroAppEnabled()` 只读 `import.meta.env`,不读 `process.env`。打包态 Vite 把 `process.env` 静态替换成 `{}`,dev 态渲染进程的主世界又没有 `process` —— 两条路都拿不到值,所以在 shell 里 `export VITE_MICRO_APP_ENABLED=true` 是**没用**的
+- `isMicroAppEnabled()` 只读 `import.meta.env`,不读运行时的 `process.env`。但**这不等于 shell 里的环境变量没用** —— Vite 会把**构建/开发服务器进程**的 `process.env` 里的 `VITE_*` 变量并进 `import.meta.env`,且优先级高于 `.env` 文件。所以 `VITE_MICRO_APP_ENABLED=false bun run dev` 是有效的;打包态则要重新构建(`bun run build`)才会生效。真正没用的是**运行时**再改环境变量 —— 渲染进程里读不到
 - 修改 `.env` 后必须重启 dev server(Vite 在启动时读取 env,不会 hot reload)
 - 浏览器端访问的 `import.meta.env.VITE_*` 是构建时常量,不是运行时变量,改完必须重新 `bun run build`
 
@@ -144,7 +144,20 @@ if (bundleMicroApps) {
 }
 ```
 
-Vite 里 `process.env` 优先级**高于** `.env` 文件,所以 `.env.production` 里的 `false` 和空串被直接盖掉。产物 `out/renderer/assets/index-*.js` 里烘进去的实际值就是 `app://microapps` 和 `true`。
+Vite 里 `process.env` 优先级**高于** `.env` 文件,所以 `.env.production` 里的空串被直接盖掉。产物 `out/renderer/assets/index-*.js` 里烘进去的实际值就是 `app://microapps` 和 `true`。
+
+> ⚠️ **这是无条件赋值** —— 脚本不看原值,直接写 `'true'` / `'app://microapps'`。所以 `bun run build:all` 下,下面这些统统改不动它:
+>
+> | 你想改的地方                                        | `bun run build:all` 里的结果 |
+> | --------------------------------------------------- | ---------------------------- |
+> | `.env.production` 里的 `VITE_MICRO_APP_ENABLED`     | 恒 `true`                    |
+> | `.env.local` 里的 `VITE_MICRO_APP_ENABLED`          | 恒 `true`                    |
+> | shell 里 `export VITE_MICRO_APP_ENABLED=false`      | 恒 `true`(脚本直接覆盖)      |
+> | `VITE_MICRO_APP_ASSET_BASE`(含 shell 里的 CDN 地址) | 恒 `app://microapps`         |
+>
+> 也就是说 **`bun run build:all` 没有开关** —— 它恒定是"开 + 内置分发"。要控制这两个变量,只能用普通 `bun run build`:那条路径下 `.env.production` / `.env.local` / shell 环境变量都按 Vite 的优先级正常生效。
+>
+> 同理,"用 `build:all` 打包但把子应用指向 CDN"也是做不到的 —— CDN 分发必须走普通 `bun run build`,见 [06-build-and-deploy.md#方式二独立部署cdn](06-build-and-deploy.md#方式二独立部署cdn)。
 
 **第二层:单应用 entry 留空 = "不单独覆盖",让位给 asset base。**
 
@@ -169,11 +182,16 @@ Vite 里 `process.env` 优先级**高于** `.env` 文件,所以 `.env.production
 | `bun run dev`       | `''`(`.env.development` 也是空)    | dev port,如 `//localhost:7992` |
 | `bun run build:all` | `app://microapps`(脚本注入)        | asar 里的子应用产物            |
 
-**那 `.env.production` 为什么还要写 `false` 和空值**
+**那 `.env.production` 为什么 ENABLED 写 `true`、entry 类变量却留空**
 
-它是**兜底默认值**。普通 `bun run build`(不跑 `build:all`)时,子应用产物根本不在包里 —— 这时若 `VITE_MICRO_APP_ENABLED` 是 true,主应用会去 fetch `app://microapps/...` 拿到 404,直接白屏。写 `false` 让"没带微应用的包"默认不启用微应用。
+两者含义不同:
 
-这也正是 `MICRO_APP_BUNDLE=1` 要**强制跳过增量构建**的原因:增量缓存按源码 hash 判断,看不见刚注入的 env 变量,否则会复用上一次的 bundle(里面还是 `false`),装出一个"有子应用文件但永远不去加载"的包。
+- `VITE_MICRO_APP_ENABLED=true` —— **默认开**。`bun run build:all` 打的安装包本来就自带子应用,开关关着的话装了也不会去加载。
+- `VITE_MICRO_APP_ASSET_BASE` / `VITE_<NAME>_APP_ENTRY` 留空 —— **不是"默认值",是"不指定"**。它们的实际取值由构建脚本注入(`app://microapps`),留空才让注入生效(见上面第一层)。
+
+> ⚠️ **普通 `bun run build`(不跑 `build:all`)打的包不带子应用**。这时开关是开的、asset base 却是空的,entry 会落到 dev port(`//localhost:7992`)拉不到东西 —— WebUI 形态下 `startMicroApps` 直接报错,桌面端则由 `MicroAppErrorBoundary` 渲染降级页。要发布带微应用的包,一律走 `bun run build:all`。
+
+这也正是 `MICRO_APP_BUNDLE=1` 要**强制跳过增量构建**的原因:增量缓存按源码 hash 判断,看不见刚注入的 env 变量,否则会复用上一次的 bundle(里面的 asset base 还是上一次的,没有 `app://microapps`),装出一个"有子应用文件但 entry 还指着 localhost"的包。
 
 > **一句话**:`.env.*` 里留空的是"默认值",实际生效的值由构建脚本注入;`VITE_<NAME>_APP_ENTRY` 留空表示"不单独覆盖",交给 asset base 统一分发。
 >

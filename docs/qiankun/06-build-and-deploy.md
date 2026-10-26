@@ -83,7 +83,7 @@ bun run build:all
 - 子应用构建+复制**必须排在 `electron-vite build` 之后** —— 那一步会清空 `out/`,早一步做会被抹掉
 - 两个 `VITE_*` **必须在 `electron-vite build` 之前**写进 `process.env` —— 那一步才把 `import.meta.env` 烤进渲染进程 bundle(Vite 里已存在的 `process.env` 优先于 `.env` 文件,所以能盖过 `.env.production` 的占位值)
 
-另外 `MICRO_APP_BUNDLE=1` 会**强制跳过增量构建**。增量缓存按源码 hash 判断,它看不见刚注入的 env 变量 —— 不强制重建的话,「先 `bun run build` 再 `bun run build:all`」会复用上一次的渲染进程 bundle(里面还是 `VITE_MICRO_APP_ENABLED=false`),同时又把子应用拷进去,得到一个装了微应用但永远不会去加载它的安装包。
+另外 `MICRO_APP_BUNDLE=1` 会**强制跳过增量构建**。增量缓存按源码 hash 判断,它看不见刚注入的 env 变量 —— 不强制重建的话,「先 `bun run build` 再 `bun run build:all`」会复用上一次的渲染进程 bundle(里面的 asset base 还是上一次的,没有 `app://microapps`),同时又把子应用拷进去,得到一个装了微应用却仍指向 localhost 的安装包。
 
 **打几个架构由本机决定。** `bun run build:all` 等价于 `build-with-builder.js auto --mac`,不带硬编码的架构参数;脚本按 `process.arch` 选:
 
@@ -141,7 +141,7 @@ bun run build:offline
 
 > **特权声明必须排在 `initSentry()` 之后。** `@sentry/electron` 的 `init()` 自己也会调一次 `protocol.registerSchemesAsPrivileged([sentry-ipc])`,而 Electron 是按**这次调用传入的 scheme 列表**重建 `--fetch-schemes` / `--secure-schemes` / `--cors-schemes` 等命令行开关的,后写的覆盖先写的。所以 [`registerMicroAppSchemePrivileges()`](../../packages/desktop/src/process/resources/microApps/scheme.ts) 放在 `src/index.ts` 里紧跟 `initSentry()`,而不是做成 side-effect import —— 排错了 `app://` 会被削成只剩 `standard` / `stream`,渲染进程拉 entry 直接报 `URL scheme "app" is not supported`。**这个坑 dev 看不见**(dev 的 entry 是 localhost),只有装包后才暴露,所以 `scheme.test.ts` 把调用顺序钉成了断言。
 
-> WebUI 形态(`bun run webui:prod`)的静态根也是 `out/renderer`,所以子应用会自动出现在 `/microapps/<name>/index.html`。但 WebUI 生产默认 `VITE_MICRO_APP_ENABLED=false`,启用它需要另外把 asset base 配成 `${location.origin}/microapps` —— 本轮没有做。
+> WebUI 形态(`bun run webui:prod`)的静态根也是 `out/renderer`,所以子应用会自动出现在 `/microapps/<name>/index.html`。但 WebUI 生产虽然默认 `VITE_MICRO_APP_ENABLED=true`(开关是开的),asset base 仍然是空的 —— 要让它真的从 `/microapps` 拉子应用,还得另外把 asset base 配成 `${location.origin}/microapps`,本轮没有做。
 
 #### 方式二:独立部署(CDN)
 
@@ -158,6 +158,8 @@ VITE_MICRO_APP_ENABLED=true \
 VITE_MICRO_APP_ASSET_BASE=https://cdn.example.com/microapps \
 bun run build
 ```
+
+> ⚠️ **这里必须用普通 `bun run build`,不能用 `bun run build:all`**。`build:all` 会无条件把 `VITE_MICRO_APP_ASSET_BASE` 覆写成 `app://microapps`(见 [4.2 方式一](#方式一内置安装包bun-run-buildall)),CDN 地址会被盖掉 —— 而 `app://microapps` 指向的是打进包里的子应用产物,和"子应用在 CDN 上独立升级"是两回事。
 
 拼出来是 `https://cdn.example.com/microapps/notes/index.html`。用基址而不是逐个 entry,是因为三个子应用通常同批发布;要单独覆盖某个应用再用 `VITE_<NAME>_APP_ENTRY`(优先级更高)。
 
