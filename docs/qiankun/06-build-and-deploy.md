@@ -197,6 +197,74 @@ bun run build:offline
 
 注意 `build` 和 `build:all` **都会出安装包**,区别只在微应用是否随包分发;只编译不打包的是 `package`。`build:offline` 的差别只在联网的三步,微应用部分与 `build:all` 完全一致。
 
+### 4.5 CI 打包(CI 流水线)
+
+CI 与本地走的是**同一条构建路径**,唯一的差别是环境变量:CI 的构建步骤统一带 `MICRO_APP_BUNDLE=1`,效果等价于本地的 `bun run build:all` —— 注入 `VITE_MICRO_APP_ENABLED=true` + `VITE_MICRO_APP_ASSET_BASE=app://microapps`,并把子应用产物拷进 `out/renderer/microapps/`。
+
+| workflow                                  | 作用                             | 微应用形态 |
+| ----------------------------------------- | -------------------------------- | ---------- |
+| `.github/workflows/build-and-release.yml` | `dev` 分支 / tag 触发,六平台矩阵 | 内置       |
+| `.github/workflows/build-manual.yml`      | 手动触发,可选单个平台            | 内置       |
+| `.github/workflows/pr-checks.yml`         | PR 的 build-test                 | 内置       |
+
+> **CI 千万别漏掉 `MICRO_APP_BUNDLE=1`。** 不设它的话:`.env.production` 里
+> `VITE_MICRO_APP_ENABLED=true` 照旧生效,但 `VITE_MICRO_APP_ASSET_BASE` 是空的 ——
+> entry 解析回落到 `//localhost:7991/7992/7993`,装好的包里那三个端口没人监听,
+> 子应用必然加载失败。也就是说 CI 不设这个变量,出来的包是「开关开着但指向
+> localhost」的坏包,而且**本地完全看不出来** —— 只有装了才知道。
+>
+> 走 CDN 形态的话,改成注入 `VITE_MICRO_APP_ASSET_BASE=<cdn 根>` 并且**不要**设
+> `MICRO_APP_BUNDLE`(它会无条件把 asset base 覆写成 `app://microapps`)。
+
+**CI 的两个硬前提:**
+
+- **node >= 22。** 构建脚本跑在 PATH 上的 `node` 上(`bun run` 不会把 node 换成
+  bun),而子应用的 vite 构建在旧版 node 上会以很难懂的方式失败:unocss /
+  vite-plugin-qiankun 的 ESM 用了 ES2021 的 `||=`,node 14 上直接抛
+  `SyntaxError: Unexpected token '||='`,**而 `bun run build` 依然返回退出码 0** ——
+  失败被吞掉,要等到「产物里没有 dist/index.html」才暴露。仓库的 `engines` 要求
+  `node >=22 <25`,`scripts/build-with-builder.js`、`scripts/build-micro-apps.mjs`
+  和 `scripts/postinstall.js` 都会先卡一道版本闸门,直接报「node 太旧」。
+- **`bun.lock` 必须包含全部子应用 workspace。** 子应用是 `packages/microapps/*`
+  下的 workspace,新增子应用后要重新 `bun install` 并提交 `bun.lock`,否则 CI 的
+  `bun install --frozen-lockfile` 会因为 lock 与 `package.json` 不一致而失败。
+  依赖版本号也必须真实存在 —— `@icon-park/react` 在 npm 上的 latest 是 `1.4.2`,
+  写 `^1.5.1` 这类不存在的版本会让 frozen 安装直接解析失败。
+
+**架构不受 CI 影响。** 微应用是纯前端资源,跟架构无关,六个平台的包里
+`out/renderer/microapps/` 内容完全相同。CI 的平台矩阵由
+[`build-and-release.yml`](../../.github/workflows/build-and-release.yml) 定义,
+与本地的 `resolveAutoArchArgs` 是同一套判据。
+
+### 4.6 打包 job 被 code-quality 卡住(比微应用本身更要命)
+
+上面两条前提只保证「进了 build job 之后能打出来」。但 `build` job 在此之前还有一道
+关卡 —— `_build-reusable.yml` 里:
+
+```yaml
+build:
+  needs: code-quality
+  if: ${{ always() && (inputs.skip_code_quality || needs.code-quality.result == 'success') }}
+```
+
+`code-quality` job 跑 `bun run lint` / `bun run format:check` / `bunx tsc --noEmit` /
+`bunx vitest run` 四道检查。**任何一道红,整个六平台矩阵的 build job 会被跳过** ——
+一个安装包都出不来,而且失败信息指向的是 lint/tsc/单测,跟「打包」毫无关系,很容易
+误判成 qiankun 的锅。
+
+> **当前状态(2026-10-27 实测):这四道闸门在 `origin/feature-work` 上就已经是红的。**
+> 与 qiankun 无关的既有债务,别记到微应用头上:
+>
+> | 检查                   | 失败原因                                                                                            |
+> | ---------------------- | --------------------------------------------------------------------------------------------------- |
+> | `bun run lint`         | oxlint 1.78.0 没有 `no-await-thenable` 规则,`.oxlintrc.json` 引用它 → 配置解析就失败,一个文件都没扫 |
+> | `bun run format:check` | oxfmt 解析不了 `tests/unit/renderer/useContainerWidth.dom.test.ts`(`.ts` 文件里写了 JSX)            |
+> | `bunx tsc --noEmit`    | 10 个错误,全在 `ipcBridge.ts` / `kbChatBridge.ts` / `autoUpdaterService.ts`                         |
+> | `bunx vitest run`      | 22 个文件失败,含已失效的测试(import 了被删掉的模块、JSX 写进 `.ts`)与超时                           |
+>
+> 临时放行:调用方给 `skip_code_quality: true` 就能跳过这道关卡(仅用于打通发布,
+> 别当成常态 —— 红着的测试闸门迟早会咬人)。长期解法是把上面四道闸门逐个修绿。
+
 ---
 
 ## 5. 已知约束

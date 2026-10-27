@@ -34,16 +34,17 @@
 
 三个子应用目录结构一致:`vite.config.ts`(相对 `base` + CORS + dev-only qiankun plugin/shim + `server.port`)、`src/main.ts`(qiankun 生命周期 + `window[name]` 兜底注册 + 独立运行守卫)。
 
-| 路径                                                                                                                             | 作用                                                                       |
-| -------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| [packages/microapps/meeting-recording/vite.config.ts](../../packages/microapps/meeting-recording/vite.config.ts)                 | meeting-recording 子应用构建配置(`server.port` 7991)                       |
-| [packages/microapps/meeting-recording/src/main.ts](../../packages/microapps/meeting-recording/src/main.ts)                       | meeting-recording qiankun 生命周期 + 独立运行守卫                          |
-| [packages/microapps/meeting-recording/src/**qiankun**/ipc.ts](../../packages/microapps/meeting-recording/src/__qiankun__/ipc.ts) | `(0, eval)('window')` 间接 eval 拿主进程 ipcBridge,绕过 qiankun 沙箱 proxy |
-| [packages/microapps/notes/vite.config.ts](../../packages/microapps/notes/vite.config.ts)                                         | notes 子应用构建配置(`server.port` 7992)                                   |
-| [packages/microapps/notes/src/main.ts](../../packages/microapps/notes/src/main.ts)                                               | notes qiankun 生命周期 + 独立运行守卫                                      |
-| [packages/microapps/knowledge-base/vite.config.ts](../../packages/microapps/knowledge-base/vite.config.ts)                       | knowledge-base 子应用构建配置(`server.port` 7993,额外装了 UnoCSS)          |
-| [packages/microapps/knowledge-base/src/main.ts](../../packages/microapps/knowledge-base/src/main.ts)                             | knowledge-base qiankun 生命周期 + 独立运行守卫                             |
-| [packages/microapps/knowledge-base/src/utils/ipc.ts](../../packages/microapps/knowledge-base/src/utils/ipc.ts)                   | knowledge-base 的 IPC 访问层(用 shared 的 `createIpcResolver`)             |
+| 路径                                                                                                                             | 作用                                                                                      |
+| -------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| [packages/microapps/meeting-recording/vite.config.ts](../../packages/microapps/meeting-recording/vite.config.ts)                 | meeting-recording 子应用构建配置(`server.port` 7991)                                      |
+| [packages/microapps/meeting-recording/src/main.ts](../../packages/microapps/meeting-recording/src/main.ts)                       | meeting-recording qiankun 生命周期 + 独立运行守卫                                         |
+| [packages/microapps/meeting-recording/src/**qiankun**/ipc.ts](../../packages/microapps/meeting-recording/src/__qiankun__/ipc.ts) | `(0, eval)('window')` 间接 eval 拿主进程 ipcBridge,绕过 qiankun 沙箱 proxy                |
+| [packages/microapps/notes/vite.config.ts](../../packages/microapps/notes/vite.config.ts)                                         | notes 子应用构建配置(`server.port` 7992)                                                  |
+| [packages/microapps/notes/src/main.ts](../../packages/microapps/notes/src/main.ts)                                               | notes qiankun 生命周期 + 独立运行守卫                                                     |
+| [packages/microapps/notes/src/**tests**/](../../packages/microapps/notes/src/__tests__)                                          | notes 子应用的单测;`useNotebookList` / `useNotesEditor` 是从主应用搬过来的,跟着代码一起搬 |
+| [packages/microapps/knowledge-base/vite.config.ts](../../packages/microapps/knowledge-base/vite.config.ts)                       | knowledge-base 子应用构建配置(`server.port` 7993,额外装了 UnoCSS)                         |
+| [packages/microapps/knowledge-base/src/main.ts](../../packages/microapps/knowledge-base/src/main.ts)                             | knowledge-base qiankun 生命周期 + 独立运行守卫                                            |
+| [packages/microapps/knowledge-base/src/utils/ipc.ts](../../packages/microapps/knowledge-base/src/utils/ipc.ts)                   | knowledge-base 的 IPC 访问层(用 shared 的 `createIpcResolver`)                            |
 
 ## 共享包(不是子应用)
 
@@ -76,6 +77,18 @@
 | [scripts/build-with-builder.js](../../scripts/build-with-builder.js)                                                             | 打包编排;`MICRO_APP_BUNDLE=1`(`bun run build:all`)时注入 `app://microapps` 基址并调用上一个脚本  |
 | [packages/shared-scripts/src/resolve-auto-arch-args.js](../../packages/shared-scripts/src/resolve-auto-arch-args.js)             | `auto` 模式下按构建机能力决定架构(Intel Mac 只出 x64,Apple Silicon 出 arm64 + x64)               |
 | [packages/shared-scripts/src/prune-stale-aioncore-bundles.js](../../packages/shared-scripts/src/prune-stale-aioncore-bundles.js) | 打包前删掉不属于本次构建目标的后端架构目录(`extraResources` 整目录复制,残骸会进每个安装包)       |
+| [packages/shared-scripts/src/assert-node-version.js](../../packages/shared-scripts/src/assert-node-version.js)                   | node 版本闸门:按根 `package.json` 的 `engines.node` 卡版本,避免旧版 node 的隐晦失败              |
+
+## CI 流水线
+
+| 路径                                                                                                           | 作用                                                                              |
+| -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| [.github/workflows/\_build-reusable.yml](../../.github/workflows/_build-reusable.yml)                          | 发布流水线(六平台矩阵);构建步骤统一带 `MICRO_APP_BUNDLE=1`,把子应用打进每个安装包 |
+| [.github/workflows/build-and-release.yml](../../.github/workflows/build-and-release.yml)                       | `dev` 分支 / tag 触发,调用上面的可复用流水线并创建 Release                        |
+| [.github/workflows/build-manual.yml](../../.github/workflows/build-manual.yml)                                 | 手动触发,可选单个平台或 `all`                                                     |
+| [.github/workflows/pr-checks.yml](../../.github/workflows/pr-checks.yml)                                       | PR 的 build-test:与发布同一条路径(同样带 `MICRO_APP_BUNDLE=1`)                    |
+| [tests/unit/build-scripts/ciMicroAppBundle.test.ts](../../tests/unit/build-scripts/ciMicroAppBundle.test.ts)   | 回归测试:钉死 CI 必须带 `MICRO_APP_BUNDLE=1`,以及发布矩阵仍是六个平台/架构组合    |
+| [tests/unit/build-scripts/assertNodeVersion.test.ts](../../tests/unit/build-scripts/assertNodeVersion.test.ts) | 回归测试:node 版本闸门的边界与报错文案                                            |
 
 ## 设计 spec
 

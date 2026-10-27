@@ -23,6 +23,9 @@
 - [ ] `vite.config.ts` 配了 `base: './'`(相对 base,两种分发方式共用同一份产物的前提)
 - [ ] `vite.config.ts` **没有** `build.lib` —— 要的是标准 HTML 产物,不是 UMD(详见 [06-build-and-deploy.md](06-build-and-deploy.md))
 - [ ] `bun run build` 后 `dist/index.html` **存在**;`dist/assets/*.js` **只有 1 个 chunk**(多 chunk 会打黄色警告,qiankun eval 环境下动态 `import()` 的相对路径解析不到)
+- [ ] 构建机的 node **>= 22**(`bun run build` 用的是 PATH 上的 node;旧版 node 会让子应用的 vite 构建抛 `||=` 语法错,却仍返回退出码 0 —— 失败被吞掉)
+- [ ] 新增/改动子应用后重新 `bun install` 并提交 `bun.lock`(子应用是 `packages/microapps/*` 下的 workspace;lock 里缺条目会让 CI 的 `bun install --frozen-lockfile` 直接失败)
+- [ ] 依赖版本号在 npm 上**真实存在**(写一个没发过的版本号,`bun install` 会在解析阶段就失败,CI 全线挂)
 - [ ] `main.ts` 导出 `bootstrap / mount / unmount`,`unmount` 清 React root + 容器 DOM + `${systemCode}_` 前缀的 localStorage
 - [ ] `main.ts` 的 `__POWERED_BY_QIANKUN__` 分支注册 `window.moudleQiankunAppLifeCycles['<name>']` **和** `window['<name>']`(前者 dev 走,后者生产 HTML 产物走)
 - [ ] `main.ts` 的 standalone 兜底有 mockProps + try/catch
@@ -31,6 +34,14 @@
 - [ ] 直接 fetch(Vditor 上传 / 图片 base64)用 `ctx.baseApi`,不要硬编码 `localhost:<port>`
 - [ ] `App.tsx` 用 `useAppContext()` 拿 `baseApi / token / systemCode / userInfo`,不读 `import.meta.env`
 - [ ] 业务代码不 `import` `qiankun` / 主应用 `ipcBridge` / 主应用组件
+
+**从主应用迁代码进子应用时**:
+
+- [ ] **测试跟着代码一起搬**,并改掉 mock 目标 —— 主应用的测试 mock 的是 `@/common` 的
+      `ipcBridge`,子应用走的是 `__qiankun__/ipc` 的间接 eval 桥接,mock 不换掉就直接
+      import 失败(参见 `packages/microapps/notes/src/__tests__/useNotebookList.dom.test.ts`)
+- [ ] 搬进来的 hook 若调 `useAppContext()`,测试要用 `AppContext.Provider` 包一层 ——
+      没有 Provider 时 `useAppContext()` 直接抛
 
 **主应用侧 / 跨应用**:
 
@@ -41,3 +52,4 @@
 - [ ] 主应用路由中加 `<MicroAppPlaceholder microAppName={name} />`
 - [ ] 不在主应用 import 子应用业务代码(仅 type 引用 `MicroAppProps`)
 - [ ] 不在主应用保留子应用兜底页面(spec 决策:完全迁移)
+- [ ] CI 的构建步骤带 `MICRO_APP_BUNDLE=1`(否则装好的包是「开关开着但 entry 指向 localhost」的坏包,本地完全看不出来 —— 详见 [06-build-and-deploy.md#45-ci-打包ci-流水线](06-build-and-deploy.md#45-ci-打包ci-流水线))
