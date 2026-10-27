@@ -83,7 +83,7 @@ bun run build:all
 - 子应用构建+复制**必须排在 `electron-vite build` 之后** —— 那一步会清空 `out/`,早一步做会被抹掉
 - 两个 `VITE_*` **必须在 `electron-vite build` 之前**写进 `process.env` —— 那一步才把 `import.meta.env` 烤进渲染进程 bundle(Vite 里已存在的 `process.env` 优先于 `.env` 文件,所以能盖过 `.env.production` 的占位值)
 
-另外 `MICRO_APP_BUNDLE=1` 会**强制跳过增量构建**。增量缓存按源码 hash 判断,它看不见刚注入的 env 变量 —— 不强制重建的话,「先 `bun run build` 再 `bun run build:all`」会复用上一次的渲染进程 bundle(里面的 asset base 还是上一次的,没有 `app://microapps`),同时又把子应用拷进去,得到一个装了微应用却仍指向 localhost 的安装包。
+另外 `MICRO_APP_BUNDLE=1` **不会**让增量构建失效 —— 增量缓存的 key 里已经包含「微应用环境指纹」(见 [4.5](#45-ci-打包ci-流水线)),形态不变时缓存照常命中,形态变了(内置 ↔ CDN ↔ 普通构建)才会重建。
 
 **打几个架构由本机决定。** `bun run build:all` 等价于 `build-with-builder.js auto --mac`,不带硬编码的架构参数;脚本按 `process.arch` 选:
 
@@ -108,7 +108,19 @@ set MICRO_APP_BUNDLE=1 && bun run build-win
 MICRO_APP_BUNDLE=1 bun run build-deb
 ```
 
-`MICRO_APP_BUNDLE=1` 就是 `build:all` 全部的作用 —— 注入两个 `VITE_*`、构建并复制子应用、强制全量重建渲染进程。所以打完的 exe 和 `build:all` 打出来的 dmg 是等价的,只是少了那层 npm script 的糖。
+用 `just build-win` / `just build-linux` 就不用手动设 —— `justfile` 已经全局导出了这个变量。
+
+`MICRO_APP_BUNDLE=1` 就是 `build:all` 全部的作用 —— 注入两个 `VITE_*`、构建并复制子应用。所以打完的 exe 和 `build:all` 打出来的 dmg 是等价的,只是少了那层 npm script 的糖。
+
+**`justfile` 的所有 `build-*` recipe 默认带这个变量。** 根目录 `justfile` 顶部有一条全局 `export MICRO_APP_BUNDLE := "1"`,`just build` / `just build-quick` / `just build-mac` 等一律生效 —— 不需要每个 recipe 手动加。
+
+```bash
+just build          # 等价于 MICRO_APP_BUNDLE=1 bun run build
+just build-mac-arm64
+```
+
+> 用 `just` 时**不要**再手动 `export MICRO_APP_BUNDLE=1`(重复设值无害,但没必要)。
+> 反过来,`bun run build`(不带这个变量)出的仍然是「开关开着但指向 localhost」的坏包。
 
 **产物落在 `out/`,没有 `release/`。** `electron-builder.yml` 的 `directories.output` 就是 `out`,安装包和 `out/main`、`out/renderer`、`out/preload` 并列躺在同一个目录里 —— 找包时别去翻 `release/`。文件名是 `BadouWorklocal-<version>-<os>-<arch>.<ext>`,例如 `BadouWorklocal-1.0.0-mac-arm64.dmg`。
 
@@ -215,6 +227,27 @@ CI 与本地走的是**同一条构建路径**,唯一的差别是环境变量:CI
 >
 > 走 CDN 形态的话,改成注入 `VITE_MICRO_APP_ASSET_BASE=<cdn 根>` 并且**不要**设
 > `MICRO_APP_BUNDLE`(它会无条件把 asset base 覆写成 `app://microapps`)。
+
+**本地也是同一个开关。** 根目录 [`justfile`](../../justfile) 顶部有一条全局
+`export MICRO_APP_BUNDLE := "1"`,所有 `build-*` recipe 都被它覆盖;`package.json`
+里的 `build:all` / `build:offline` 则用 `cross-env` 带同一个变量。三条路
+(`just build` / `bun run build:all` / CI 的 build step)打出来的包是等价的。
+
+**增量构建:形态变了才会重建。** 渲染进程 bundle 里的微应用接线来自
+`packages/desktop/.env*` 和 `process.env` 两处,两处都不在源码树里 —— 所以
+增量缓存的 key 里额外算了「微应用环境指纹」
+([`micro-app-env.js`](../../packages/shared-scripts/src/micro-app-env.js)):
+`.env*` 文件的内容 + 环境里 `VITE_*MICRO_APP*` / `VITE_*_APP_ENTRY` 的值。
+
+| 场景                                        | 缓存 | 结果                                      |
+| ------------------------------------------- | ---- | ----------------------------------------- |
+| 源码没变,形态没变,再打一次                  | 命中 | 复用上一次的渲染进程 bundle               |
+| 源码没变,但从普通构建切到内置形态(反之亦然) | 失效 | 重建 —— 渲染进程 bundle 里带着 asset base |
+| 改了 `packages/desktop/.env.production`     | 失效 | 重建                                      |
+| 改了 `packages/microapps/*/src`             | 失效 | 重建(子应用产物本来也要重打)              |
+
+> 子应用的构建产物 `packages/microapps/*/dist/` **不参与** hash —— 它每次构建都会变,
+> 算进去的话缓存永远命中不了。
 
 **CI 的两个硬前提:**
 

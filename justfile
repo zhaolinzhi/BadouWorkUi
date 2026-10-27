@@ -172,6 +172,14 @@ verify-native:
 # Build (mirrors CI workflow environment setup)
 # ============================================================
 
+# Bundle the qiankun micro apps into every installer built by the recipes below.
+#
+# Without it the renderer keeps `VITE_MICRO_APP_ENABLED=true` from
+# `packages/desktop/.env.production` but has no asset base, so the entries fall back to
+# `//localhost:7991-7993` — an installer whose micro apps can only load on a machine
+# running the micro-app dev servers.
+export MICRO_APP_BUNDLE := "1"
+
 # Build for current platform (preflight → build)
 build: preflight
     #!/usr/bin/env bash

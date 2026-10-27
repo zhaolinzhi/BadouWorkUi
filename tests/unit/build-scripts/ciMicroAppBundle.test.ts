@@ -94,4 +94,19 @@ describe('CI 打包流水线内置微应用', () => {
       'windows-x64/x64',
     ]);
   });
+
+  it('本地 justfile 的构建 recipe 同样内置微应用', () => {
+    // justfile 用一条全局 export 覆盖所有 build-* recipe。
+    // The justfile covers every build-* recipe with a single global export.
+    const justfile = readFileSync(resolve(REPO_ROOT, 'justfile'), 'utf8');
+    expect(justfile).toMatch(/^export MICRO_APP_BUNDLE := "1"$/m);
+  });
+
+  it('增量构建的缓存键包含微应用环境指纹', () => {
+    // 否则换 asset base 会复用上一个渲染进程 bundle —— 而 MICRO_APP_BUNDLE=1
+    // 会退化成「每次都全量重建」,just build-quick 就不再 quick 了。
+    const script = readFileSync(resolve(REPO_ROOT, 'scripts/build-with-builder.js'), 'utf8');
+    expect(script).toContain('computeMicroAppEnvFingerprint');
+    expect(script).not.toMatch(/bundleMicroApps \? false : shouldSkipViteBuild/);
+  });
 });

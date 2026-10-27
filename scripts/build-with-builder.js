@@ -14,6 +14,7 @@ const { execSync, spawnSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { computeMicroAppEnvFingerprint } = require('../packages/shared-scripts/src/micro-app-env.js');
 
 // DMG retry logic for macOS: detects DMG creation failures by checking artifacts
 // (.app exists but .dmg missing) and retries only the DMG step using
@@ -177,7 +178,11 @@ function walkFiles(dir, acc = []) {
   for (const entry of entries) {
     const fullPath = path.join(dir, entry.name);
     if (entry.isDirectory()) {
-      if (entry.name === 'node_modules' || entry.name === 'out' || entry.name === '.git') continue;
+      // `dist` is a build output directory: the micro apps write their Vite output to
+      // `packages/microapps/<name>/dist/`, and hashing those files would change the
+      // cache key on every build — the incremental cache could never hit again.
+      if (entry.name === 'node_modules' || entry.name === 'out' || entry.name === 'dist' || entry.name === '.git')
+        continue;
       walkFiles(fullPath, acc);
     } else if (entry.isFile()) {
       acc.push(fullPath);
@@ -225,6 +230,13 @@ function computeSourceHash() {
       hash.update(String(stat.mtimeMs));
     }
   }
+
+  // The renderer bundle also depends on inputs that live outside the source tree: the
+  // `.env` files Vite loads and the `VITE_*` overrides in the environment. Without them
+  // in the hash, switching between the bundled `app://microapps` base and a CDN base
+  // would silently reuse a renderer bundle built for the other one.
+  hash.update('micro-app-env:');
+  hash.update(computeMicroAppEnvFingerprint({ rootDir }));
 
   return hash.digest('hex');
 }
@@ -754,8 +766,8 @@ try {
   // priority over .env files, so writing them here is what overrides the
   // VITE_MICRO_APP_ENABLED=false placeholder in packages/desktop/.env.production.
   //
-  // Step 2 forces a renderer rebuild when this is set, so the env vars below always make it
-  // into the bundle.
+  // Step 2's cache key folds the effective env into its hash, so a cached renderer bundle
+  // is only reused when it was built with the same asset base.
   const bundleMicroApps = process.env.MICRO_APP_BUNDLE === '1';
   if (bundleMicroApps) {
     console.log('🧩 Bundling micro apps into the installer (entry: app://microapps)');
@@ -765,12 +777,11 @@ try {
 
   // 2. Check if we can skip Vite build (incremental build)
   //
-  // MICRO_APP_BUNDLE=1 always rebuilds. The incremental cache keys on a source hash that
-  // cannot see the env vars we just injected, so a plain `bun run build` followed by
-  // `bun run build:all` would otherwise reuse a renderer bundle still carrying
-  // VITE_MICRO_APP_ENABLED=false — and step 4.5 would embed the micro apps next to a shell
-  // that never asks for them.
-  const skipViteBuild = bundleMicroApps ? false : shouldSkipViteBuild(skipVite, forceBuild);
+  // The cache key covers the micro-app env fingerprint (the .env files Vite loads plus the
+  // VITE_* overrides in the environment). A plain `bun run build` and a
+  // `bun run build:all` therefore hash differently — the renderer bundle carries the
+  // asset base — while a second run with the same env stays incremental.
+  const skipViteBuild = shouldSkipViteBuild(skipVite, forceBuild);
 
   if (!skipViteBuild) {
     // Run electron-vite to build all bundles (main + preload + renderer)

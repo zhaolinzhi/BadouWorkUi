@@ -78,6 +78,8 @@
 | [packages/shared-scripts/src/resolve-auto-arch-args.js](../../packages/shared-scripts/src/resolve-auto-arch-args.js)             | `auto` 模式下按构建机能力决定架构(Intel Mac 只出 x64,Apple Silicon 出 arm64 + x64)               |
 | [packages/shared-scripts/src/prune-stale-aioncore-bundles.js](../../packages/shared-scripts/src/prune-stale-aioncore-bundles.js) | 打包前删掉不属于本次构建目标的后端架构目录(`extraResources` 整目录复制,残骸会进每个安装包)       |
 | [packages/shared-scripts/src/assert-node-version.js](../../packages/shared-scripts/src/assert-node-version.js)                   | node 版本闸门:按根 `package.json` 的 `engines.node` 卡版本,避免旧版 node 的隐晦失败              |
+| [packages/shared-scripts/src/micro-app-env.js](../../packages/shared-scripts/src/micro-app-env.js)                               | 微应用环境指纹:`.env*` 文件 + `VITE_*` 覆盖;增量构建的缓存 key 靠它区分形态                      |
+| [justfile](../../justfile)                                                                                                       | 本地构建 recipe;顶部一条全局 `export MICRO_APP_BUNDLE := "1"`,所有 `build-*` 都内置微应用        |
 
 ## CI 流水线
 

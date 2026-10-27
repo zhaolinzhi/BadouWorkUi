@@ -53,3 +53,5 @@
 - [ ] 不在主应用 import 子应用业务代码(仅 type 引用 `MicroAppProps`)
 - [ ] 不在主应用保留子应用兜底页面(spec 决策:完全迁移)
 - [ ] CI 的构建步骤带 `MICRO_APP_BUNDLE=1`(否则装好的包是「开关开着但 entry 指向 localhost」的坏包,本地完全看不出来 —— 详见 [06-build-and-deploy.md#45-ci-打包ci-流水线](06-build-and-deploy.md#45-ci-打包ci-流水线))
+- [ ] 本地构建走 `just build*` 或 `bun run build:all`(`justfile` 顶部已有全局 `export MICRO_APP_BUNDLE := "1"`);**不要**用裸 `bun run build`
+- [ ] 改了 `packages/desktop/.env.production` 或切换分发形态(内置 / CDN)后,渲染进程 bundle 要重建 —— 增量构建的缓存 key 靠「微应用环境指纹」区分形态(见 [06-build-and-deploy.md#45-ci-打包ci-流水线](06-build-and-deploy.md#45-ci-打包ci-流水线))
