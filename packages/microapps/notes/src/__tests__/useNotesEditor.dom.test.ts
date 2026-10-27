@@ -7,42 +7,19 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { notesApi } = vi.hoisted(() => ({
-  notesApi: {
-    list: vi.fn().mockResolvedValue([]),
-    create: vi.fn(),
-    update: vi.fn(),
-    delete: vi.fn(),
-    raw: vi.fn(),
-    get: vi.fn(),
-    star: vi.fn(),
-  },
-}));
-
-vi.mock('@/common', () => ({
-  ipcBridge: {
-    notebooks: {
-      list: { invoke: vi.fn().mockResolvedValue([]) },
-      update: { invoke: vi.fn() },
-      create: { invoke: vi.fn() },
-      delete: { invoke: vi.fn() },
-      listNotes: { invoke: vi.fn() },
-      createNote: { invoke: vi.fn() },
-    },
-    notes: {
-      list: { invoke: notesApi.list },
-      create: { invoke: notesApi.create },
-      update: { invoke: notesApi.update },
-      delete: { invoke: notesApi.delete },
-      raw: { invoke: notesApi.raw },
-      get: { invoke: notesApi.get },
-      star: { invoke: notesApi.star },
-    },
-  },
-}));
-
-import { useNotesEditor } from '@/renderer/hooks/notes/useNotesEditor';
-import type { NoteItem } from '@/renderer/pages/notes/types';
+/**
+ * 这个文件原先位于 `tests/unit/renderer/hooks/useNotesEditor.dom.test.ts`。
+ * notes 拆成微应用后 hook 搬到了 `src/hooks/useNotesEditor.ts`,测试跟着代码
+ * 一起搬。这个 hook 只接收 `notes` / `updateNoteContent` / `renameNote` 三个入参,
+ * 自己不碰数据通道 —— 所以这里不需要 mock IPC。
+ *
+ * This file used to live at `tests/unit/renderer/hooks/useNotesEditor.dom.test.ts`.
+ * It moved with the code when notes was split out of the main app. The hook takes
+ * `notes` / `updateNoteContent` / `renameNote` as arguments and never touches the
+ * data channel itself, so no IPC mock is needed here.
+ */
+import { useNotesEditor } from '../hooks/useNotesEditor';
+import type { NoteItem } from '../api/types';
 
 const baseNote: NoteItem = {
   id: 'nt_1',

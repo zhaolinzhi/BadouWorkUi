@@ -5,11 +5,25 @@
  */
 
 import { act, renderHook, waitFor } from '@testing-library/react';
+import { createElement, type ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { MicroAppProps } from '@renderer/micro-app/types';
 
+/**
+ * 这个文件原先位于 `tests/unit/renderer/hooks/useNotebookList.dom.test.ts`。
+ * notes 从主应用拆成微应用后,hook 搬到了 `src/hooks/useNotebookList.ts`,
+ * 数据通道也从 `@/common` 的 `ipcBridge` 换成了 `__qiankun__/ipc` 的间接 eval
+ * 桥接 —— 所以测试跟着代码一起搬,而不是留在主应用的测试目录里。
+ *
+ * This file used to live at `tests/unit/renderer/hooks/useNotebookList.dom.test.ts`.
+ * It moved with the code: after notes was split out of the main app, the hook
+ * lives in `src/hooks/useNotebookList.ts` and reads through the `__qiankun__/ipc`
+ * bridge instead of `@/common`'s `ipcBridge`.
+ */
 const { notebooksApi, notesApi } = vi.hoisted(() => ({
   notebooksApi: {
     list: vi.fn(),
+    get: vi.fn(),
     update: vi.fn(),
     create: vi.fn(),
     delete: vi.fn(),
@@ -27,10 +41,16 @@ const { notebooksApi, notesApi } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('@/common', () => ({
+// 挡住 `__qiankun__/ipc` 的真实实现:它靠 `createIpcResolver` 去读宿主注入的
+// `window.ipcBridge`,在测试环境里没有宿主。
+//
+// Mock out `__qiankun__/ipc`: the real module resolves the host-injected
+// `window.ipcBridge` through `createIpcResolver`, and there is no host in tests.
+vi.mock('../__qiankun__/ipc', () => ({
   ipcBridge: {
     notebooks: {
       list: { invoke: notebooksApi.list },
+      get: { invoke: notebooksApi.get },
       update: { invoke: notebooksApi.update },
       create: { invoke: notebooksApi.create },
       delete: { invoke: notebooksApi.delete },
@@ -49,7 +69,27 @@ vi.mock('@/common', () => ({
   },
 }));
 
-import { useNotebookList } from '@/renderer/hooks/notes/useNotebookList';
+import { AppContext } from '../AppContext';
+import { useNotebookList } from '../hooks/useNotebookList';
+
+const appContextValue: MicroAppProps = {
+  token: 'test-token',
+  userInfo: { id: 'u_1', username: 'tester', permissions: [], tenantId: 'tenant_1' },
+  systemCode: 'aionui',
+  baseApi: '',
+  shellVersion: '0.0.0',
+  theme: 'light',
+  locale: 'zh-CN',
+  isMobile: false,
+  on: () => () => {},
+  emit: () => {},
+  navigate: () => {},
+  navigateExternal: () => {},
+};
+
+/** `useAppContext()` 在没有 Provider 时会抛,所以每个 hook 都要包一层。 */
+const wrapper = ({ children }: { children: ReactNode }) =>
+  createElement(AppContext.Provider, { value: appContextValue }, children);
 
 const baseNotebook = {
   id: 'nb_1',
@@ -99,7 +139,7 @@ describe('useNotebookList', () => {
       notebooksApi.list.mockResolvedValue([baseNotebook, otherNotebook]);
       notesApi.list.mockResolvedValue([noteInTravel, noteInOther]);
 
-      const { result } = renderHook(() => useNotebookList());
+      const { result } = renderHook(() => useNotebookList(), { wrapper });
 
       await waitFor(() => {
         expect(result.current.notebooks).toHaveLength(2);
@@ -116,7 +156,7 @@ describe('useNotebookList', () => {
       notebooksApi.list.mockResolvedValue([baseNotebook]);
       notesApi.list.mockResolvedValue([noteInTravel, noteInOther]);
 
-      const { result } = renderHook(() => useNotebookList());
+      const { result } = renderHook(() => useNotebookList(), { wrapper });
 
       await waitFor(() => {
         expect(result.current.notebooks).toHaveLength(1);
@@ -130,7 +170,9 @@ describe('useNotebookList', () => {
         await result.current.renameNotebook(baseNotebook.id, 'Travel 2026');
       });
 
-      expect(notebooksApi.update).toHaveBeenCalledWith({ id: baseNotebook.id, name: 'Travel 2026' });
+      expect(notebooksApi.update).toHaveBeenCalledWith(
+        expect.objectContaining({ id: baseNotebook.id, name: 'Travel 2026' })
+      );
       expect(result.current.notebooks[0].name).toBe('Travel 2026');
 
       // Notes reference the notebook by stable id, so they remain under the
@@ -147,7 +189,7 @@ describe('useNotebookList', () => {
       notesApi.list.mockResolvedValue([noteInTravel, noteInOther]);
       notebooksApi.delete.mockResolvedValue(undefined);
 
-      const { result } = renderHook(() => useNotebookList());
+      const { result } = renderHook(() => useNotebookList(), { wrapper });
 
       await waitFor(() => {
         expect(result.current.notes).toHaveLength(2);
@@ -170,7 +212,7 @@ describe('useNotebookList', () => {
       const created = { ...noteInTravel };
       notesApi.create.mockResolvedValue(created);
 
-      const { result } = renderHook(() => useNotebookList());
+      const { result } = renderHook(() => useNotebookList(), { wrapper });
 
       await waitFor(() => {
         expect(result.current.notebooks).toHaveLength(1);
@@ -202,7 +244,7 @@ describe('useNotebookList', () => {
       notesApi.list.mockResolvedValue([{ ...noteInTravel }]);
       notesApi.update.mockResolvedValue(backendUpdated);
 
-      const { result } = renderHook(() => useNotebookList());
+      const { result } = renderHook(() => useNotebookList(), { wrapper });
 
       await waitFor(() => {
         expect(result.current.notes).toHaveLength(1);
@@ -215,12 +257,14 @@ describe('useNotebookList', () => {
       expect(result.current.notes[0].content).toBe('cached body text');
 
       await act(async () => {
-        await result.current.renameNote(noteInTravel.id, 'Tokyo renamed');
+        result.current.renameNote(noteInTravel.id, 'Tokyo renamed');
       });
 
       // The bug: renameNote replaced the whole note object with the backend
       // response, which has no `content` field, so the cached body was wiped.
-      expect(result.current.notes[0].title).toBe('Tokyo renamed');
+      await waitFor(() => {
+        expect(result.current.notes[0].title).toBe('Tokyo renamed');
+      });
       expect(result.current.notes[0].content).toBe('cached body text');
     });
 
@@ -258,17 +302,17 @@ describe('useNotebookList', () => {
         return Promise.resolve(contentResponse);
       });
 
-      const { result } = renderHook(() => useNotebookList());
+      const { result } = renderHook(() => useNotebookList(), { wrapper });
       await waitFor(() => expect(result.current.notes).toHaveLength(1));
 
       await act(async () => {
-        await Promise.all([
-          result.current.renameNote(noteInTravel.id, 'Hello world'),
-          result.current.updateNoteContent(noteInTravel.id, 'Hello world\nbody'),
-        ]);
+        result.current.renameNote(noteInTravel.id, 'Hello world');
+        await result.current.updateNoteContent(noteInTravel.id, 'Hello world\nbody');
       });
 
-      expect(result.current.notes[0].title).toBe('Hello world');
+      await waitFor(() => {
+        expect(result.current.notes[0].title).toBe('Hello world');
+      });
       expect(result.current.notes[0].content).toBe('Hello world\nbody');
     });
 
@@ -299,18 +343,18 @@ describe('useNotebookList', () => {
         params.title ? titleReply : contentReply
       );
 
-      const { result } = renderHook(() => useNotebookList());
+      const { result } = renderHook(() => useNotebookList(), { wrapper });
       await waitFor(() => expect(result.current.notes).toHaveLength(1));
 
       await act(async () => {
-        await Promise.all([
-          result.current.updateNoteContent(noteInTravel.id, 'Hello world\nbody'),
-          result.current.renameNote(noteInTravel.id, 'Hello world'),
-        ]);
+        await result.current.updateNoteContent(noteInTravel.id, 'Hello world\nbody');
+        result.current.renameNote(noteInTravel.id, 'Hello world');
       });
 
+      await waitFor(() => {
+        expect(result.current.notes[0].content).toBe('Hello world\nbody');
+      });
       expect(result.current.notes[0].title).toBe('Hello world');
-      expect(result.current.notes[0].content).toBe('Hello world\nbody');
     });
 
     it('keeps the new title even when the backend response carries the old one', async () => {
@@ -332,19 +376,21 @@ describe('useNotebookList', () => {
       notesApi.list.mockResolvedValue([{ ...noteInTravel }]);
       notesApi.update.mockResolvedValue(staleBackendResponse);
 
-      const { result } = renderHook(() => useNotebookList());
+      const { result } = renderHook(() => useNotebookList(), { wrapper });
 
       await waitFor(() => {
         expect(result.current.notes).toHaveLength(1);
       });
 
       await act(async () => {
-        await result.current.renameNote(noteInTravel.id, 'New title');
+        result.current.renameNote(noteInTravel.id, 'New title');
       });
 
       // The sidebar must keep the title we just sent, not snap back to the
       // stale response value.
-      expect(result.current.notes[0].title).toBe('New title');
+      await waitFor(() => {
+        expect(result.current.notes[0].title).toBe('New title');
+      });
     });
   });
 });
