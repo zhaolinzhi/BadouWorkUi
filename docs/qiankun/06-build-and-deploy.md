@@ -136,6 +136,15 @@ Windows 出 `.exe`(nsis)、Linux 出 `.deb`。**后端二进制不在 `out/`** �
 
 两个坑:`out/` 和 `out-fast-builds/` 都在 gitignore 里,不会误提交;`electron-vite build` 每次会清空 `out/`,所以上一次打的安装包不会残留 —— 但 `build:all` 拷进去的微应用也会被下一次普通 `bun run build` 一起抹掉。
 
+**本机打出来的 mac 包只有 ad-hoc 签名。** 构建机没有 Developer ID 证书时
+(`security find-identity -v -p codesigning` 显示 `0 valid identities found`),
+electron-builder 会退化成 `codesign --sign -`。这种包通过微信 / 邮件 / 浏览器发出去,
+对方的 macOS 会弹「无法打开,因为它来自身份不明的开发者」—— 构建机上完全看不出来,
+只有收包的人会撞上。处置:对方右键「打开」,或 `xattr -cr /Applications/BadouWorklocal.app`。
+要在 CI 里出**免弹窗**的包,得把签名证书和公证凭据配成 secret
+(`BUILD_CERTIFICATE_BASE64` / `P12_PASSWORD` / `IDENTITY` / `APPLE_ID` /
+`APPLE_ID_PASSWORD` / `TEAM_ID`)。构建脚本会在检测到 ad-hoc 签名时打一条警告。
+
 **构建机连不上 GitHub 时改用 `bun run build:offline`。** `build:all` 有三处联网:aioncore 后端二进制、AionHub 资源、Electron 发行包。GitHub 不通(`curl https://github.com` 直接超时)时这三步会依次失败,构建停在第一步;`build:offline` 是等价命令,只是把联网点指向可达的源:
 
 ```bash
