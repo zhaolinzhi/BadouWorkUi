@@ -51,7 +51,7 @@ preflight:
         $nodeVer = (node --version 2>&1).Trim()
         $major = [int]($nodeVer -replace '^v','').Split('.')[0]
         if ($major -ge 22) { Write-Host "  OK  Node.js $nodeVer" }
-        else { Write-Host "  WARN  Node.js $nodeVer (recommend >= 22)" }
+        else { Write-Host "  FAIL  Node.js $nodeVer (需要 >= 22,见 package.json 的 engines)"; $failed = $true }
     } catch { Write-Host "  FAIL  Node.js not found"; $failed = $true }
     Write-Host "[2/6] bun..."
     try {

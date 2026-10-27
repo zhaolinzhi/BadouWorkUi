@@ -609,6 +609,7 @@ function cleanupWindowsPackOutput() {
 const args = process.argv.slice(2);
 const archList = ['x64', 'arm64', 'ia32', 'armv7l'];
 const { resolveAutoArchArgs } = require('../packages/shared-scripts/src/resolve-auto-arch-args.js');
+const { assertNodeVersion } = require('../packages/shared-scripts/src/assert-node-version.js');
 
 // Check for special flags
 const skipVite = args.includes('--skip-vite');
@@ -733,6 +734,10 @@ let restorePackageVersionOverride = () => {};
 let buildFailed = false;
 
 try {
+  // node 版本闸门。这个脚本跑在 PATH 上的 node 上(`bun run` 不会把 node 换成 bun),
+  // 版本过低会以极难排查的形式失败 —— 详见 assert-node-version.js 的注释。
+  assertNodeVersion();
+
   restorePackageVersionOverride = applyDebugAutoUpdateVersionOverride(packageJsonPath);
 
   // 1. Ensure package.json main entry is correct for electron-vite

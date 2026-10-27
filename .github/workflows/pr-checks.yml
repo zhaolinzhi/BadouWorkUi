@@ -381,6 +381,9 @@ jobs:
           Write-Host "✓Build test passed for ${{ matrix.platform }}"
         env:
           NODE_OPTIONS: '--max-old-space-size=8192'
+          # 内置微应用(qiankun):与发布流水线保持同一条构建路径
+          # Bundle the qiankun micro apps, same path as the release pipeline
+          MICRO_APP_BUNDLE: '1'
           npm_config_runtime: electron
           npm_config_arch: x64
           npm_config_target_arch: x64
@@ -403,6 +406,9 @@ jobs:
           echo "✓Build test passed for ${{ matrix.platform }}"
         env:
           NODE_OPTIONS: '--max-old-space-size=8192'
+          # 内置微应用(qiankun):与发布流水线保持同一条构建路径
+          # Bundle the qiankun micro apps, same path as the release pipeline
+          MICRO_APP_BUNDLE: '1'
           npm_config_arch: ${{ matrix.arch }}
           npm_config_target_arch: ${{ matrix.arch }}
           npm_config_runtime: electron

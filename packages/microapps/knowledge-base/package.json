@@ -12,7 +12,7 @@
   "dependencies": {
     "@aionui/microapp-shared": "workspace:*",
     "@arco-design/web-react": "^2.66.1",
-    "@icon-park/react": "^1.6.2",
+    "@icon-park/react": "^1.4.2",
     "classnames": "^2.5.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

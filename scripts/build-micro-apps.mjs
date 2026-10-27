@@ -17,6 +17,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import nodeVersionGate from '../packages/shared-scripts/src/assert-node-version.js';
+
+const { assertNodeVersion } = nodeVersionGate;
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const MICROAPPS_DIR = path.join(ROOT, 'packages', 'microapps');
@@ -107,10 +110,35 @@ function warnOnSplitChunks(name, distDir) {
 
 function buildOne(name) {
   const cwd = path.join(MICROAPPS_DIR, name);
+  const entry = path.join(cwd, 'dist', 'index.html');
+  // 构建前的产物时间戳。构建失败时 vite 不会清空 outDir,上一次的 dist/ 会留在原地 ——
+  // 不比一下就会把陈旧产物当成新产物拷进安装包。
+  // Timestamp of the pre-build artifact. A failed build leaves the previous dist/ in
+  // place (vite only empties outDir on success), so without this check a stale build
+  // would be copied into the installer.
+  const before = fs.existsSync(entry) ? fs.statSync(entry).mtimeMs : -1;
+
   console.log(paint(COLOR.cyan, `[build:all] ${name}`));
   const result = spawnSync('bun', ['run', 'build'], { cwd, stdio: 'inherit', shell: isWindows });
   if (result.error || result.status !== 0) {
     throw new Error(`子应用 ${name} 构建失败(退出码 ${result.status ?? 'null'})`);
+  }
+
+  // `bun run build` 的退出码不可靠:子应用的 vite 构建失败时它仍可能返回 0 ——
+  // 旧版 node 上 unocss / vite-plugin-qiankun 的 ESM 会抛 "SyntaxError: Unexpected
+  // token '||='" 而 bun 不把它当失败。所以在这里就查产物,别拖到 assertHtmlEntry
+  // 才报「没有 index.html」—— 那条信息跟真实原因不沾边。
+  //
+  // `bun run build`'s exit code is not trustworthy: a failed vite build can still exit 0
+  // (old node chokes on `||=` in unocss / vite-plugin-qiankun's ESM, and bun does not
+  // treat that as a failure). Check the artifact here instead of surfacing a misleading
+  // "no index.html" error later.
+  const after = fs.existsSync(entry) ? fs.statSync(entry).mtimeMs : -1;
+  if (after <= before) {
+    throw new Error(
+      `子应用 ${name} 构建没有产出新的 dist/index.html(命令却返回了成功)。` +
+        `常见原因是 node 版本过低 —— 当前 ${process.version},仓库要求 >=22 <25。`
+    );
   }
 }
 
@@ -126,6 +154,10 @@ function copyOne(name) {
 
 /** 构建全部子应用并复制到 out/renderer/microapps/<name>/。 */
 export function buildAndCopyMicroApps() {
+  // node 版本闸门:这个脚本用 PATH 上的 node 跑(旧版 node 缺 fs.cpSync,
+  // 且子应用的 vite 构建会因 `||=` 语法错而静默失败)。
+  assertNodeVersion();
+
   const microApps = discoverMicroApps('build');
   if (microApps.length === 0) {
     process.stderr.write(`${paint(COLOR.red, '[build:all] packages/microapps 下没有任何带 build script 的子应用')}\n`);
