@@ -24,6 +24,7 @@
     "saveFailed": "Failed to save recording",
     "deleteFailed": "Failed to delete recording",
     "transcribeFailed": "Transcription failed",
-    "recordingUnsupported": "Recording is not supported in this environment"
+    "recordingUnsupported": "Recording is not supported in this environment",
+    "unknown": "Unknown error"
   }
 }

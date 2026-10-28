@@ -1063,6 +1063,7 @@ export type I18nKey =
   | 'meeting-recording.errors.recordingUnsupported'
   | 'meeting-recording.errors.saveFailed'
   | 'meeting-recording.errors.transcribeFailed'
+  | 'meeting-recording.errors.unknown'
   | 'meeting-recording.placeholderName'
   | 'meeting-recording.recording'
   | 'meeting-recording.startRecording'
