@@ -102,12 +102,19 @@ const RecordingListItem: React.FC<RecordingListItemProps> = ({ recording, onDele
         <Typography.Text type='secondary' className='microapp-meeting-recording-chunk-count'>
           {`${recording.chunks.length} chunks`}
         </Typography.Text>
-        <Tooltip disabled={summary.transcribedCount > 0} content={t('meeting-recording.transcriptModal.disabledHint')}>
+        <Tooltip
+          disabled={summary.transcribedCount > 0}
+          content={t('meeting-recording.transcriptModal.disabledHint', {
+            defaultValue: 'No transcriptions available yet',
+          })}
+        >
           <Button
             size='mini'
             type='text'
             icon={<FileText theme='outline' size='14' fill='currentColor' />}
-            aria-label={t('meeting-recording.transcriptModal.viewButtonAriaLabel')}
+            aria-label={t('meeting-recording.transcriptModal.viewButtonAriaLabel', {
+              defaultValue: 'View transcript summary',
+            })}
             disabled={summary.transcribedCount === 0}
             onClick={() => setIsTranscriptOpen(true)}
             data-testid='transcript-view-button'
@@ -115,9 +122,13 @@ const RecordingListItem: React.FC<RecordingListItemProps> = ({ recording, onDele
         </Tooltip>
         <Popconfirm
           disabled={!isRetrying}
-          title={t('meeting-recording.transcriptModal.cancelTranscribeConfirmTitle')}
-          okText={t('meeting-recording.transcriptModal.cancelTranscribeConfirmOk')}
-          cancelText={t('meeting-recording.transcriptModal.cancelTranscribeConfirmCancel')}
+          title={t('meeting-recording.transcriptModal.cancelTranscribeConfirmTitle', {
+            defaultValue: 'Stop transcription?',
+          })}
+          okText={t('meeting-recording.transcriptModal.cancelTranscribeConfirmOk', { defaultValue: 'Stop' })}
+          cancelText={t('meeting-recording.transcriptModal.cancelTranscribeConfirmCancel', {
+            defaultValue: 'Keep going',
+          })}
           onOk={() => {
             setIsRetrying(false);
             void ipcBridge.meetingRecording.cancelTranscribe.invoke({ id: recording.id });
@@ -125,7 +136,9 @@ const RecordingListItem: React.FC<RecordingListItemProps> = ({ recording, onDele
         >
           <Tooltip
             disabled={canRetryTranscribe}
-            content={t('meeting-recording.transcriptModal.retryTranscribeDisabledHint')}
+            content={t('meeting-recording.transcriptModal.retryTranscribeDisabledHint', {
+              defaultValue: 'All chunks have been transcribed; nothing to retry',
+            })}
           >
             <Button
               size='mini'
@@ -138,7 +151,9 @@ const RecordingListItem: React.FC<RecordingListItemProps> = ({ recording, onDele
                   <Refresh theme='outline' size='14' fill='currentColor' />
                 </span>
               }
-              aria-label={t('meeting-recording.transcriptModal.retryTranscribeButtonAriaLabel')}
+              aria-label={t('meeting-recording.transcriptModal.retryTranscribeButtonAriaLabel', {
+                defaultValue: 'Retry transcription',
+              })}
               disabled={!canRetryTranscribe}
               onClick={() => {
                 // While a retry is already in flight, the surrounding
@@ -155,7 +170,9 @@ const RecordingListItem: React.FC<RecordingListItemProps> = ({ recording, onDele
           </Tooltip>
         </Popconfirm>
         <Popconfirm
-          title={t('meeting-recording.deleteConfirm')}
+          title={t('meeting-recording.deleteConfirm', {
+            defaultValue: 'Delete this recording? This cannot be undone.',
+          })}
           okText='OK'
           cancelText='Cancel'
           onOk={() => onDelete(recording.id)}
@@ -185,7 +202,13 @@ const RecordingListItem: React.FC<RecordingListItemProps> = ({ recording, onDele
                   {isOpen ? '▼' : '▶'}
                 </Button>
                 <span className='microapp-meeting-recording-chunk-label'>
-                  {t('meeting-recording.chunkLabel', { index: chunk.index + 1 })}
+                  {t('meeting-recording.chunkLabel', {
+                    index: chunk.index + 1,
+                    // 兜底文案自己拼好序号:standalone 没有 i18n 实例,
+                    // react-i18next 的 not-ready 分支直接返回 defaultValue,
+                    // 不会做 `{{index}}` 插值。
+                    defaultValue: `Chunk ${chunk.index + 1}`,
+                  })}
                 </span>
                 <span className='microapp-meeting-recording-chunk-duration'>{formatMs(chunk.durationMs)}</span>
               </div>
@@ -206,12 +229,13 @@ const RecordingListItem: React.FC<RecordingListItemProps> = ({ recording, onDele
               ) : null}
               <Typography.Text type='secondary' className='microapp-meeting-recording-transcript'>
                 {chunk.status === 'transcribed'
-                  ? chunk.transcription || t('meeting-recording.transcriptionPending')
+                  ? chunk.transcription ||
+                    t('meeting-recording.transcriptionPending', { defaultValue: 'Transcription pending' })
                   : chunk.status === 'failed'
                     ? chunk.error
-                      ? `${t('meeting-recording.transcriptionFailed')} (${chunk.error})`
-                      : t('meeting-recording.transcriptionFailed')
-                    : t('meeting-recording.transcriptionPending')}
+                      ? `${t('meeting-recording.transcriptionFailed', { defaultValue: 'Transcription failed' })} (${chunk.error})`
+                      : t('meeting-recording.transcriptionFailed', { defaultValue: 'Transcription failed' })
+                    : t('meeting-recording.transcriptionPending', { defaultValue: 'Transcription pending' })}
               </Typography.Text>
             </div>
           );

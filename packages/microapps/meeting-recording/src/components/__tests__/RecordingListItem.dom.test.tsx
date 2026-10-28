@@ -4,12 +4,22 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import React from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, render, screen } from '@testing-library/react';
+
+/**
+ * 记录每次 `t()` 请求的 key,断言"用的是哪个词条"时用得上。
+ */
+const tCalls = vi.hoisted(() => [] as string[]);
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (k: string, opts?: Record<string, unknown>) => (opts ? `${k}:${JSON.stringify(opts)}` : k),
+    // 与 react-i18next 未初始化时的行为一致:有 defaultValue 就用它,没有就返回 key。
+    // standalone(dev 直开子应用)下没有 shell 的 i18n 实例,走的正是这条分支。
+    t: (k: string, opts?: Record<string, unknown>) => {
+      tCalls.push(k);
+      return typeof opts?.defaultValue === 'string' ? opts.defaultValue : k;
+    },
   }),
 }));
 
@@ -66,17 +76,22 @@ const baseRecording: MeetingRecording = {
 };
 
 describe('RecordingListItem (chunked)', () => {
+  beforeEach(() => {
+    tCalls.length = 0;
+  });
+
   it('renders all chunks with appropriate status text', () => {
     render(<RecordingListItem recording={baseRecording} onDelete={() => {}} />);
     expect(screen.getByText('第一段')).toBeTruthy();
-    expect(screen.getByText('meeting-recording.transcriptionPending')).toBeTruthy();
-    expect(screen.getByText('meeting-recording.transcriptionFailed (HTTP 500)')).toBeTruthy();
+    expect(screen.getByText('Transcription pending')).toBeTruthy();
+    expect(screen.getByText('Transcription failed (HTTP 500)')).toBeTruthy();
   });
 
   it('shows chunk label with 1-based index', () => {
     render(<RecordingListItem recording={baseRecording} onDelete={() => {}} />);
-    expect(screen.getByText('meeting-recording.chunkLabel:{"index":1}')).toBeTruthy();
-    expect(screen.getByText('meeting-recording.chunkLabel:{"index":3}')).toBeTruthy();
+    expect(screen.getByText('Chunk 1')).toBeTruthy();
+    expect(screen.getByText('Chunk 3')).toBeTruthy();
+    expect(tCalls).toContain('meeting-recording.chunkLabel');
   });
 
   it('invokes onDelete when Popconfirm OK is clicked', async () => {

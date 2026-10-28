@@ -14,7 +14,11 @@ const NotesHint: React.FC = () => {
   return (
     <div className={styles.hint}>
       <Info size={12} theme='outline' fill='currentColor' />
-      <span>{t('settings.notesHint')}</span>
+      <span>
+        {t('settings.notesHint', {
+          defaultValue: 'Tip: The first line auto-syncs as the note title and renders bold + larger.',
+        })}
+      </span>
     </div>
   );
 };

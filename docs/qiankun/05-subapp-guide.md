@@ -12,10 +12,11 @@
 
 ```
 packages/microapps/notes/
-├── vite.config.ts                    # 必填:Vite 配置(相对 base + CORS + dev-only qiankun plugin)
+├── vite.config.ts                    # 必填:Vite 配置(相对 base + CORS + dev-only qiankun plugin + UnoCSS)
 ├── tsconfig.json                     # 必填:继承根 tsconfig,加路径别名
 ├── index.html                        # 必填:<div id="root"> + 引用 /src/main.ts
 ├── package.json                      # 必填:dev / build 脚本
+├── uno.config.ts                     # 必填:自己的 UnoCSS 配置(与 shell 共用 token,不带 preflight)
 ├── src/
 │   ├── main.ts                       # 必填:导出 bootstrap/mount/unmount + standalone 守卫
 │   ├── App.tsx                       # 根组件
@@ -23,7 +24,8 @@ packages/microapps/notes/
 │   ├── __qiankun__/
 │   │   ├── adapter.ts                # 必填:createAppContext(props) — 把 props 落到 localStorage
 │   │   ├── auth.ts                   # setActiveProps / clearActiveProps / emitAuthExpired
-│   │   └── __tests__/                # adapter / auth 单测
+│   │   ├── standaloneMock.ts         # 独立运行(dev)时的内存假 bridge
+│   │   └── __tests__/                # adapter / auth / standaloneMock 单测
 │   ├── api/                          # 业务 API
 │   │   ├── client.ts                 # createApiClient({ baseApi, token }) — URL 拼接 + auth header
 │   │   ├── notebooks.ts              # 业务 endpoint(注意:不要带 /api 前缀)
@@ -271,9 +273,32 @@ fetch(`${baseApi}/fs/image-base64`, { ... })
 子应用可以脱离主应用单独跑(`cd packages/microapps/<name> && bun --bun run dev`):
 
 - `__POWERED_BY_QIANKUN__` 为 false,走 standalone 分支,`main.ts` 用 mock props 直接 render
-- mock props 的 `baseApi='/api'`(相对路径),standalone dev server 没有后端,**API 请求会失败**(404) — 调 UI 可以,调接口不行
-- 想联调后端:把 `mockProps.baseApi` 改成 `http://127.0.0.1:13400/api` 之类的绝对地址
+- **数据通道**:独立运行时没有宿主,`window.ipcBridge` 不存在,bridge 解析器会直接抛错,整页被 React error boundary 接管("Unexpected Application Error!")。做法是 dev 下装一份内存假 bridge —— 相当于「自己当自己的宿主」,页面照常渲染,增删改查作用在内存数据上,刷新即回到种子数据:
+  - notes:`packages/microapps/notes/src/__qiankun__/standaloneMock.ts`
+  - knowledge-base:`packages/microapps/knowledge-base/src/__qiankun__/standaloneMock.ts`
+  - meeting-recording:`packages/microapps/meeting-recording/src/__qiankun__/standaloneMock.ts`
+  - 假 bridge **只在 dev 装**(`import.meta.env.DEV`):生产产物由宿主提供真 bridge,脱离宿主直接打开时宁可报错,也不要拿假数据糊弄人
+  - 宿主已经注入过 bridge 时不覆盖(真数据优先)
+  - 假 bridge 只覆盖该子应用**真正用到**的 namespace,其余 bridge 方法不提供 —— 用到就会照常报错,不会悄悄给出假结果
+- mock props 的 `baseApi='/api'`(相对路径),standalone dev server 没有后端,**直接 fetch 的请求会失败**(404)
 - standalone 模式不经过 qiankun 沙箱,HMR / React Refresh **正常工作**(子应用 dev 端口是独立的 Vite 实例)
+- **样式**:独立运行时没有 shell,Arco 基础样式、`arco-override.css`、主题 CSS 变量(`--text-primary` / `--bg-base` …)全都缺席,页面会退化成「没上妆的 HTML」。这些**由共享包统一提供**(`@aionui/microapp-shared`):
+  - `packages/microapps/shared/src/styles/standalone.css` 打包了三份样式(Arco 基础样式 + `arco-override.css` + 主题 CSS 变量),由 `loadStandaloneStyles()` **动态 `import()`** 加载(只在 dev)。不能改成顶层静态 import:子应用的 CSS 会被 `import-html-entry` 内联后搬进**真实 document** 末尾,排在 shell 的 `arco-override.css` 之后,等于把 shell 的主题覆盖又盖回去
+  - `packages/microapps/shared/src/standalone/theme.ts` 负责把外观写到 document 上:`html[data-theme]` + `html[data-color-scheme]`(切主题 CSS 变量)、`body[arco-theme]`(Arco 自己的暗色样式)。被 shell 托管时**不要**写这两个属性 —— 宿主已经算好了
+  - 明暗取值来自 shell 的外观缓存键 `__aionui_theme`(不是 `aionui_theme` —— 后者是主题 id,不是明暗)
+  - 子应用的 `index.html` 给挂载点 div 挂 `class="microapp-standalone-root"`(撑满 + 不产生滚动条)
+- **文案**:standalone 没有 shell 的 i18next 实例,`useTranslation()` 走 react-i18next 的 not-ready 分支 —— 只有 `t(key, { defaultValue })` 的 `defaultValue` 会生效,裸 `t(key)` 会把原始 key 直接显示在页面上。所以**组件里的 `t()` 一律要带 `defaultValue`**(英文兜底,与 shell 的 `en-US` 词条一致)
+- **UnoCSS**:子应用要**自己装**(`packages/microapps/<name>/uno.config.ts` + devDependency `unocss`)。shell 的 UnoCSS `content.pipeline` 只扫 shell 自己的源码,**扫不到 `packages/microapps/**`\*\* —— 被 shell 托管时子应用的工具类同样是没生成的
+  - 入口**必须** `import 'uno.css'`。那是 UnoCSS 的虚拟模块入口,不 import 它插件会警告 `Entry module not found`,产物里也不会有那一份 CSS
+  - 微应用**不共享 preflight**:preflight 是 `*` 选择器,而子应用的 CSS 会注入真实 document,会波及 shell 页面。notes 侧没有 preflight 也不影响观感(`border-b` 那条线两边都不可见)
+  - 测试环境没有 UnoCSS 插件,`import 'uno.css'` 解析不到会让整个测试文件加载失败 —— 根 `vitest.config.ts` 里把它 alias 到 `tests/stubs/uno.css`
+  - 三个子应用的 `uno.config.ts` 都用 `packages/desktop/src/renderer/styles/uno-tokens.ts` 的共享 token(`sharedPresets` / `sharedRules` / `sharedShortcuts` / `sharedTheme`),与 shell 共用同一套语义色
+  - 版本要跟根仓库对齐(`unocss: ^66.3.3`)。KB 之前锁在 `^0.65.4`,而根仓库的 `unocss-preset-extra@1.0.0` 要求 `unocss >= 66`,两套版本混用会生成不出工具类
+  - **已知代价**:三个子应用的生产产物里都会多出一个孤儿 `dist/assets/standalone-*.css`(约 585 kB / gzip 67 kB)。`loadStandaloneStyles()` 里的动态 `import()` 即使被 `import.meta.env.DEV` 判掉,Vite 仍会产出这个 CSS chunk —— 主 JS 里没有引用它,运行时永远不会被加载,但 `scripts/build-micro-apps.mjs` 会把它拷进安装包
+- **Vditor 的运行时资源**:Vditor 把 `cdn` 当前缀用,实际请求 `${cdn}/dist/js/i18n/zh_CN.js`、`${cdn}/dist/js/lute/lute.min.js`。notes 里是 `cdn: './vditor'`,按当前页面解析成 `<origin>/vditor/dist/...`:
+  - 被 shell 托管:shell 的 dev server 用 `viteStaticCopy` 把 `node_modules/vditor/dist` 拷到 `/vditor/dist`(见 `electron.vite.config.ts`),请求打在 shell 源上
+  - 独立运行:子应用自己的 dev server 也要发一份 —— notes 的 `vite.config.ts` 里有 `createVditorDevAssetsPlugin`(只在 `command === 'serve'` 时装)
+  - 少了语言包 / lute,编辑器会初始化失败(内容区整个空白)
 
 ### 3.6.8 测试
 
@@ -304,7 +329,8 @@ fetch(`${baseApi}/fs/image-base64`, { ... })
 
 新建 / 改动子应用时,以下每项都要确认:
 
-- [ ] `vite.config.ts` 装了 `vite-plugin-qiankun` + `qiankunHeadModuleShim`,plugin 顺序 `react → qiankun → qiankunHeadModuleShim`,**且只在 `command === 'serve'` 时装**
+- [ ] `vite.config.ts` 装了 `vite-plugin-qiankun` + `qiankunHeadModuleShim`,**且只在 `command === 'serve'` 时装**(建议顺序 `react → UnoCSS → qiankun → qiankunHeadModuleShim`,插件之间没有硬性先后依赖)
+- [ ] 装了 UnoCSS:有 `uno.config.ts` + devDependency `unocss`,`vite.config.ts` 里装了 `UnoCSS()`,且 **`main.ts` 有 `import 'uno.css'`**(少了这一步 UnoCSS 产物为空)
 - [ ] `vite.config.ts` 有 `cors: true` + `Access-Control-Allow-Origin: '*'`
 - [ ] `vite.config.ts` 有 `base: './'`,且**没有** `build.lib`
 - [ ] `vite.config.ts` 的 server.port 等于 `getDevEntryPort(name)`
@@ -313,6 +339,9 @@ fetch(`${baseApi}/fs/image-base64`, { ... })
 - [ ] `main.ts` 的 `unmount` 清掉 `${systemCode}_` 前缀的 localStorage 键
 - [ ] `main.ts` 的 `__POWERED_BY_QIANKUN__` 分支注册了 `window.moudleQiankunAppLifeCycles['<name>']` **和** `window['<name>']`(键名等于 `MICRO_APP_DEFAULTS.<name>.name`)
 - [ ] `main.ts` 的 `else` 分支(standalone)有 mockProps,**且捕获 try/catch**(测试环境无 #root 时静默跳过)
+- [ ] standalone 有内存假 bridge(`src/__qiankun__/standaloneMock.ts`),只在 dev 装、宿主已注入时不覆盖,且**只覆盖本应用真正用到的 namespace**
+- [ ] standalone 样式与主题走共享包:`loadStandaloneStyles()`(动态 import)+ `resolveStandaloneTheme()` / `applyStandaloneTheme()`,不复制一份到子应用里
+- [ ] 组件里的 `t()` 一律带 `defaultValue`(standalone 没有 shell 的 i18next 实例,裸 `t(key)` 会把原始 key 显示在页面上)
 - [ ] `__qiankun__/adapter.ts` 把 `token / userInfo / baseApi` 都写到 localStorage(用 `${systemCode}_` 前缀)
 - [ ] `__qiankun__/auth.ts` 提供 `emitAuthExpired()`,业务侧 401 走它,**不要**自己跳登录页
 - [ ] 所有 API endpoint **不**带 `/api` 前缀(由 `client.ts:joinUrl` 拼)

@@ -1,0 +1,66 @@
+/**
+ * 独立运行(dev 直开子应用)时才需要的样式 —— 三个微应用共用这一份
+ *
+ * 为什么在共享包里
+ * ===============
+ * 这份样式的内容与子应用无关(Arco 基础样式 + shell 的主题变量 + 基础布局),
+ * 三个微应用各抄一份只会漂移。放在 `@aionui/microapp-shared` 里,
+ * 由 `src/standalone/styles.ts` 的 `loadStandaloneStyles()` 动态加载。
+ *
+ * 加载时机:只在 standalone 分支(dev)执行。理由见 `standalone/styles.ts` 的注释 ——
+ * 被 shell 托管时子应用的 CSS 会被搬进真实 document 末尾,排在 shell 的
+ * `arco-override.css` 之后,等于把 shell 的主题覆盖又盖回去。
+ */
+
+/* Arco 基础样式(与 shell 侧同一份,保证组件外观一致) */
+@import '@arco-design/web-react/dist/css/arco.css';
+
+/* Arco 主题覆盖 + 主题 CSS 变量(语义色 token 的定义处) */
+@import '@renderer/styles/arco-override.css';
+@import '@renderer/styles/themes/index.css';
+
+/*
+ * 独立运行时的基础布局。
+ *
+ * shell 的 `index.html` 用内联 `<style>` 把 `html / body / #root` 撑满并清掉
+ * 默认边距;子应用的 `index.html` 没有这段(挂载点是各自的私有根节点)。
+ * 独立运行时补上,否则 body 的 8px 默认边距会让整个界面缩进去一块。
+ *
+ * `overflow: hidden`:三个子应用的滚动都发生在自己的内容容器里
+ * (KB 的 `overflow-hidden` 根、MR 的 `.page{overflow-y:auto}`、notes 的编辑区),
+ * body 不该出现第二条滚动条。
+ */
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+/*
+ * 底色与文字色。
+ *
+ * shell 侧的这两件事由两处承担:根 `uno.config.ts` 的 preflight 里
+ * `* { color: inherit }`(让文字沿 DOM 树继承) + 主题样式里的 `--text-primary` /
+ * `--bg-base` 变量。微应用刻意不抄那份 preflight(`*` 选择器会污染 shell 的
+ * document),所以独立运行时在这里补上等效的两行。
+ */
+body {
+  color: var(--text-primary);
+  background-color: var(--bg-base);
+}
+
+/*
+ * 子应用的挂载点。
+ *
+ * 三个微应用的 `index.html` 给自己的根 div 挂了这个 class(见各自的
+ * `index.html`);挂载点 id 各自不同(`#notes-root` / `#knowledge-base-root` /
+ * `#meeting-recording-root`),但需要的布局是一样的:撑满 + 不产生滚动条。
+ */
+.microapp-standalone-root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}

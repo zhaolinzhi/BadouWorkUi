@@ -30,7 +30,9 @@ const NotesToolbar: React.FC<NotesToolbarProps> = ({ noteTitle, hasActiveNote, o
       >
         {t('common.back', { defaultValue: 'Back' })}
       </Button>
-      <div className='truncate text-14px font-600 text-t-primary'>{noteTitle ?? t('settings.notes')}</div>
+      <div className='truncate text-14px font-600 text-t-primary'>
+        {noteTitle ?? t('settings.notes', { defaultValue: 'Notes' })}
+      </div>
       <div className='ml-auto flex items-center gap-8px'>
         <Button icon={<Download size={16} />} onClick={onExport} disabled={!hasActiveNote} className='!rounded-8px'>
           {t('settings.notesExport', { defaultValue: 'Export' })}

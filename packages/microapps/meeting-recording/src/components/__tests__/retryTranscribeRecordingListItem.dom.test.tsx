@@ -15,7 +15,8 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (k: string, opts?: Record<string, unknown>) => (opts ? `${k}:${JSON.stringify(opts)}` : k),
+    // 与 react-i18next 未初始化时的行为一致:有 defaultValue 就用它,没有就返回 key。
+    t: (k: string, opts?: Record<string, unknown>) => (typeof opts?.defaultValue === 'string' ? opts.defaultValue : k),
   }),
 }));
 
@@ -135,9 +136,9 @@ describe('RecordingListItem retry-transcribe button', () => {
     fireEvent.click(screen.getByTestId('retry-transcribe-button'));
     expect(mocks.transcribeMock).not.toHaveBeenCalled();
     // Find the confirm button (Arco Popconfirm renders an OK button with the
-    // localized "Stop" text — our stub returns the key as-is).
+    // localized "Stop" text — the i18n stub falls back to the defaultValue).
     const okBtn = await screen.findByRole('button', {
-      name: 'meeting-recording.transcriptModal.cancelTranscribeConfirmOk',
+      name: 'Stop',
     });
     fireEvent.click(okBtn);
     expect(mocks.cancelTranscribeMock).toHaveBeenCalledWith({ id: 'rec-1' });

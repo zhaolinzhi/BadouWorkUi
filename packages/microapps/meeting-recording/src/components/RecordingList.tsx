@@ -19,7 +19,7 @@ const RecordingList: React.FC<RecordingListProps> = ({ recordings, onDelete, loa
   const { t } = useTranslation();
 
   if (!loading && recordings.length === 0) {
-    return <div className={styles.empty}>{t('meeting-recording.empty')}</div>;
+    return <div className={styles.empty}>{t('meeting-recording.empty', { defaultValue: 'No recordings yet' })}</div>;
   }
 
   return (

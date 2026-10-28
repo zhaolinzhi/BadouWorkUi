@@ -25,12 +25,13 @@ const TranscriptSummaryModal: React.FC<TranscriptSummaryModalProps> = ({ recordi
       onCancel={onClose}
       onOk={onClose}
       title={recording.name}
-      okText={t('common.close')}
-      cancelText={t('common.cancel')}
+      okText={t('common.close', { defaultValue: 'Close' })}
+      cancelText={t('common.cancel', { defaultValue: 'Cancel' })}
       className='microapp-meeting-recording-modal'
     >
       <Typography.Paragraph className='microapp-meeting-recording-modal-body' copyable>
-        {summary.text || t('meeting-recording.transcriptModal.disabledHint')}
+        {summary.text ||
+          t('meeting-recording.transcriptModal.disabledHint', { defaultValue: 'No transcriptions available yet' })}
       </Typography.Paragraph>
     </Modal>
   );

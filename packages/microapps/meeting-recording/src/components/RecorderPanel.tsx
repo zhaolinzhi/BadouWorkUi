@@ -35,6 +35,21 @@ const errorKey = (code: MeetingRecorderErrorCode): string => {
   }
 };
 
+/**
+ * 错误码 → 英文兜底文案。
+ *
+ * 与 shell 的 `en-US/meeting-recording.json` 一致。standalone(没有 shell 的
+ * i18n 实例)时 react-i18next 走 not-ready 分支,只认 `defaultValue` ——
+ * 没有兜底的话页面上就是原始 key。
+ */
+const ERROR_TEXT: Record<MeetingRecorderErrorCode, string> = {
+  'permission-denied': 'Microphone access denied',
+  'no-device': 'No microphone detected',
+  'recording-unsupported': 'Recording is not supported in this environment',
+  'save-failed': 'Failed to save recording',
+  unknown: 'Unknown error',
+};
+
 interface RecorderPanelProps {
   onRecorded?: (recordingId: string) => void;
 }
@@ -65,7 +80,11 @@ const RecorderPanel: React.FC<RecorderPanelProps> = ({ onRecorded }) => {
         type={isRecording ? 'outline' : 'primary'}
         onClick={handleClick}
         disabled={isFinalizing}
-        aria-label={isRecording ? t('meeting-recording.stopRecording') : t('meeting-recording.startRecording')}
+        aria-label={
+          isRecording
+            ? t('meeting-recording.stopRecording', { defaultValue: 'Stop' })
+            : t('meeting-recording.startRecording', { defaultValue: 'Start recording' })
+        }
       >
         <span className={isRecording ? styles.pulse : undefined}>
           {isFinalizing ? (
@@ -84,7 +103,7 @@ const RecorderPanel: React.FC<RecorderPanelProps> = ({ onRecorded }) => {
       ) : null}
       {errorCode ? (
         <div className={styles.error} role='alert'>
-          {t(`meeting-recording.errors.${errorKey(errorCode)}` as never)}
+          {t(`meeting-recording.errors.${errorKey(errorCode)}` as never, { defaultValue: ERROR_TEXT[errorCode] })}
         </div>
       ) : null}
     </div>

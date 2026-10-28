@@ -29,6 +29,9 @@
 - [ ] `main.ts` 导出 `bootstrap / mount / unmount`,`unmount` 清 React root + 容器 DOM + `${systemCode}_` 前缀的 localStorage
 - [ ] `main.ts` 的 `__POWERED_BY_QIANKUN__` 分支注册 `window.moudleQiankunAppLifeCycles['<name>']` **和** `window['<name>']`(前者 dev 走,后者生产 HTML 产物走)
 - [ ] `main.ts` 的 standalone 兜底有 mockProps + try/catch
+- [ ] 装了 UnoCSS:`uno.config.ts` + devDependency `unocss`(版本跟根仓库对齐)+ `vite.config.ts` 里装 `UnoCSS()` + **`main.ts` 里 `import 'uno.css'`**(少了最后一步 UnoCSS 产物是空的;详见 [05-subapp-guide.md#367-standalone-调试](05-subapp-guide.md#367-standalone-调试))
+- [ ] 独立运行能看:装一份 dev-only 的内存假 bridge(`src/__qiankun__/standaloneMock.ts`,只覆盖本应用真正用到的 namespace,宿主已注入时不覆盖),并在 `main.ts` 的 dev 分支里装它
+- [ ] 组件里的 `t()` 一律带 `defaultValue` —— standalone 没有 shell 的 i18next 实例,裸 `t(key)` 会把原始 key 显示在页面上
 - [ ] `adapter` / `auth` / `createIpcResolver` 从 `@aionui/microapp-shared` 引,**不要**在子应用里复制一份(详见 [12-related-files.md](12-related-files.md)「共享包」)
 - [ ] API endpoint 路径不带 `/api` 前缀(由 `client.ts:joinUrl` 拼,详见 [04-baseurl.md](04-baseurl.md))
 - [ ] 直接 fetch(Vditor 上传 / 图片 base64)用 `ctx.baseApi`,不要硬编码 `localhost:<port>`

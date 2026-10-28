@@ -1,6 +1,7 @@
 import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import qiankun from 'vite-plugin-qiankun';
+import UnoCSS from 'unocss/vite';
 import path from 'node:path';
 
 /**
@@ -75,6 +76,9 @@ export default defineConfig(({ command }) => ({
   base: './',
   plugins: [
     react(),
+    // UnoCSS:插件之间没有硬性先后依赖(它靠 `transform` 扫模块内容,
+    // qiankun 插件只改 HTML),放在前面是为了让"子应用自带样式链路"一眼可见。
+    UnoCSS(),
     // 只在 dev server 装 vite-plugin-qiankun:原因见上方注释
     ...(command === 'serve' ? [qiankun('meeting-recording', { useDevMode: true }), qiankunHeadModuleShim] : []),
   ],

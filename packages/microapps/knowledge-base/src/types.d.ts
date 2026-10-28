@@ -1,4 +1,23 @@
 /**
+ * Ambient type declarations + shared domain types for the microapp build.
+ *
+ * Mirrors the desktop app's `packages/desktop/src/renderer/types.d.ts`
+ * subset that this microapp needs (only CSS Modules — images/SVGs are not
+ * used here). Required because `tsc --noEmit` runs on this package
+ * independently and Vite-only `vite/client` references are not sufficient.
+ *
+ * The domain types live in the same file so `src/` keeps a flat layout —
+ * the sibling microapps (`notes` / `meeting-recording`) use the same
+ * single `types.d.ts` file for their ambient declarations.
+ */
+/// <reference types="vite/client" />
+
+declare module '*.module.css' {
+  const classes: { [key: string]: string };
+  export default classes;
+}
+
+/**
  * @license
  * Copyright 2025 AionUi (aionui.com)
  * SPDX-License-Identifier: Apache-2.0

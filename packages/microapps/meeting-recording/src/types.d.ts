@@ -6,6 +6,8 @@
  * used here). Required because `tsc --noEmit` runs on this package
  * independently and Vite-only `vite/client` references are not sufficient.
  */
+/// <reference types="vite/client" />
+
 declare module '*.module.css' {
   const classes: { [key: string]: string };
   export default classes;

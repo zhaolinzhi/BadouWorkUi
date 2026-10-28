@@ -3,13 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AionUi Knowledge Base</title>
+    <title>BadouWork Knowledge Base</title>
   </head>
   <body>
     <!-- 刻意不用 #root:shell 的 index.html 里就有 <div id="root">,同名的话
          standalone 分支一旦在 shell 里跑起来就会把整个 shell 当挂载点抹掉。
-         见 src/main.ts 的 STANDALONE_ROOT_ID 注释。 -->
-    <div id="knowledge-base-root"></div>
+         见 src/main.ts 的 STANDALONE_ROOT_ID 注释。
+         microapp-standalone-root 是共享包 standalone.css 里的挂载点样式。 -->
+    <div id="knowledge-base-root" class="microapp-standalone-root"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

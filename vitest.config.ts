@@ -16,6 +16,9 @@ const aliases = {
   // resolves it), but vitest transforms with the root config — this root-level alias
   // keeps tests in sync.
   '@aionui/microapp-shared': path.resolve(__dirname, './packages/microapps/shared/src/index.ts'),
+  // UnoCSS 的虚拟模块入口。应用入口 `import 'uno.css'`,没有 UnoCSS 插件时
+  // 解析不到会直接让测试文件加载失败 —— 指到一个空样式文件即可(测试不依赖样式)。
+  'uno.css': path.resolve(__dirname, './tests/stubs/uno.css'),
 };
 
 export default defineConfig({

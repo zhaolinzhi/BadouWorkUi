@@ -1,15 +1,22 @@
 import React from 'react';
 import { App } from './App';
 import {
+  applyStandaloneTheme,
   clearAppLocalStorage,
   clearActiveProps,
   createAppContext,
   createMicroAppRenderer,
   isQiankunHost,
+  loadStandaloneStyles,
+  resolveStandaloneTheme,
   setActiveProps,
   type RenderProps,
 } from '@aionui/microapp-shared';
+// `uno.css` 是 UnoCSS 的虚拟模块入口:不 import 它,UnoCSS 不知道要把工具类
+// 生成到哪个入口(插件会警告 "Entry module not found"),产物里也不会有那一份 CSS。
+import 'uno.css';
 import './styles/global.css';
+import { installStandaloneMockBridge } from './__qiankun__/standaloneMock';
 
 /**
  * standalone(直接 `vite dev` 打开 7991)时的挂载点。
@@ -54,32 +61,56 @@ if (isQiankunHost()) {
   // 名字要和 MICRO_APP_DEFAULTS 里的 name 一致。
   w['meeting-recording'] = lifeCycles;
 } else {
-  try {
-    const mockProps: RenderProps = {
-      token: localStorage.getItem('aionui_token') ?? '',
-      userInfo: { id: '', username: 'dev', permissions: [], tenantId: 'dev' },
-      systemCode: 'aionui',
-      baseApi: '/api',
-      shellVersion: '0.0.0',
-      theme: (localStorage.getItem('aionui_theme') as 'light' | 'dark') ?? 'light',
-      locale: localStorage.getItem('aionui_locale') ?? 'zh-CN',
-      // 独立运行时没有 shell 的 LayoutContext,按 shell 的 768px 断点自行判定
-      isMobile: typeof window === 'undefined' ? false : window.innerWidth < 768,
-      on: () => () => {},
-      emit: () => {},
-      navigate: (path: string) => {
-        window.history.pushState({}, '', path);
-      },
-      navigateExternal: (path: string) => {
-        window.location.href = path;
-      },
-      container: `#${STANDALONE_ROOT_ID}`,
-    };
-    renderer.render(mockProps);
-  } catch (err) {
-    // 独立运行失败时（例如测试环境没有挂载点）静默跳过；
-    // qiankun 主应用会通过 mount() 显式调用，不会走到这里。
-    // eslint-disable-next-line no-console
-    console.warn('[meeting-recording] standalone bootstrap skipped:', err);
-  }
+  // 独立运行。用 async IIFE 而不是顶层 await:Vite 产物的 esbuild target 是
+  // es2020,顶层 await 会让构建直接失败。
+  void (async () => {
+    try {
+      if (import.meta.env.DEV) {
+        // 独立运行时没有宿主,`window.ipcBridge` 不存在 —— 而录音列表在
+        // **挂载时**就要取 bridge 取列表,取不到就抛错,整页会被 React error
+        // boundary 接管("Unexpected Application Error!")。这里自己当自己的宿主,
+        // 装一份内存假 bridge,让 standalone dev 至少能正常调 UI。
+        //
+        // 只在 dev 装:生产产物由宿主提供真 bridge,脱离宿主直接打开时宁可报错,
+        // 也不要拿假数据糊弄人(见 `__qiankun__/standaloneMock.ts` 的注释)。
+        installStandaloneMockBridge();
+
+        // shell 提供的样式(Arco 基础样式 + 主题变量 + 主题覆盖)在独立运行时
+        // 全部缺席,页面就是一堆没上妆的 HTML。这里把它们补上。
+        //
+        // 样式与主题由共享包提供(三个微应用共用一份),被 shell 托管时这段代码
+        // 根本不执行,样式仍然只由 shell 提供一份。
+        await loadStandaloneStyles();
+      }
+      const theme = resolveStandaloneTheme();
+      // 把外观写到 document 上,主题 CSS 变量与 Arco 暗色样式才会生效
+      applyStandaloneTheme(theme);
+      const mockProps: RenderProps = {
+        token: localStorage.getItem('aionui_token') ?? '',
+        userInfo: { id: '', username: 'dev', permissions: [], tenantId: 'dev' },
+        systemCode: 'aionui',
+        baseApi: '/api',
+        shellVersion: '0.0.0',
+        theme,
+        locale: localStorage.getItem('aionui_locale') ?? 'zh-CN',
+        // 独立运行时没有 shell 的 LayoutContext,按 shell 的 768px 断点自行判定
+        isMobile: typeof window === 'undefined' ? false : window.innerWidth < 768,
+        on: () => () => {},
+        emit: () => {},
+        navigate: (path: string) => {
+          window.history.pushState({}, '', path);
+        },
+        navigateExternal: (path: string) => {
+          window.location.href = path;
+        },
+        container: `#${STANDALONE_ROOT_ID}`,
+      };
+      renderer.render(mockProps);
+    } catch (err) {
+      // 独立运行失败时（例如测试环境没有挂载点）静默跳过；
+      // qiankun 主应用会通过 mount() 显式调用，不会走到这里。
+      // eslint-disable-next-line no-console
+      console.warn('[meeting-recording] standalone bootstrap skipped:', err);
+    }
+  })();
 }
