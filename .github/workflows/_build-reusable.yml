@@ -95,6 +95,9 @@ jobs:
         uses: actions/checkout@v6
         with:
           ref: ${{ inputs.ref }}
+          # Full history is required to generate release-notes.md from the
+          # previous version tag.
+          fetch-depth: 0
 
       - name: Get commit hash
         id: commit
@@ -637,7 +640,7 @@ jobs:
             out/*.msi
             out/*.dmg
             out/*.deb
-            out/AionUi-*-mac-*.zip
+            out/BadouWork-*-mac-*.zip
             out/*.yml
           if-no-files-found: warn
           retention-days: 7

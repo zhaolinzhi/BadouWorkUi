@@ -4,20 +4,30 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Divider, Typography, Message } from '@arco-design/web-react';
-import { Github, Right } from '@icon-park/react';
-import React, { useState } from 'react';
+import { Divider, Typography, Button, Message } from '@arco-design/web-react';
+import { Right } from '@icon-park/react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import classNames from 'classnames';
 import { useSettingsViewMode } from '../settingsViewContext';
-import { openExternalUrl } from '@/renderer/utils/platform';
+import { isElectronDesktop, openExternalUrl } from '@/renderer/utils/platform';
 import FeedbackReportModal from './FeedbackReportModal';
+import { ipcBridge } from '@/common';
+import { runUpdateCheck } from '@/renderer/components/settings/checkForUpdatesShared';
+import { UPDATE_AVAILABLE_EVENT } from '@/renderer/components/settings/useUpdateNotificationController';
+import { OPEN_MIGRATION_DIALOG_EVENT } from '@/renderer/components/settings/UpdateMigrationDialog';
+import { IS_DISCONTINUED_BUILD } from '@/renderer/utils/discontinuedBuild';
+import {
+  getUpdateReadyState,
+  setUpdateReadyState,
+  subscribeUpdateReadyState,
+  type UpdateReadyState,
+} from '@/renderer/components/settings/updateReadyState';
 
-// Display-only version label shown on the About screen. Decoupled from
-// the build-time `__APP_VERSION__` injection so the visible brand label can
-// change without affecting auto-update comparison, Sentry release, or build
-// version injection. To change the displayed version, edit APP_VERSION_DISPLAY.
-const APP_VERSION_DISPLAY = '1.0.0';
+// __APP_VERSION__ is injected by electron.vite.config.ts `define:` from the
+// repo-root package.json. The update check compares the same version via
+// app.getVersion() in the main process.
+declare const __APP_VERSION__: string;
 
 type LinkItem =
   | { title: string; url: string; icon: React.ReactNode; onClick?: never }
@@ -27,14 +37,63 @@ const AboutModalContent: React.FC = () => {
   const { t } = useTranslation();
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
+  const isElectron = isElectronDesktop();
 
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [updateReadyState, setLocalUpdateReadyState] = useState<UpdateReadyState>(() => getUpdateReadyState());
+  const [checking, setChecking] = useState(false);
+
+  useEffect(() => subscribeUpdateReadyState(setLocalUpdateReadyState), []);
 
   const openLink = async (url: string) => {
     try {
       await openExternalUrl(url);
     } catch (error) {
       console.log('Failed to open link:', error);
+    }
+  };
+
+  const checkUpdate = async () => {
+    // Discontinued build: guide to the migration card instead of running any
+    // in-app version detection. The flag is compile-time and false elsewhere.
+    if (IS_DISCONTINUED_BUILD) {
+      window.dispatchEvent(new CustomEvent(OPEN_MIGRATION_DIALOG_EVENT));
+      return;
+    }
+
+    if (updateReadyState.ready) {
+      if (updateReadyState.preparing) return;
+      if (updateReadyState.filePath) {
+        void ipcBridge.shell.openFile.invoke(updateReadyState.filePath);
+        return;
+      }
+      setUpdateReadyState({ ...updateReadyState, preparing: true });
+      void ipcBridge.autoUpdate.quitAndInstall.invoke().catch(() => {
+        Message.error(t('update.errors.prepareInstallFailed'));
+        setUpdateReadyState({ ...updateReadyState, preparing: false });
+      });
+      return;
+    }
+
+    if (checking) return;
+    setChecking(true);
+    try {
+      const outcome = await runUpdateCheck({
+        includePrerelease: false,
+        fallbackVersion: __APP_VERSION__,
+        checkFailedLabel: t('update.checkFailed'),
+      });
+      if (outcome.kind === 'available') {
+        // Reveal the notification card only once an update is confirmed, and
+        // hand over the already-fetched outcome so it skips the checking flash.
+        window.dispatchEvent(new CustomEvent(UPDATE_AVAILABLE_EVENT, { detail: outcome }));
+      } else if (outcome.kind === 'upToDate') {
+        Message.info(t('update.alreadyLatest'));
+      } else {
+        Message.error(outcome.message || t('update.checkFailed'));
+      }
+    } finally {
+      setChecking(false);
     }
   };
 
@@ -86,19 +145,30 @@ const AboutModalContent: React.FC = () => {
             </Typography.Text>
             <div className='flex items-center justify-center gap-8px mb-16px'>
               <span className='px-10px py-4px rd-6px text-13px bg-fill-2 text-t-primary font-500'>
-                v{APP_VERSION_DISPLAY}
+                v{__APP_VERSION__}
               </span>
-              {/*<div*/}
-              {/*  className='text-t-primary cursor-pointer hover:text-t-secondary transition-colors p-4px'*/}
-              {/*  onClick={() =>*/}
-              {/*    openLink('https://github.com/iOfficeAI/AionUi').catch((error) =>*/}
-              {/*      console.error('Failed to open link:', error)*/}
-              {/*    )*/}
-              {/*  }*/}
-              {/*>*/}
-              {/*  <Github theme='outline' size='20' />*/}
-              {/*</div>*/}
             </div>
+
+            {/* Check Update Section */}
+            {isElectron && (
+              <div className='flex flex-col items-center gap-12px w-full max-w-300px bg-fill-2 p-16px rounded-lg'>
+                <Button
+                  type='primary'
+                  long
+                  loading={checking || updateReadyState.preparing}
+                  disabled={updateReadyState.preparing}
+                  onClick={() => void checkUpdate()}
+                >
+                  {updateReadyState.preparing
+                    ? t('update.preparingInstall')
+                    : updateReadyState.ready
+                      ? t('settings.updateReadyInstall', { version: updateReadyState.version })
+                      : checking
+                        ? t('settings.checkingForUpdates')
+                        : t('settings.checkForUpdates')}
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Divider */}

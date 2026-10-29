@@ -60,13 +60,12 @@ interface AutoUpdateCheckParams {
   includePrerelease?: boolean;
 }
 
-const DEFAULT_REPO = 'iOfficeAI/AionUi';
-const DEFAULT_USER_AGENT = 'AionUi';
+const DEFAULT_REPO = 'zhaolinzhi/BadouWorkUi';
+const DEFAULT_USER_AGENT = 'BadouWork';
 const ALLOWED_ASSET_EXTS = new Set(['.exe', '.msi', '.dmg', '.zip', '.deb', '.rpm']);
-// const CDN_HOST = 'static.aionui.com';
-// const CDN_BASE_URL = `https://${CDN_HOST}/releases`;
-const CDN_HOST = 'https://qw.badousoft.com/badouwork/statics';
-const CDN_BASE_URL = `${CDN_HOST}`;
+// Hostname only — assertAllowedUrl compares URL.hostname against this set.
+const CDN_HOST = 'qw.badousoft.com';
+const CDN_BASE_URL = `https://${CDN_HOST}/badouwork/statics/releases`;
 const ALLOWED_DOWNLOAD_HOSTS = new Set<string>([
   CDN_HOST,
   'github.com',
@@ -193,7 +192,15 @@ export const pickRecommendedAsset = (
 };
 
 export type CdnManifestFile = { url: string; size?: number };
-export type CdnLatestManifest = { version: string; files: CdnManifestFile[]; releaseDate?: string };
+export type CdnLatestManifest = {
+  version: string;
+  files: CdnManifestFile[];
+  releaseDate?: string;
+  /** Markdown notes embedded by electron-builder's releaseInfo.releaseNotesFile. */
+  releaseNotes?: string;
+  /** Optional release page URL, if the manifest carries one. */
+  releasePageUrl?: string;
+};
 
 /**
  * Pick the electron-builder channel file for the current platform/arch,
@@ -217,7 +224,7 @@ export const parseCdnManifest = (raw: string): CdnLatestManifest | null => {
     return null;
   }
   if (!doc || typeof doc !== 'object') return null;
-  const { version, files, releaseDate } = doc as Record<string, unknown>;
+  const { version, files, releaseDate, releaseNotes, releasePageUrl, htmlUrl } = doc as Record<string, unknown>;
   if (typeof version !== 'string' || !Array.isArray(files)) return null;
   const mappedFiles = files
     .filter((file): file is Record<string, unknown> => Boolean(file) && typeof file === 'object')
@@ -228,14 +235,18 @@ export const parseCdnManifest = (raw: string): CdnLatestManifest | null => {
     version,
     files: mappedFiles,
     releaseDate: typeof releaseDate === 'string' ? releaseDate : undefined,
+    releaseNotes: typeof releaseNotes === 'string' ? releaseNotes : undefined,
+    releasePageUrl:
+      typeof releasePageUrl === 'string' ? releasePageUrl : typeof htmlUrl === 'string' ? htmlUrl : undefined,
   };
 };
 
 /**
- * Build an UpdateReleaseInfo from the CDN manifest alone. `htmlUrl`/`body`
- * stay empty here — the GitHub best-effort enrichment fills them when
- * reachable. fallbackUrl follows GitHub's fixed release-asset URL scheme, so
- * no API call is needed to construct it.
+ * Build an UpdateReleaseInfo from the CDN manifest alone. `body` comes from
+ * the manifest's embedded `releaseNotes` (electron-builder releaseInfo) and
+ * `htmlUrl` from its optional `releasePageUrl`; GitHub enrichment can still
+ * override them when reachable. fallbackUrl follows GitHub's fixed
+ * release-asset URL scheme, so no API call is needed to construct it.
  */
 export const mapCdnManifestToRelease = (manifest: CdnLatestManifest, repo: string): UpdateReleaseInfo | null => {
   const version = semver.valid(manifest.version);
@@ -254,7 +265,8 @@ export const mapCdnManifestToRelease = (manifest: CdnLatestManifest, repo: strin
   return {
     tagName: `v${version}`,
     version,
-    htmlUrl: '',
+    body: manifest.releaseNotes,
+    htmlUrl: manifest.releasePageUrl ?? '',
     publishedAt: manifest.releaseDate,
     prerelease: false,
     draft: false,
@@ -315,8 +327,10 @@ const fetchWithAllowlistedRedirects = async (rawUrl: string, signal: AbortSignal
 };
 
 const fetchGitHubReleases = async (repo: string, timeoutMs = 30000): Promise<GitHubReleaseApi[]> => {
-  //const url = `https://api.github.com/repos/${repo}/releases`;
-  const url = `https://qw.badousoft.com/badouwork/api/versions`;
+  // Optional override for deployments that proxy/cache GitHub releases (for
+  // example an internal CDN endpoint). Defaults to the product's GitHub repo.
+  const override = process.env.AIONUI_RELEASES_API_URL?.trim();
+  const url = override || `https://api.github.com/repos/${repo}/releases?per_page=100`;
 
   // 添加超时控制，防止网络问题导致无限等待 / Add timeout to prevent infinite wait on network issues
   const controller = new AbortController();
@@ -434,7 +448,7 @@ const sanitizeFileName = (name: string): string => {
   // Keep only base name and trim weird whitespace.
   const base = path.basename(name).trim();
   // Avoid empty names.
-  return base || `AionUi-update-${Date.now()}`;
+  return base || `BadouWork-update-${Date.now()}`;
 };
 
 const ensureUniquePath = (target: string): string => {
@@ -712,9 +726,10 @@ export function initUpdateBridge(): void {
             updateAvailable: semver.gt(latest.version, currentSemver),
             latest: {
               ...latest,
-              body: enrichment.body,
-              name: enrichment.name,
-              htmlUrl: enrichment.htmlUrl ?? '',
+              // Manifest-embedded notes win when GitHub has no matching release.
+              body: enrichment.body ?? latest.body,
+              name: enrichment.name ?? latest.name,
+              htmlUrl: enrichment.htmlUrl ?? latest.htmlUrl,
               publishedAt: enrichment.publishedAt ?? latest.publishedAt,
             },
           },
