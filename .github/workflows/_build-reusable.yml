@@ -95,6 +95,9 @@ jobs:
         uses: actions/checkout@v6
         with:
           ref: ${{ inputs.ref }}
+          # Full history is required to generate release-notes.md from the
+          # previous version tag.
+          fetch-depth: 0
 
       - name: Get commit hash
         id: commit
@@ -354,19 +357,28 @@ jobs:
 
           try {
             Write-Host "Running Windows build command: $Command"
+            # Native commands set $LASTEXITCODE instead of throwing, so check it
+            # explicitly. Otherwise the step logs "completed successfully" and
+            # writes result=success after electron-builder has already failed.
+            $global:LASTEXITCODE = 0
             iex $Command
+            if ($LASTEXITCODE -ne 0) {
+              throw "Build command exited with code $LASTEXITCODE"
+            }
             Write-Host "Windows build completed successfully"
           } catch {
             $BuildFailed = $true
-            Write-Warning "${{ matrix.platform }} build failed but will not block the workflow"
-            Write-Host "::notice title=Windows build skipped::${{ matrix.platform }} build failed (see logs above) but workflow is allowed to continue."
+            Write-Warning "${{ matrix.platform }} build failed: $_"
+            Write-Host "::error title=Windows build failed::${{ matrix.platform }} build failed (see the electron-builder output above)."
           }
 
           if ($BuildFailed) {
             "result=failure" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          } else {
-            "result=success" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            exit 1
           }
+
+          "result=success" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          exit 0
         env:
           WINDOWS_BUILD_COMMAND: ${{ matrix.command }}
           AIONUI_BACKEND_RUN_ID: ${{ inputs.aioncore_run_id }}
@@ -628,7 +640,7 @@ jobs:
             out/*.msi
             out/*.dmg
             out/*.deb
-            out/AionUi-*-mac-*.zip
+            out/BadouWork-*-mac-*.zip
             out/*.yml
           if-no-files-found: warn
           retention-days: 7
