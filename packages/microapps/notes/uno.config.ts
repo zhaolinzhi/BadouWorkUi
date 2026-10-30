@@ -28,6 +28,17 @@ import { sharedPresets, sharedRules, sharedShortcuts, sharedTheme } from '../../
 export default defineConfig({
   presets: sharedPresets(),
   transformers: [transformerVariantGroup(), transformerDirectives({ enforce: 'pre' })],
+  /**
+   * UnoCSS 虚拟模块前缀 —— **不能和 shell 用同一个**。
+   *
+   * 默认的 `__uno` 会让 notes 与 shell 的虚拟模块 id 都叫 `/__uno.css`;而两者
+   * 共用同一个 document,Vite 客户端会把 DOM 里已有的 `<style data-vite-dev-id>`
+   * 标签反向认领进自己的 map —— 于是 notes 的客户端直接**覆盖 shell 的 UnoCSS
+   * 产物**,shell 的工具类全部失效(左侧栏塌成竖排图标)。
+   *
+   * 完整原理见 `packages/desktop/src/renderer/styles/uno-tokens.ts` 顶部注释。
+   */
+  virtualModulePrefix: '__uno_notes',
   content: {
     pipeline: {
       // RegExp 而非 glob:glob 会相对 vite root 解析,root 一变就匹配不到。

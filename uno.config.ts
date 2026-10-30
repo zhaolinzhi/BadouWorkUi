@@ -20,6 +20,17 @@ import {
 export default defineConfig({
   presets: sharedPresets(),
   transformers: [transformerVariantGroup(), transformerDirectives({ enforce: 'pre' })],
+  /**
+   * UnoCSS 虚拟模块前缀 —— shell 与三个微应用必须**各不相同**。
+   *
+   * 默认值 `__uno` 会让四个应用的虚拟模块 id 全都叫 `/__uno.css`;而 qiankun 的
+   * 微应用与 shell 共用同一个 document,Vite 客户端又会把 DOM 里已有的
+   * `<style data-vite-dev-id>` 标签反向认领进自己的 map,于是后加载的微应用会
+   * **原地覆盖 shell 的 UnoCSS 产物**,shell 的工具类全部失效。
+   *
+   * 完整原理见 `packages/desktop/src/renderer/styles/uno-tokens.ts` 顶部注释。
+   */
+  virtualModulePrefix: '__uno_shell',
   content: {
     pipeline: {
       // Use RegExp instead of glob strings so patterns match against absolute
