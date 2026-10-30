@@ -7,7 +7,7 @@
 /**
  * `AsyncBoundary` 的行为测试。
  *
- * 它收拢四个微应用各写一遍的三态渲染 —— KB 的 `PersonalKnowledgeBaseList` 与
+ * 它收拢三个微应用各写一遍的三态渲染 —— KB 的 `PersonalKnowledgeBaseList` 与
  * `SharedKnowledgeBaseGrid` 里那两段几乎逐字相同的 class 串就是典型。
  *
  * 关键约束:
@@ -152,5 +152,23 @@ describe('AsyncBoundary', () => {
     render(<AsyncBoundary isEmpty />);
 
     expect(screen.getByTestId('async-boundary-empty')).toBeTruthy();
+  });
+
+  it('把 className 落到加载态根容器上 —— 整页加载要靠它撑满', () => {
+    render(<AsyncBoundary loading className='h-full min-h-0' />);
+
+    expect(screen.getByTestId('async-boundary-loading').className).toContain('h-full');
+  });
+
+  it('把 className 落到错误态根容器上', () => {
+    render(<AsyncBoundary error='加载失败' className='h-full min-h-0 justify-center' />);
+
+    expect(screen.getByTestId('async-boundary-error').className).toContain('justify-center');
+  });
+
+  it('把 className 落到空态根容器上', () => {
+    render(<AsyncBoundary isEmpty className='px-20px' />);
+
+    expect(screen.getByTestId('async-boundary-empty').className).toContain('px-20px');
   });
 });

@@ -7,7 +7,7 @@
 /**
  * 异步数据的四态边界:loading / error / empty / content。
  *
- * 收拢四个微应用各写一遍的三态渲染 —— KB 的 `PersonalKnowledgeBaseList` 与
+ * 收拢三个微应用各写一遍的三态渲染 —— KB 的 `PersonalKnowledgeBaseList` 与
  * `SharedKnowledgeBaseGrid` 里那两段几乎逐字相同的 class 串就是典型。
  *
  * 设计约束
@@ -20,10 +20,14 @@
  *    行为又依赖调用方的 i18n 实例。所以文案一律由调用方用
  *    `t(key, { defaultValue })` 算好再传进来。
  * 4. **没有文案就不渲染按钮** —— 一个没字的重试按钮比没有更糟。
+ * 5. **`className` 落到状态根容器**。列表里的边界只需要「占一块地方」,
+ *    整页的边界要「撑满整页」—— 这两者的差别只能由调用方决定,
+ *    所以根容器留一个口子。
  */
 import { Button, Spin } from '@arco-design/web-react';
 import React from 'react';
 
+import { cx } from '../utils/cx';
 import EmptyState from './EmptyState';
 
 export type AsyncBoundaryProps = {
@@ -43,6 +47,8 @@ export type AsyncBoundaryProps = {
   emptyContent?: React.ReactNode;
   /** 重试按钮文案。 */
   retryText?: React.ReactNode;
+  /** 附加 className,落到状态根容器上。 */
+  className?: string;
   /** 正常态内容。 */
   children?: React.ReactNode;
 };
@@ -56,13 +62,14 @@ const AsyncBoundary: React.FC<AsyncBoundaryProps> = ({
   errorContent,
   emptyContent,
   retryText,
+  className,
   children,
 }) => {
   if (loading) {
     return (
       <div
         data-testid='async-boundary-loading'
-        className='flex items-center justify-center px-20px py-28px text-center'
+        className={cx('flex items-center justify-center px-20px py-28px text-center', className)}
       >
         {loadingContent ?? <Spin size={20} data-testid='async-boundary-spinner' />}
       </div>
@@ -74,7 +81,10 @@ const AsyncBoundary: React.FC<AsyncBoundaryProps> = ({
     return (
       <div
         data-testid='async-boundary-error'
-        className='flex flex-col items-center rounded-14px border border-dashed border-b-2 bg-fill-1/40 px-20px py-20px text-center'
+        className={cx(
+          'flex flex-col items-center rounded-14px border border-dashed border-b-2 bg-fill-1/40 px-20px py-20px text-center',
+          className
+        )}
       >
         {errorContent ? <div className='mb-6px text-13px font-600 text-t-primary'>{errorContent}</div> : null}
         {detail ? <div className='mb-10px text-12px text-t-tertiary'>{detail}</div> : null}
@@ -95,7 +105,10 @@ const AsyncBoundary: React.FC<AsyncBoundaryProps> = ({
 
   if (isEmpty) {
     return (
-      <div data-testid='async-boundary-empty' className='flex h-full w-full items-center justify-center'>
+      <div
+        data-testid='async-boundary-empty'
+        className={cx('flex h-full w-full items-center justify-center', className)}
+      >
         {emptyContent ?? <EmptyState />}
       </div>
     );

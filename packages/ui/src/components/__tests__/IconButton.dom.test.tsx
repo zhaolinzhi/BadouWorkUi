@@ -15,9 +15,10 @@
  *   - **不写裸 `<button>`** —— 底层是 Arco `Button`。
  *   - **disabled 时不触发 onClick**。
  */
-import React from 'react';
+import React, { useRef } from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { Tooltip } from '@arco-design/web-react';
 
 import AppIcon from '../AppIcon';
 import IconButton from '../IconButton';
@@ -75,5 +76,65 @@ describe('IconButton', () => {
     render(<IconButton icon={<AppIcon name='plus' />} label='新建' data-testid='btn-new' />);
 
     expect(screen.getByTestId('btn-new')).toBeTruthy();
+  });
+
+  it('把 title 透传到按钮上 —— 悬停时能给出原生提示', () => {
+    render(<IconButton icon={<AppIcon name='plus' />} label='新建' title='新建笔记' />);
+
+    expect(screen.getByRole('button', { name: '新建' }).getAttribute('title')).toBe('新建笔记');
+  });
+
+  it('ref 指向真实的 button 元素 —— Arco 的 Tooltip / Popconfirm 要靠它定位', () => {
+    const ref = React.createRef<HTMLButtonElement>();
+    render(<IconButton icon={<AppIcon name='plus' />} label='新建' ref={ref} />);
+
+    expect(ref.current).toBeInstanceOf(HTMLButtonElement);
+  });
+
+  it('ref 可以在子组件里用 useRef 拿到', () => {
+    let captured: HTMLButtonElement | null = null;
+    const Harness: React.FC = () => {
+      const ref = useRef<HTMLButtonElement>(null);
+      return (
+        <IconButton
+          icon={<AppIcon name='plus' />}
+          label='新建'
+          ref={(node) => {
+            ref.current = node;
+            captured = node;
+          }}
+        />
+      );
+    };
+    render(<Harness />);
+
+    expect(captured).toBeInstanceOf(HTMLButtonElement);
+  });
+
+  it('把 hover 事件透传给底层按钮 —— Arco 的 Tooltip 靠它弹浮层', () => {
+    const onMouseEnter = vi.fn();
+    render(<IconButton icon={<AppIcon name='plus' />} label='新建' onMouseEnter={onMouseEnter} />);
+
+    fireEvent.mouseOver(screen.getByRole('button', { name: '新建' }));
+
+    expect(onMouseEnter).toHaveBeenCalledTimes(1);
+  });
+
+  it('把行内样式透传给底层按钮', () => {
+    render(<IconButton icon={<AppIcon name='plus' />} label='新建' style={{ width: '40px' }} />);
+
+    expect(screen.getByRole('button', { name: '新建' }).style.width).toBe('40px');
+  });
+
+  it('禁用态下依然能弹出 Arco Tooltip 的提示', async () => {
+    render(
+      <Tooltip content='没有可转写的片段'>
+        <IconButton icon={<AppIcon name='refresh' />} label='重试' disabled />
+      </Tooltip>
+    );
+
+    fireEvent.mouseOver(screen.getByRole('button', { name: '重试' }));
+
+    expect(await screen.findByText('没有可转写的片段')).toBeTruthy();
   });
 });
