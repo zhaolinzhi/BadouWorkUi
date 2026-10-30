@@ -5,8 +5,8 @@
  */
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { AppIcon, IconButton } from '@aionui/ui';
 import { Button, Popconfirm, Tooltip, Typography } from '@arco-design/web-react';
-import { Delete, FileText, Refresh } from '@icon-park/react';
 import { ipcBridge } from '../__qiankun__/ipc';
 import type { MeetingRecording } from '@common/types/meetingRecording';
 import { buildTranscriptSummary } from './transcriptSummary';
@@ -108,11 +108,10 @@ const RecordingListItem: React.FC<RecordingListItemProps> = ({ recording, onDele
             defaultValue: 'No transcriptions available yet',
           })}
         >
-          <Button
+          <IconButton
             size='mini'
-            type='text'
-            icon={<FileText theme='outline' size='14' fill='currentColor' />}
-            aria-label={t('meeting-recording.transcriptModal.viewButtonAriaLabel', {
+            icon={<AppIcon name='file-text' size={14} />}
+            label={t('meeting-recording.transcriptModal.viewButtonAriaLabel', {
               defaultValue: 'View transcript summary',
             })}
             disabled={summary.transcribedCount === 0}
@@ -140,18 +139,17 @@ const RecordingListItem: React.FC<RecordingListItemProps> = ({ recording, onDele
               defaultValue: 'All chunks have been transcribed; nothing to retry',
             })}
           >
-            <Button
+            <IconButton
               size='mini'
-              type='text'
               icon={
                 <span
                   data-testid='retry-transcribe-spin'
                   className={showRetrySpinner ? 'microapp-meeting-recording-spin' : undefined}
                 >
-                  <Refresh theme='outline' size='14' fill='currentColor' />
+                  <AppIcon name='refresh' size={14} />
                 </span>
               }
-              aria-label={t('meeting-recording.transcriptModal.retryTranscribeButtonAriaLabel', {
+              label={t('meeting-recording.transcriptModal.retryTranscribeButtonAriaLabel', {
                 defaultValue: 'Retry transcription',
               })}
               disabled={!canRetryTranscribe}
@@ -177,13 +175,7 @@ const RecordingListItem: React.FC<RecordingListItemProps> = ({ recording, onDele
           cancelText='Cancel'
           onOk={() => onDelete(recording.id)}
         >
-          <Button
-            size='mini'
-            status='danger'
-            type='text'
-            icon={<Delete theme='outline' size='14' fill='currentColor' />}
-            aria-label='Delete'
-          />
+          <IconButton size='mini' status='danger' icon={<AppIcon name='delete' size={14} />} label='Delete' />
         </Popconfirm>
       </div>
       <div className='microapp-meeting-recording-chunks'>

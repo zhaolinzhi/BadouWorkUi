@@ -4,10 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { AppIcon, MoreMenu } from '@aionui/ui';
+import { AppIcon, IconButton, MoreMenu } from '@aionui/ui';
 import { Input } from '@arco-design/web-react';
 import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
-import { Down, FolderOpen, Plus } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -81,19 +80,24 @@ const NotebookItem: React.FC<NotebookItemProps> = ({
           'text-t-primary hover:bg-fill-2'
         )}
       >
-        <button
-          type='button'
+        <IconButton
+          size='mini'
+          icon={
+            <AppIcon
+              name='down'
+              size={12}
+              className={classNames('transition-transform', !isExpanded && '-rotate-90')}
+            />
+          }
+          label={
+            isExpanded
+              ? t('common.collapse', { defaultValue: 'Collapse' })
+              : t('common.expand', { defaultValue: 'Expand' })
+          }
           onClick={() => setIsExpanded((prev) => !prev)}
-          className='flex h-14px w-14px flex-shrink-0 items-center justify-center'
-        >
-          <Down
-            size={12}
-            theme='outline'
-            fill='currentColor'
-            className={classNames('transition-transform', !isExpanded && '-rotate-90')}
-          />
-        </button>
-        <FolderOpen size={14} theme='outline' fill='currentColor' className='flex-shrink-0' />
+          className='!h-14px !w-14px flex-shrink-0'
+        />
+        <AppIcon name='folder-open' size={14} className='flex-shrink-0' />
         {isEditing ? (
           <Input
             ref={inputRef}
@@ -117,17 +121,17 @@ const NotebookItem: React.FC<NotebookItemProps> = ({
         )}
         {!isEditing && (
           <>
-            <button
-              type='button'
+            <IconButton
+              size='mini'
+              icon={<AppIcon name='plus' size={12} />}
+              label={t('settings.notesNewNote', { defaultValue: 'New Note' })}
               title={t('settings.notesNewNote', { defaultValue: 'New Note' })}
               onClick={(e) => {
                 e.stopPropagation();
                 void onCreateNote(notebook.id, '未命名笔记');
               }}
-              className='flex h-18px w-18px flex-shrink-0 cursor-pointer items-center justify-center rounded-4px opacity-0 transition-opacity hover:bg-fill-3 group-hover:!opacity-100'
-            >
-              <Plus size={12} theme='outline' fill='currentColor' />
-            </button>
+              className='!h-18px !w-18px flex-shrink-0 opacity-0 transition-opacity group-hover:!opacity-100'
+            />
             <MoreMenu
               items={[
                 { key: 'rename', label: t('settings.notesRename', { defaultValue: 'Rename' }) },

@@ -6,7 +6,7 @@
 
 import type { KnowledgeBaseItem } from '../types';
 import KnowledgeBaseRow from './KnowledgeBaseRow';
-import { Button } from '@arco-design/web-react';
+import { AppIcon, AsyncBoundary, EmptyState } from '@aionui/ui';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -34,71 +34,42 @@ const SharedKnowledgeBaseGrid: React.FC<SharedKnowledgeBaseGridProps> = ({
 }) => {
   const { t } = useTranslation();
 
-  if (loading) {
-    return (
-      <div
-        className='flex items-center justify-center rounded-14px border border-dashed border-border-2 bg-fill-1/40 px-20px py-28px text-center'
-        data-testid='shared-kb-loading'
-      >
+  return (
+    <AsyncBoundary
+      loading={loading}
+      error={error}
+      onRetry={onRetry}
+      retryText={t('common.retry', { defaultValue: 'Retry' })}
+      errorContent={t('settings.knowledgeBaseSharedLoadFailed', {
+        defaultValue: 'Failed to load shared knowledge bases',
+      })}
+      loadingContent={
         <div className='text-13px text-t-tertiary'>
           {t('settings.knowledgeBaseSharedLoading', { defaultValue: 'Loading shared knowledge bases…' })}
         </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div
-        className='flex flex-col items-center rounded-14px border border-dashed border-border-2 bg-fill-1/40 px-20px py-20px text-center'
-        data-testid='shared-kb-error'
-      >
-        <div className='mb-6px text-13px font-600 text-t-primary'>
-          {t('settings.knowledgeBaseSharedLoadFailed', { defaultValue: 'Failed to load shared knowledge bases' })}
-        </div>
-        <div className='mb-10px text-12px text-t-tertiary'>{error}</div>
-        {onRetry ? (
-          <Button
-            type='primary'
-            size='small'
-            className='!h-28px !rounded-9px'
-            onClick={onRetry}
-            data-testid='shared-kb-retry'
-          >
-            {t('common.retry', { defaultValue: 'Retry' })}
-          </Button>
-        ) : null}
-      </div>
-    );
-  }
-
-  if (items.length === 0) {
-    return (
-      <div
-        className='flex flex-col items-center rounded-14px border border-dashed border-border-2 bg-fill-1/40 px-20px py-28px text-center'
-        data-testid='shared-kb-empty'
-      >
-        <div className='mb-6px text-13px font-600 text-t-primary'>
-          {t('settings.knowledgeBaseSharedEmpty', { defaultValue: 'No shared knowledge bases available' })}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div data-testid='shared-kb-list' className='space-y-8px'>
-      {items.map((item) => (
-        <KnowledgeBaseRow
-          key={item.id}
-          item={item}
-          onEdit={() => undefined}
-          onDelete={() => undefined}
-          onOpen={onOpenView}
-          onStartChat={onStartChat}
-          noMenu
+      }
+      isEmpty={items.length === 0}
+      emptyContent={
+        <EmptyState
+          icon={<AppIcon name='knowledge-base' size={40} />}
+          title={t('settings.knowledgeBaseSharedEmpty', { defaultValue: 'No shared knowledge bases available' })}
         />
-      ))}
-    </div>
+      }
+    >
+      <div data-testid='shared-kb-list' className='space-y-8px'>
+        {items.map((item) => (
+          <KnowledgeBaseRow
+            key={item.id}
+            item={item}
+            onEdit={() => undefined}
+            onDelete={() => undefined}
+            onOpen={onOpenView}
+            onStartChat={onStartChat}
+            noMenu
+          />
+        ))}
+      </div>
+    </AsyncBoundary>
   );
 };
 

@@ -7,10 +7,14 @@
  * 该组件只依赖 arco + react + react-i18next,不碰 shell 的任何模块,所以整份
  * 搬过来即可(qiankun 沙箱里 import shell 路径会拿到空模块)。
  *
+ * 接入共享 UI 层后有两处改动:分类切换与表情格子原来是裸 `<button>`,现在
+ * 换成 `IconButton` —— 与 notes / MR 的图标按钮共用同一份尺寸与圆角契约。
+ *
  * 两份副本各自演化的问题目前不存在:它是一次性选择器 UI,没有业务状态。
  * 若之后两边出现分叉,优先考虑抽到 `packages/microapps/shared/`。
  */
 
+import { IconButton } from '@aionui/ui';
 import { Button, Empty, Popover, Tabs } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -538,14 +542,17 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({
       {/* Category Tabs */}
       <div className='flex items-center gap-2px px-8px py-6px border-b border-[var(--color-border-2)] overflow-x-auto'>
         {categoryKeys.map((key) => (
-          <button
+          <IconButton
             key={key}
-            className={`flex-shrink-0 w-28px h-28px flex items-center justify-center rounded-md text-16px cursor-pointer border-none bg-transparent hover:bg-fill-2 transition-colors ${activeCategory === key ? 'bg-fill-2' : ''}`}
-            onClick={() => setActiveCategory(key)}
+            size='mini'
+            icon={<span className='text-16px'>{EMOJI_CATEGORIES[key].icon}</span>}
+            label={EMOJI_CATEGORIES[key].label}
             title={EMOJI_CATEGORIES[key].label}
-          >
-            {EMOJI_CATEGORIES[key].icon}
-          </button>
+            onClick={() => setActiveCategory(key)}
+            className={`!h-28px !w-28px flex-shrink-0 transition-colors ${
+              activeCategory === key ? '!bg-fill-2' : '!bg-transparent hover:!bg-fill-2'
+            }`}
+          />
         ))}
       </div>
 
@@ -554,13 +561,14 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({
         {currentEmojis.length > 0 ? (
           <div className='grid grid-cols-8 gap-2px'>
             {currentEmojis.map((emoji: string, index: number) => (
-              <button
+              <IconButton
                 key={`${emoji}-${index}`}
-                className='w-32px h-32px flex items-center justify-center text-20px cursor-pointer border-none bg-transparent rounded-md hover:bg-fill-2 transition-colors'
+                size='mini'
+                icon={<span className='text-20px'>{emoji}</span>}
+                label={emoji}
                 onClick={() => handleSelectEmoji(emoji)}
-              >
-                {emoji}
-              </button>
+                className='!h-32px !w-32px !bg-transparent hover:!bg-fill-2 transition-colors'
+              />
             ))}
           </div>
         ) : (

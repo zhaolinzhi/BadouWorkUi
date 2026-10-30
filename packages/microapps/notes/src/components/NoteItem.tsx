@@ -7,7 +7,6 @@
 import { AppIcon, MoreMenu } from '@aionui/ui';
 import { Input, Tooltip } from '@arco-design/web-react';
 import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
-import { FileText } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -69,7 +68,7 @@ const NoteItemRow: React.FC<NoteItemRowProps> = ({ note, isActive, onSelect, onR
     >
       {/* 左：图标 + 标题 + 更新时间（你上一轮加的） */}
       <div className='flex min-w-0 flex-1 items-center gap-6px'>
-        <FileText size={14} theme='outline' fill='currentColor' className='flex-shrink-0' />
+        <AppIcon name='file-text' size={14} className='flex-shrink-0' />
         {isEditing ? (
           <Input
             ref={inputRef}

@@ -5,8 +5,8 @@
  */
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { AppIcon } from '@aionui/ui';
 import { Button, Spin } from '@arco-design/web-react';
-import { Microphone, Record } from '@icon-park/react';
 import { useMeetingRecorder, type MeetingRecorderErrorCode } from '../hooks/useMeetingRecorder';
 import styles from './RecorderPanel.module.css';
 
@@ -90,9 +90,9 @@ const RecorderPanel: React.FC<RecorderPanelProps> = ({ onRecorded }) => {
           {isFinalizing ? (
             <Spin />
           ) : isRecording ? (
-            <Record theme='outline' size='22' fill='currentColor' />
+            <AppIcon name='record' size={22} />
           ) : (
-            <Microphone theme='outline' size='22' fill='currentColor' />
+            <AppIcon name='microphone' size={22} />
           )}
         </span>
       </Button>

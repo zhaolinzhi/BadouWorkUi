@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Info } from '@icon-park/react';
+import { AppIcon } from '@aionui/ui';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from './NotesHint.module.css';
@@ -13,7 +13,7 @@ const NotesHint: React.FC = () => {
   const { t } = useTranslation();
   return (
     <div className={styles.hint}>
-      <Info size={12} theme='outline' fill='currentColor' />
+      <AppIcon name='info' size={12} />
       <span>
         {t('settings.notesHint', {
           defaultValue: 'Tip: The first line auto-syncs as the note title and renders bold + larger.',

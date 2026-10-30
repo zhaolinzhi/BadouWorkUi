@@ -5,8 +5,8 @@
  */
 
 import type { KnowledgeBaseListItem } from '../types';
+import { AppIcon } from '@aionui/ui';
 import { Avatar } from '@arco-design/web-react';
-import { Book } from '@icon-park/react';
 import React from 'react';
 import { isEmoji, resolveIconImageSrc } from '../utils/knowledgeBaseUtils';
 
@@ -35,7 +35,7 @@ const KnowledgeBaseAvatar: React.FC<KnowledgeBaseAvatarProps> = ({ knowledgeBase
         ) : hasEmojiIcon ? (
           <span style={{ fontSize: emojiSize }}>{resolvedIcon}</span>
         ) : (
-          <Book theme='outline' size={iconSize} />
+          <AppIcon name='book' size={iconSize} />
         )}
       </Avatar>
     </Avatar.Group>

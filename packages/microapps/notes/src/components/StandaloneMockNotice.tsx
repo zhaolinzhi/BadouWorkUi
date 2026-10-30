@@ -19,7 +19,7 @@
  * 所以在假数据生效时把这件事明说出来。被 shell 托管时这个组件返回 null,
  * 主应用里的布局完全不受影响。
  */
-import { Tips } from '@icon-park/react';
+import { AppIcon } from '@aionui/ui';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { isStandaloneMockActive } from '../__qiankun__/standaloneMock';
@@ -33,7 +33,7 @@ const StandaloneMockNotice: React.FC = () => {
 
   return (
     <div className={styles.notice} role='status'>
-      <Tips size={14} theme='outline' fill='currentColor' />
+      <AppIcon name='tips' size={14} />
       <span>
         {t('settings.notesStandaloneMockNotice', {
           defaultValue:

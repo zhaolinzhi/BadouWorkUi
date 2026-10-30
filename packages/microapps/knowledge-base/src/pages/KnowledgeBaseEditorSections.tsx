@@ -11,8 +11,8 @@ import { SectionCard } from '../editor/sectionPrimitives';
 import { isEmoji, resolveIconImageSrc } from '../utils/knowledgeBaseUtils';
 import { ipcBridge } from '../utils/ipc';
 import { resolveAgentAvatar, useAgentLogos } from '../utils/agentLogo';
+import { AppIcon } from '@aionui/ui';
 import { Avatar, Select, Tag } from '@arco-design/web-react';
-import { BookOne, Robot } from '@icon-park/react';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -60,7 +60,7 @@ const KnowledgeBaseEditorSections: React.FC<KnowledgeBaseEditorSectionsProps> = 
     if (hasEmojiIcon) {
       return <span style={{ fontSize: emojiSize }}>{resolvedIcon}</span>;
     }
-    return <BookOne theme='outline' size={iconSize} />;
+    return <AppIcon name='book-one' size={iconSize} />;
   };
 
   const handlePickIconImage = async () => {
@@ -95,7 +95,7 @@ const KnowledgeBaseEditorSections: React.FC<KnowledgeBaseEditorSectionsProps> = 
     if (avatar.kind === 'emoji') {
       return <span className='text-16px leading-none'>{avatar.value}</span>;
     }
-    return <Robot theme='outline' size={16} />;
+    return <AppIcon name='robot' size={16} />;
   };
 
   const rulesContainerHeight = rulesExpanded ? '480px' : '220px';
@@ -108,7 +108,7 @@ const KnowledgeBaseEditorSections: React.FC<KnowledgeBaseEditorSectionsProps> = 
           data-testid='kb-builtin-readonly-banner'
         >
           <Avatar shape='square' size={20} className='!rounded-6px bg-fill-2'>
-            <BookOne theme='outline' size={14} />
+            <AppIcon name='book-one' size={14} />
           </Avatar>
           <div>
             {t('settings.knowledgeBaseBuiltinReadonlyTip', {
