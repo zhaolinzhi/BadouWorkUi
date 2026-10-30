@@ -13,6 +13,7 @@ import { useNotebookList } from '../hooks/useNotebookList';
 import { useNotesEditor } from '../hooks/useNotesEditor';
 import NotesSidebar from '../components/NotesSidebar';
 import NotesHint from '../components/NotesHint';
+import StandaloneMockNotice from '../components/StandaloneMockNotice';
 import VditorEditor from '../components/VditorEditor';
 import styles from './NotesPage.module.css';
 
@@ -103,12 +104,14 @@ const NotesPage: React.FC = () => {
 
   return (
     /*
-     * 根节点是**列**,下面一行是「侧栏 + 编辑器」。
+     * 根节点是**列**:最上面是独立运行模式的「演示数据」提示条(被 shell 托管时
+     * 它返回 null,不占位),下面一行才是「侧栏 + 编辑器」。
      *
      * 高度链:外层 h-full → 行 flex-1 + min-h-0 → 侧栏 height:100% / 编辑器
      * flex-1。少任何一环,子应用都会退化成内容高度(下方留白)。
      */
     <div className='flex h-full min-h-0 flex-col overflow-hidden bg-transparent'>
+      <StandaloneMockNotice />
       <div className='flex min-h-0 flex-1 overflow-hidden'>
         <NotesSidebar
           notebooks={list.notebooks}

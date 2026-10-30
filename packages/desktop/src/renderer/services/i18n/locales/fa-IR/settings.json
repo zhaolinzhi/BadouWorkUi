@@ -130,6 +130,7 @@
   "notesNotePlaceholder": "عنوان یادداشت",
   "notesUpdatedAtTooltip": "Updated: {time}",
   "notesSidebarTitle": "دفترچه‌ها",
+  "notesStandaloneMockNotice": "حالت مستقل: داده‌های نمایشی داخلی نمایش داده می‌شود. با بارگذاری مجدد بازنشانی می‌شود و هرگز در دفترچه‌های واقعی شما ذخیره نمی‌شود.",
   "knowledgeBaseLeadShort": "اسناد را در پایگاه‌های دانش سازماندهی کنید. پایگاه‌های شخصی خصوصی هستند؛ پایگاه‌های اشتراکی برای تیم شما در دسترس هستند.",
   "knowledgeBaseTabPersonal": "شخصی",
   "knowledgeBaseTabShared": "اشتراکی",

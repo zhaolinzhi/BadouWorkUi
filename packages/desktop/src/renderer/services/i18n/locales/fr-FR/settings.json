@@ -1325,5 +1325,6 @@
     "clearFailed": "Échec de l'effacement des données de navigation"
   },
   "knowledgeBasePersonalLoading": "Loading personal knowledge bases…",
-  "knowledgeBasePersonalLoadFailed": "Failed to load personal knowledge bases"
+  "knowledgeBasePersonalLoadFailed": "Failed to load personal knowledge bases",
+  "notesStandaloneMockNotice": "Mode autonome : il s’agit de données de démonstration intégrées. Elles sont réinitialisées au rechargement et ne touchent jamais vos vrais carnets."
 }

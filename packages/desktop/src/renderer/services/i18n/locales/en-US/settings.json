@@ -130,6 +130,7 @@
   "notesNotePlaceholder": "Note title",
   "notesUpdatedAtTooltip": "Updated: {time}",
   "notesSidebarTitle": "Notebooks",
+  "notesStandaloneMockNotice": "Standalone mode: this is built-in demo data. It resets on reload and never reaches your real notebooks.",
   "knowledgeBaseLeadShort": "Organize documents into knowledge bases. Personal bases are private; shared bases are available to your team.",
   "knowledgeBaseTabPersonal": "Personal",
   "knowledgeBaseTabShared": "Shared",

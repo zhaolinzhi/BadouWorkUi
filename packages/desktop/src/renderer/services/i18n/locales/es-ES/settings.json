@@ -130,6 +130,7 @@
   "notesNotePlaceholder": "Título de la nota",
   "notesUpdatedAtTooltip": "Updated: {time}",
   "notesSidebarTitle": "Cuadernos",
+  "notesStandaloneMockNotice": "Modo independiente: estos son datos de demostración integrados. Se reinician al recargar y nunca llegan a tus cuadernos reales.",
   "knowledgeBaseLeadShort": "Organiza documentos en bases de conocimiento. Las personales son privadas; las compartidas están disponibles para tu equipo.",
   "knowledgeBaseTabPersonal": "Personal",
   "knowledgeBaseTabShared": "Compartido",

@@ -130,6 +130,7 @@
   "notesNotePlaceholder": "Заголовок нотатки",
   "notesUpdatedAtTooltip": "Updated: {time}",
   "notesSidebarTitle": "Блокноти",
+  "notesStandaloneMockNotice": "Автономний режим: показано вбудовані демонстраційні дані. Вони скидаються під час перезавантаження й не потрапляють у ваші справжні блокноти.",
   "knowledgeBaseLeadShort": "Організуйте документи в бази знань. Особисті бази приватні; спільні доступні вашій команді.",
   "knowledgeBaseTabPersonal": "Особиста",
   "knowledgeBaseTabShared": "Спільна",

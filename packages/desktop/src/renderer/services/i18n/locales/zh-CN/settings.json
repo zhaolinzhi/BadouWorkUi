@@ -130,6 +130,7 @@
   "notesNotePlaceholder": "笔记标题",
   "notesUpdatedAtTooltip": "更新时间：{time}",
   "notesSidebarTitle": "笔记本",
+  "notesStandaloneMockNotice": "独立运行模式：当前显示的是内置演示数据，刷新页面即重置，不会写入你的真实笔记本。",
   "knowledgeBaseLeadShort": "把文档整理到不同的知识库中，个人知识库仅自己可见，共享知识库对团队成员可见。",
   "knowledgeBaseTabPersonal": "个人知识库",
   "knowledgeBaseTabShared": "共享知识库",

@@ -130,6 +130,7 @@
   "notesNotePlaceholder": "Not başlığı",
   "notesUpdatedAtTooltip": "Updated: {time}",
   "notesSidebarTitle": "Defterler",
+  "notesStandaloneMockNotice": "Bağımsız mod: burada görünen veriler yerleşik demo verisidir. Sayfayı yenileyince sıfırlanır ve gerçek not defterinize yazılmaz.",
   "knowledgeBaseLeadShort": "Belgeleri bilgi bankalarına göre düzenleyin. Kişisel bankalar özeldir; paylaşılanlar ekibiniz için kullanılabilir.",
   "knowledgeBaseTabPersonal": "Kişisel",
   "knowledgeBaseTabShared": "Paylaşılan",

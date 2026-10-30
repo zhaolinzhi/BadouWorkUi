@@ -130,6 +130,7 @@
   "notesNotePlaceholder": "ノートタイトル",
   "notesUpdatedAtTooltip": "Updated: {time}",
   "notesSidebarTitle": "ノートブック",
+  "notesStandaloneMockNotice": "単独実行モード：表示しているのは組み込みのデモデータです。リロードでリセットされ、実際のノートブックには保存されません。",
   "knowledgeBaseLeadShort": "ドキュメントをナレッジベースに整理します。個人ベースは非公開、共有ベースはチームで閲覧できます。",
   "knowledgeBaseTabPersonal": "個人",
   "knowledgeBaseTabShared": "共有",

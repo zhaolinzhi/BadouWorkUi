@@ -155,6 +155,7 @@
   "notesNotePlaceholder": "Notiztitel",
   "notesUpdatedAtTooltip": "Updated: {time}",
   "notesSidebarTitle": "Notizbücher",
+  "notesStandaloneMockNotice": "Eigenständiger Modus: Hier werden integrierte Demodaten angezeigt. Sie werden beim Neuladen zurückgesetzt und nie in deine echten Notizbücher geschrieben.",
   "knowledgeBaseLeadShort": "Organisieren Sie Dokumente in Wissensdatenbanken. Persönliche Datenbanken sind privat; gemeinsame stehen dem Team zur Verfügung.",
   "knowledgeBaseTabPersonal": "Persönlich",
   "knowledgeBaseTabShared": "Geteilt",

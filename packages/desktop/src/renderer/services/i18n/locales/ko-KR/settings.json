@@ -130,6 +130,7 @@
   "notesNotePlaceholder": "노트 제목",
   "notesUpdatedAtTooltip": "Updated: {time}",
   "notesSidebarTitle": "노트북",
+  "notesStandaloneMockNotice": "독립 실행 모드: 지금 보이는 것은 내장 데모 데이터입니다. 새로고침하면 초기화되며 실제 노트북에 저장되지 않습니다.",
   "knowledgeBaseLeadShort": "문서를 지식 베이스로 정리하세요. 개인 베이스는 비공개이며, 공유 베이스는 팀에서 사용할 수 있습니다.",
   "knowledgeBaseTabPersonal": "개인",
   "knowledgeBaseTabShared": "공유",

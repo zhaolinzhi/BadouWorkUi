@@ -278,6 +278,25 @@ export function createStandaloneMockBridge(): { notebooks: NotebooksBridge; note
 }
 
 /**
+ * 当前是否装着内存假 bridge。
+ *
+ * UI 用它决定要不要显示「演示数据」提示条 —— 假数据和真数据长得一模一样
+ * (同样是 Inbox / Work 两本笔记本),不标出来的话很容易被当成真实笔记本,
+ * 也会让人误以为「嵌到主应用里数据丢了」。
+ */
+let standaloneMockActive = false;
+
+/**
+ * 内存假 bridge 是否正在生效。
+ *
+ * 只在**独立运行 + dev**下为 true(见 `main.ts`):此时没有宿主、也没有后端,
+ * 页面上的一切都是内存里的种子数据。被 shell 托管时恒为 false。
+ */
+export function isStandaloneMockActive(): boolean {
+  return standaloneMockActive;
+}
+
+/**
  * 把内存假 bridge 装到 `window.ipcBridge` 上。
  *
  * 宿主(shell)已经注入过 bridge 时**不覆盖** —— 真数据优先。
@@ -293,6 +312,7 @@ export function installStandaloneMockBridge(): boolean {
   const bridge = createStandaloneMockBridge();
   // `...existing`:existing 是 undefined 时展开也不会报错(等价于展开空对象)
   carrier.ipcBridge = { ...existing, notebooks: bridge.notebooks, notes: bridge.notes };
+  standaloneMockActive = true;
   // eslint-disable-next-line no-console
   console.info('[notes] standalone dev: using in-memory mock bridge (data resets on reload)');
   return true;

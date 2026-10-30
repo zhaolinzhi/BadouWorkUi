@@ -2087,6 +2087,7 @@ export type I18nKey =
   | 'settings.notesSaveFailed'
   | 'settings.notesSaved'
   | 'settings.notesSidebarTitle'
+  | 'settings.notesStandaloneMockNotice'
   | 'settings.notesUpdatedAtTooltip'
   | 'settings.notification'
   | 'settings.officialAssistantsHint'
