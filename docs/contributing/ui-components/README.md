@@ -12,25 +12,32 @@
 
 一件一页，直接查 Props：
 
-| 组件                               | 解决什么问题                                          | 状态                |
-| ---------------------------------- | ----------------------------------------------------- | ------------------- |
-| [AppIcon](app-icon.md)             | 主应用与微应用的图标尺寸、描边宽度、颜色不一致        | 可用                |
-| [EmptyState](empty-state.md)       | 三个微应用各写一份的空状态，结构与间距各不相同        | 可用                |
-| [AsyncBoundary](async-boundary.md) | 四个微应用各写一遍的 loading / error / empty 三态渲染 | 可用                |
-| [ConfirmModal](confirm-modal.md)   | notes / KB 各写一份的删除确认弹窗包装                 | 可用 · 两处已接入   |
-| [IconButton](icon-button.md)       | 图标按钮的尺寸、圆角、禁用态各写各的                  | 可用                |
-| [MoreMenu](more-menu.md)           | notes 两处 + KB 一处各写一份的「⋮」下拉菜单           | 可用 · 三处已接入   |
-| [AppHeader](app-header.md)         | notes 工具条与各页顶部条结构各不相同                  | 可用 · notes 已接入 |
-| [cx](cx.md)                        | 拼接 className                                        | 可用                |
+| 组件                               | 解决什么问题                                          | 状态                      |
+| ---------------------------------- | ----------------------------------------------------- | ------------------------- |
+| [AppIcon](app-icon.md)             | 主应用与微应用的图标尺寸、描边宽度、颜色不一致        | 可用 · 三应用已接入       |
+| [EmptyState](empty-state.md)       | 三个微应用各写一份的空状态，结构与间距各不相同        | 可用 · 三应用已接入       |
+| [AsyncBoundary](async-boundary.md) | 三个微应用各写一遍的 loading / error / empty 三态渲染 | 可用 · 三应用已接入       |
+| [ConfirmModal](confirm-modal.md)   | notes / KB 各写一份的删除确认弹窗包装                 | 可用 · 两处已接入         |
+| [IconButton](icon-button.md)       | 图标按钮的尺寸、圆角、禁用态各写各的                  | 可用 · notes/KB/MR 已接入 |
+| [MoreMenu](more-menu.md)           | notes 两处 + KB 一处各写一份的「⋮」下拉菜单           | 可用 · 三处已接入         |
+| [AppHeader](app-header.md)         | notes 工具条与各页顶部条结构各不相同                  | 可用 · notes/KB 已接入    |
+| [cx](cx.md)                        | 拼接 className                                        | 可用                      |
 
 已经接入的地方（可以直接照抄用法）：
 
-| 位置                                        | 用的组件       |
-| ------------------------------------------- | -------------- |
-| notes 的「清空笔记」「删除笔记/笔记本」弹窗 | `ConfirmModal` |
-| knowledge-base 的「删除知识库」弹窗         | `ConfirmModal` |
-| notes 的顶部工具条                          | `AppHeader`    |
-| notes 笔记行 / 笔记本行、知识库行的「⋮」    | `MoreMenu`     |
+| 位置                                                  | 用的组件        |
+| ----------------------------------------------------- | --------------- |
+| notes 的「清空笔记」「删除笔记/笔记本」弹窗           | `ConfirmModal`  |
+| knowledge-base 的「删除知识库」弹窗                   | `ConfirmModal`  |
+| notes 的顶部工具条                                    | `AppHeader`     |
+| knowledge-base 编辑页顶部条                           | `AppHeader`     |
+| notes 笔记行 / 笔记本行、知识库行的「⋮」              | `MoreMenu`      |
+| notes 笔记本行的展开箭头、新建笔记按钮                | `IconButton`    |
+| knowledge-base 表情面板的分类切换、表情格子           | `IconButton`    |
+| meeting-recording 录音行的查看转写、重试、删除按钮    | `IconButton`    |
+| notes 侧栏 / KB 个人库 / KB 共享库 / 录音列表的空态   | `EmptyState`    |
+| notes 整页、KB 个人库 / 共享库、录音列表的加载与错误  | `AsyncBoundary` |
+| notes / KB / MR 的图标（文件、书本、机器人、麦克风…） | `AppIcon`       |
 
 ---
 
@@ -264,10 +271,11 @@ FeedbackButton     ButlerDiagnoseButton  TalkToButlerButton
 
 `border-b-light` 同理 —— 拿到的是 presetWind3 的 `light` 色，不是 `--border-light`。
 
-另外有两个**根本不生成任何 CSS** 的死名字（仓库里到处在用，shell 和微应用都有）：
+另外有三个**根本不生成任何 CSS** 的死名字（仓库里到处在用，shell 和微应用都有）：
 
 - `bg-bg-0`
 - `border-border-2`
+- `bg-fill-1/40` —— 透明度后缀拼在 UnoCSS 的 `fill-*` 色号上扫不出来，共享层 `AsyncBoundary` 的错误态就写着它（那一处背景实际是透明的）
 
 写完新样式记得去构建产物里确认类名真的生成了：
 
