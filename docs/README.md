@@ -17,6 +17,7 @@ Documentation is organized by reader intent, not by document type.
 - New to the project? Start with [`architecture/overview.md`](architecture/overview.md).
 - Setting up a dev environment? See [`contributing/development.md`](contributing/development.md).
 - Writing code? The entry point for code-style, linting, formatting, and commit rules is [`AGENTS.md`](../AGENTS.md) at the repo root.
+- Reusing UI components across the shell and qiankun sub-apps? [`contributing/ui-components/`](contributing/ui-components/) — one page per component.
 - Deploying a server? [`guides/deploy-server.md`](guides/deploy-server.md).
 - Adding or troubleshooting a qiankun sub-app? [`qiankun/README.md`](qiankun/README.md).
 

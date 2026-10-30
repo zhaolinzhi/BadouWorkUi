@@ -88,6 +88,8 @@ export default defineConfig(({ command }) => ({
       '@common': path.resolve(__dirname, '../../desktop/src/common'),
       '@': path.resolve(__dirname, '../../desktop/src'),
       '@aionui/microapp-shared': path.resolve(__dirname, '../shared/src'),
+      // 主应用与三个微应用共用的 UI 组件层(源码级共享)。
+      '@aionui/ui': path.resolve(__dirname, '../../ui/src/index.ts'),
     },
   },
   server: {

@@ -16,7 +16,8 @@
       "@renderer/*": ["../../desktop/src/renderer/*"],
       "@common/*": ["../../desktop/src/common/*"],
       "@/*": ["../../desktop/src/*"],
-      "@aionui/microapp-shared": ["../shared/src/index.ts"]
+      "@aionui/microapp-shared": ["../shared/src/index.ts"],
+      "@aionui/ui": ["../../ui/src/index.ts"]
     }
   },
   "include": ["src/**/*"]

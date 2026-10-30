@@ -4,16 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Spin } from '@arco-design/web-react';
+import { Button, Spin } from '@arco-design/web-react';
+import { AppHeader, AppIcon, ConfirmModal, EmptyState } from '@aionui/ui';
 import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../AppContext';
 import { useNotebookList } from '../hooks/useNotebookList';
 import { useNotesEditor } from '../hooks/useNotesEditor';
-import DeleteConfirmModal from '../components/DeleteConfirmModal';
-import EmptyState from '../components/EmptyState';
 import NotesSidebar from '../components/NotesSidebar';
-import NotesToolbar from '../components/NotesToolbar';
 import NotesHint from '../components/NotesHint';
 import VditorEditor from '../components/VditorEditor';
 import styles from './NotesPage.module.css';
@@ -104,72 +102,116 @@ const NotesPage: React.FC = () => {
   }
 
   return (
-    <div className='flex h-full min-h-0 overflow-hidden bg-transparent'>
-      <NotesSidebar
-        notebooks={list.notebooks}
-        notes={list.notes}
-        activeNoteId={editor.activeNoteId}
-        onSelectNote={editor.selectNote}
-        onCreateNotebook={list.createNotebook}
-        onRenameNotebook={list.renameNotebook}
-        onDeleteNotebook={requestDeleteNotebook}
-        onCreateNote={list.createNote}
-        onRenameNote={list.renameNote}
-        onDeleteNote={requestDeleteNote}
-      />
-      <div className='flex min-w-0 flex-1 flex-col'>
-        <NotesToolbar
-          noteTitle={activeNote?.title}
-          hasActiveNote={Boolean(activeNote)}
-          onBack={handleBack}
-          onExport={handleExport}
-          onClear={handleClear}
+    /*
+     * 根节点是**列**,下面一行是「侧栏 + 编辑器」。
+     *
+     * 高度链:外层 h-full → 行 flex-1 + min-h-0 → 侧栏 height:100% / 编辑器
+     * flex-1。少任何一环,子应用都会退化成内容高度(下方留白)。
+     */
+    <div className='flex h-full min-h-0 flex-col overflow-hidden bg-transparent'>
+      <div className='flex min-h-0 flex-1 overflow-hidden'>
+        <NotesSidebar
+          notebooks={list.notebooks}
+          notes={list.notes}
+          activeNoteId={editor.activeNoteId}
+          onSelectNote={editor.selectNote}
+          onCreateNotebook={list.createNotebook}
+          onRenameNotebook={list.renameNotebook}
+          onDeleteNotebook={requestDeleteNotebook}
+          onCreateNote={list.createNote}
+          onRenameNote={list.renameNote}
+          onDeleteNote={requestDeleteNote}
         />
-        {activeNote && <NotesHint />}
-        <div className={styles.editorContainer}>
-          {activeNote ? (
-            <VditorEditor
-              key={activeNote.id}
-              value={activeNote.content ?? ''}
-              onChange={(value) => void editor.handleContentChange(activeNote.id, value)}
-              onBlur={() => editor.commitTitle(activeNote.id)}
-              onLeaveFirstLine={(content) => editor.commitTitle(activeNote.id, content)}
-              theme={ctx.theme}
-              placeholder={t('settings.notesPlaceholder', { defaultValue: 'Start writing in Markdown...' })}
-            />
-          ) : (
-            <EmptyState />
-          )}
+        <div className='flex min-w-0 flex-1 flex-col'>
+          <AppHeader
+            leading={
+              <Button
+                type='text'
+                icon={<AppIcon name='arrow-left' />}
+                onClick={handleBack}
+                className='!flex !items-center !gap-4px !rounded-8px !px-6px !text-t-primary'
+              >
+                {t('common.back', { defaultValue: 'Back' })}
+              </Button>
+            }
+            title={activeNote?.title ?? t('settings.notes', { defaultValue: 'Notes' })}
+            trailing={
+              <>
+                <Button
+                  icon={<AppIcon name='download' />}
+                  onClick={handleExport}
+                  disabled={!activeNote}
+                  className='!rounded-8px'
+                >
+                  {t('settings.notesExport', { defaultValue: 'Export' })}
+                </Button>
+                <Button
+                  status='danger'
+                  icon={<AppIcon name='delete' />}
+                  onClick={handleClear}
+                  disabled={!activeNote}
+                  className='!rounded-8px'
+                  style={{ backgroundColor: 'rgb(var(--danger-1))' }}
+                >
+                  {t('settings.notesClear', { defaultValue: 'Clear' })}
+                </Button>
+              </>
+            }
+          />
+          {activeNote && <NotesHint />}
+          <div className={styles.editorContainer}>
+            {activeNote ? (
+              <VditorEditor
+                key={activeNote.id}
+                value={activeNote.content ?? ''}
+                onChange={(value) => void editor.handleContentChange(activeNote.id, value)}
+                onBlur={() => editor.commitTitle(activeNote.id)}
+                onLeaveFirstLine={(content) => editor.commitTitle(activeNote.id, content)}
+                theme={ctx.theme}
+                placeholder={t('settings.notesPlaceholder', { defaultValue: 'Start writing in Markdown...' })}
+              />
+            ) : (
+              <EmptyState
+                icon={<AppIcon name='notes' size={48} />}
+                title={t('settings.notesNoSelection', { defaultValue: 'Select a note to start editing' })}
+                description={t('settings.notesNoSelectionHint', {
+                  defaultValue: 'Choose a note from the sidebar, or create a new one.',
+                })}
+              />
+            )}
+          </div>
         </div>
+        <ConfirmModal
+          visible={clearModalVisible}
+          title={t('common.confirmDelete', { defaultValue: 'Confirm Delete' })}
+          description={t('settings.notesClearConfirm', { defaultValue: 'Are you sure you want to clear the note?' })}
+          okText={t('settings.notesClear', { defaultValue: 'Clear' })}
+          cancelText={t('common.cancel', { defaultValue: 'Cancel' })}
+          danger
+          onCancel={() => setClearModalVisible(false)}
+          onOk={handleClearConfirm}
+        />
+        <ConfirmModal
+          visible={deleteTarget !== null}
+          title={
+            deleteTarget?.type === 'notebook'
+              ? t('settings.notesDeleteNotebook', { defaultValue: 'Delete Notebook' })
+              : t('settings.notesDeleteNote', { defaultValue: 'Delete Note' })
+          }
+          description={
+            deleteTarget?.type === 'notebook'
+              ? t('settings.notesDeleteNotebookConfirm', {
+                  defaultValue: 'Are you sure you want to delete this notebook and all its notes?',
+                })
+              : t('settings.notesDeleteNoteConfirm', { defaultValue: 'Are you sure you want to delete this note?' })
+          }
+          okText={t('common.delete', { defaultValue: 'Delete' })}
+          cancelText={t('common.cancel', { defaultValue: 'Cancel' })}
+          danger
+          onCancel={handleDeleteCancel}
+          onOk={handleDeleteConfirm}
+        />
       </div>
-      <DeleteConfirmModal
-        visible={clearModalVisible}
-        title={t('common.confirmDelete', { defaultValue: 'Confirm Delete' })}
-        description={t('settings.notesClearConfirm', { defaultValue: 'Are you sure you want to clear the note?' })}
-        okText={t('settings.notesClear', { defaultValue: 'Clear' })}
-        cancelText={t('common.cancel', { defaultValue: 'Cancel' })}
-        onCancel={() => setClearModalVisible(false)}
-        onConfirm={handleClearConfirm}
-      />
-      <DeleteConfirmModal
-        visible={deleteTarget !== null}
-        title={
-          deleteTarget?.type === 'notebook'
-            ? t('settings.notesDeleteNotebook', { defaultValue: 'Delete Notebook' })
-            : t('settings.notesDeleteNote', { defaultValue: 'Delete Note' })
-        }
-        description={
-          deleteTarget?.type === 'notebook'
-            ? t('settings.notesDeleteNotebookConfirm', {
-                defaultValue: 'Are you sure you want to delete this notebook and all its notes?',
-              })
-            : t('settings.notesDeleteNoteConfirm', { defaultValue: 'Are you sure you want to delete this note?' })
-        }
-        okText={t('common.delete', { defaultValue: 'Delete' })}
-        cancelText={t('common.cancel', { defaultValue: 'Cancel' })}
-        onCancel={handleDeleteCancel}
-        onConfirm={handleDeleteConfirm}
-      />
     </div>
   );
 };

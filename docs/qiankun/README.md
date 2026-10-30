@@ -73,6 +73,8 @@ AionUi 采用 **qiankun 微前端** 架构。主应用(Electron + WebUI 双形�
 
 `shared` **不是子应用**,只是 `createIpcResolver` / `adapter` / `auth` 等跨应用公共代码的载体。它没有 `dev` script,所以根目录 `bun run dev:all` 的扫描会自动跳过。
 
+界面上要跨主应用与子应用复用的组件(图标、空状态、异步边界)放在另一个包 `@aionui/ui`(`packages/ui/`),它同样不是子应用,只负责界面层,不依赖主应用。子应用怎么用它见 [公共组件使用手册](../contributing/ui-components/)。
+
 **关键不变量**:
 
 - `name` 在所有出现处必须一致(qiankun 注册名 == `main.ts` 里 `window[name]` 生命周期注册名 == 子应用内部状态 key)

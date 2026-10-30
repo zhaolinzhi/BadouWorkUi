@@ -4,16 +4,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Dropdown, Input, Menu } from '@arco-design/web-react';
+import { AppIcon, MoreMenu } from '@aionui/ui';
+import { Input, Tooltip } from '@arco-design/web-react';
 import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
-import { FileText, MoreOne } from '@icon-park/react';
+import { FileText } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { formatAbsoluteTime, formatRelativeTime } from '@renderer/utils/formatRelativeTime';
 import type { NoteItem } from '../api/types';
-// 在 import 区域加：
-import { Tooltip } from '@arco-design/web-react';
-import { formatRelativeTime, formatAbsoluteTime } from '@renderer/utils/formatRelativeTime';
 
 type NoteItemRowProps = {
   note: NoteItem;
@@ -57,22 +56,6 @@ const NoteItemRow: React.FC<NoteItemRowProps> = ({ note, isActive, onSelect, onR
     setIsEditing(false);
   };
 
-  const droplist = (
-    <Menu
-      className='notes-item-dropdown'
-      onClickMenuItem={(key) => {
-        if (key === 'rename') {
-          setIsEditing(true);
-        } else if (key === 'delete') {
-          onDelete(note.id);
-        }
-      }}
-    >
-      <Menu.Item key='rename'>{t('settings.notesRename', { defaultValue: 'Rename' })}</Menu.Item>
-      <Menu.Item key='delete'>{t('settings.notesDeleteNote', { defaultValue: 'Delete Note' })}</Menu.Item>
-    </Menu>
-  );
-  // 在组件内部、return 之前加：
   const timeText = note.updatedAt ? formatRelativeTime(note.updatedAt) : '';
   const timeTip = note.updatedAt ? formatAbsoluteTime(note.updatedAt) : '';
 
@@ -116,15 +99,25 @@ const NoteItemRow: React.FC<NoteItemRowProps> = ({ note, isActive, onSelect, onR
 
       {/* 右：菜单按钮（hover 才显示） */}
       {!isEditing && (
-        <Dropdown trigger='click' droplist={droplist} position='br'>
-          <button
-            type='button'
-            className='flex h-18px w-18px flex-shrink-0 cursor-pointer items-center justify-center rounded-4px opacity-0 transition-opacity hover:bg-fill-3 group-hover:!opacity-100'
-            onClick={(e) => e.stopPropagation()}
-          >
-            <MoreOne size={12} theme='outline' fill='currentColor' />
-          </button>
-        </Dropdown>
+        <MoreMenu
+          items={[
+            { key: 'rename', label: t('settings.notesRename', { defaultValue: 'Rename' }) },
+            {
+              key: 'delete',
+              label: t('settings.notesDeleteNote', { defaultValue: 'Delete Note' }),
+              danger: true,
+            },
+          ]}
+          label={t('common.more', { defaultValue: 'More' })}
+          icon={<AppIcon name='more-one' size={12} />}
+          onSelect={(key) => {
+            if (key === 'rename') setIsEditing(true);
+            else if (key === 'delete') onDelete(note.id);
+          }}
+          // 整行都是可点的 —— 点「更多」不该连带选中这一行
+          onClick={(e) => e.stopPropagation()}
+          className='!h-18px !w-18px flex-shrink-0 opacity-0 transition-opacity group-hover:!opacity-100'
+        />
       )}
     </div>
   );

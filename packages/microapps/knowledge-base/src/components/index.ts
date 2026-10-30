@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export { default as DeleteKnowledgeBaseModal } from './DeleteKnowledgeBaseModal';
 export { default as EmojiPicker } from './EmojiPicker';
 export { default as KnowledgeBaseAvatar } from './KnowledgeBaseAvatar';
 export { default as KnowledgeBaseRow } from './KnowledgeBaseRow';

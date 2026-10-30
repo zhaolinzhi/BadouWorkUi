@@ -227,6 +227,10 @@ export default defineConfig(({ mode }) => {
           '@renderer': resolve('packages/desktop/src/renderer'),
           '@process': resolve('packages/desktop/src/process'),
           '@worker': resolve('packages/desktop/src/process/worker'),
+          // 主应用与三个 qiankun 微应用共用的 UI 组件层。
+          // 源码级共享 —— 包内不发布构建产物,各自的 bundler 把用到的部分
+          // 打进自己的 chunk(与 `@aionui/microapp-shared` 同一模式)。
+          '@aionui/ui': resolve('packages/ui/src/index.ts'),
           // Force ESM version of streamdown
           streamdown: resolve('node_modules/streamdown/dist/index.js'),
         },

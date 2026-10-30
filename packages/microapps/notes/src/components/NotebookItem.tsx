@@ -4,9 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Dropdown, Input, Menu } from '@arco-design/web-react';
+import { AppIcon, MoreMenu } from '@aionui/ui';
+import { Input } from '@arco-design/web-react';
 import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
-import { Down, FolderOpen, MoreOne, Plus } from '@icon-park/react';
+import { Down, FolderOpen, Plus } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -72,19 +73,6 @@ const NotebookItem: React.FC<NotebookItemProps> = ({
     setIsEditing(false);
   };
 
-  const droplist = (
-    <Menu
-      className='notes-item-dropdown'
-      onClickMenuItem={(key) => {
-        if (key === 'rename') setIsEditing(true);
-        else if (key === 'delete') onDeleteNotebook(notebook.id);
-      }}
-    >
-      <Menu.Item key='rename'>{t('settings.notesRename', { defaultValue: 'Rename' })}</Menu.Item>
-      <Menu.Item key='delete'>{t('settings.notesDeleteNotebook', { defaultValue: 'Delete Notebook' })}</Menu.Item>
-    </Menu>
-  );
-
   return (
     <div className='flex flex-col gap-2px'>
       <div
@@ -140,15 +128,24 @@ const NotebookItem: React.FC<NotebookItemProps> = ({
             >
               <Plus size={12} theme='outline' fill='currentColor' />
             </button>
-            <Dropdown trigger='click' droplist={droplist} position='br'>
-              <button
-                type='button'
-                onClick={(e) => e.stopPropagation()}
-                className='flex h-18px w-18px flex-shrink-0 cursor-pointer items-center justify-center rounded-4px opacity-0 transition-opacity hover:bg-fill-3 group-hover:!opacity-100'
-              >
-                <MoreOne size={12} theme='outline' fill='currentColor' />
-              </button>
-            </Dropdown>
+            <MoreMenu
+              items={[
+                { key: 'rename', label: t('settings.notesRename', { defaultValue: 'Rename' }) },
+                {
+                  key: 'delete',
+                  label: t('settings.notesDeleteNotebook', { defaultValue: 'Delete Notebook' }),
+                  danger: true,
+                },
+              ]}
+              label={t('common.more', { defaultValue: 'More' })}
+              icon={<AppIcon name='more-one' size={12} />}
+              onSelect={(key) => {
+                if (key === 'rename') setIsEditing(true);
+                else if (key === 'delete') onDeleteNotebook(notebook.id);
+              }}
+              onClick={(e) => e.stopPropagation()}
+              className='!h-18px !w-18px flex-shrink-0 opacity-0 transition-opacity group-hover:!opacity-100'
+            />
           </>
         )}
       </div>

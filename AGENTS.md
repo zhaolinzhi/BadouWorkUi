@@ -63,6 +63,14 @@ Two process types — never mix their APIs:
 Cross-process communication must go through the IPC bridge (`packages/desktop/src/preload/`).
 See [docs/architecture/overview.md](docs/architecture/overview.md) for details.
 
+### Shared UI layer
+
+UI shared by the shell and the qiankun sub-apps lives in `packages/ui` (`@aionui/ui`) — icons, empty states, async boundaries. It is source-level shared (aliased, not published), and it must not import `@renderer` / `@common` / `@aionui/microapp-shared`.
+
+Do **not** hand-roll a shared icon or empty state in a sub-app: use `AppIcon` / `EmptyState` / `AsyncBoundary` so sizing, stroke width, and theme tokens stay consistent.
+
+See [docs/contributing/ui-components/](docs/contributing/ui-components/) for the component manual — one page per component.
+
 ## Testing
 
 **Framework**: Vitest 4 (`vitest.config.ts`). Project coverage target is ≥ 80%; ordinary changes should add focused tests for changed behavior.

@@ -175,6 +175,7 @@
       "name": "@aionui/desktop",
       "version": "0.0.0",
       "dependencies": {
+        "@aionui/ui": "workspace:*",
         "@aionui/web-host": "workspace:*",
       },
     },
@@ -183,6 +184,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@aionui/microapp-shared": "workspace:*",
+        "@aionui/ui": "workspace:*",
         "@arco-design/web-react": "^2.66.1",
         "@icon-park/react": "^1.4.2",
         "classnames": "^2.5.1",
@@ -214,6 +216,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@aionui/microapp-shared": "workspace:*",
+        "@aionui/ui": "workspace:*",
         "@arco-design/web-react": "^2.66.1",
         "@icon-park/react": "^1.4.2",
         "react": "^19.1.0",
@@ -238,6 +241,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@aionui/microapp-shared": "workspace:*",
+        "@aionui/ui": "workspace:*",
         "@arco-design/web-react": "^2.66.1",
         "react": "^19.1.0",
         "react-dom": "^19.1.0",
@@ -270,6 +274,21 @@
       "devDependencies": {
         "@types/node": "^22.10.2",
         "vitest": "^4.1.0",
+      },
+    },
+    "packages/ui": {
+      "name": "@aionui/ui",
+      "version": "0.0.0",
+      "devDependencies": {
+        "typescript": "^5.8.3",
+        "vitest": "^4.0.18",
+      },
+      "peerDependencies": {
+        "@arco-design/web-react": "^2.66.1",
+        "@icon-park/react": "^1.4.2",
+        "react": "^19.1.0",
+        "react-dom": "^19.1.0",
+        "react-i18next": "^14.0.5",
       },
     },
     "packages/web-cli": {
@@ -330,6 +349,8 @@
     "@aionui/microapp-shared": ["@aionui/microapp-shared@workspace:packages/microapps/shared"],
 
     "@aionui/shared-scripts": ["@aionui/shared-scripts@workspace:packages/shared-scripts"],
+
+    "@aionui/ui": ["@aionui/ui@workspace:packages/ui"],
 
     "@aionui/web-cli": ["@aionui/web-cli@workspace:packages/web-cli"],
 

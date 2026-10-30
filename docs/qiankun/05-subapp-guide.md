@@ -65,6 +65,7 @@ export default defineConfig(({ command }) => ({
       '@common': path.resolve(__dirname, '../../desktop/src/common'),
       '@': path.resolve(__dirname, '../../desktop/src'),
       '@aionui/microapp-shared': path.resolve(__dirname, '../shared/src'), // ← 三个子应用都有
+      '@aionui/ui': path.resolve(__dirname, '../../ui/src/index.ts'), // ← 公共 UI 组件层,注意比 shared 深一层
     },
   },
   server: {
@@ -83,6 +84,7 @@ export default defineConfig(({ command }) => ({
 **易错点**:
 
 - 路径别名必须和主应用一致(都用 `@renderer` / `@common`),因为子应用常 import 共享的 `notebookMapper.ts` 等
+- `@aionui/ui` 的相对层数**比 `@aionui/microapp-shared` 深一层** —— 后者与子应用同为 `packages/microapps/` 下(`../shared/src`),前者在 `packages/` 下(`../../ui/src`)。写错测试不会报错,只有该子应用自己的 `vite build` 会炸
 - `main.ts` 里 `window['<name>']` 的键名改名 = 整个微应用改名,见 [10.7](10-config-changes.md#107-修改子应用-name高风险)
 - dev 端口改了要在 `MICRO_APP_DEFAULTS.getDevEntryPort` 同步,见 [10.2](10-config-changes.md#102-修改-dev-端口)
 - `cors: true` + `Access-Control-Allow-Origin: *` 二选一都不够,**两个都加**
@@ -300,7 +302,30 @@ fetch(`${baseApi}/fs/image-base64`, { ... })
   - 独立运行:子应用自己的 dev server 也要发一份 —— notes 的 `vite.config.ts` 里有 `createVditorDevAssetsPlugin`(只在 `command === 'serve'` 时装)
   - 少了语言包 / lute,编辑器会初始化失败(内容区整个空白)
 
-### 3.6.8 测试
+### 3.6.8 公共 UI 组件层(`@aionui/ui`)
+
+子应用里跟主应用复用的界面组件统一放 `@aionui/ui`(`packages/ui/`),跟 `@aionui/microapp-shared` 分工不同:
+
+- `@aionui/microapp-shared` —— **运行时**:qiankun 生命周期、standalone 样式/主题、IPC 解析
+- `@aionui/ui` —— **界面**:跨应用复用的 React 组件(图标、空状态、异步边界)
+
+子应用接入三步:
+
+1. `package.json` 的 `dependencies` 加 `"@aionui/ui": "workspace:*"`,根目录跑一次 `bun install`
+2. `vite.config.ts` 的 `resolve.alias` 加 `'@aionui/ui': path.resolve(__dirname, '../../ui/src/index.ts')`
+3. `tsconfig.json` 的 `compilerOptions.paths` 加 `"@aionui/ui": ["../../ui/src/index.ts"]`
+
+用起来:
+
+```tsx
+import { AppIcon, AsyncBoundary, EmptyState } from '@aionui/ui';
+```
+
+组件清单、完整 props、i18n 约定(组件零文案,文案由调用方 `t(key, { defaultValue })` 传入)、新增组件的硬性约束,见 [公共组件使用手册](../contributing/ui-components/) —— 每个组件一页,直接查 Props。
+
+> 组件**自带零面向用户的文案**,且所有文字都要带 `defaultValue` —— standalone 下没有 shell 的 i18next 实例,裸 `t(key)` 会把原始 key 直接显示在页面上。
+
+### 3.6.9 测试
 
 - **业务逻辑 / API client**:`*.test.ts`,node 环境,跟主应用一致(`tests/unit/` 路径,或子应用内 `src/api/__tests__/`)
 - **React 组件 / hook / 整个 App**:`*.dom.test.tsx`,jsdom 环境,放 `src/__tests__/`
@@ -325,7 +350,7 @@ fetch(`${baseApi}/fs/image-base64`, { ... })
 - **vitest config**:根 `vitest.config.ts` 已包含 `packages/microapps/**/*.test.ts` / `*.dom.test.tsx`,子应用不用自己配
 - **不要 mock 整个 qiankun** — 子应用不直接 import qiankun,业务代码只调 `mount(props)`。如果测试里想模拟主应用调度,直接在 test 里 await `mount(mockProps)` 即可
 
-### 3.6.9 子应用侧检查清单(开发期间自查)
+### 3.6.10 子应用侧检查清单(开发期间自查)
 
 新建 / 改动子应用时,以下每项都要确认:
 
@@ -348,3 +373,4 @@ fetch(`${baseApi}/fs/image-base64`, { ... })
 - [ ] 直接 fetch 的地方(Vditor 上传 / 图片 base64)用 `ctx.baseApi`,**不要**硬编码 `localhost:<port>`
 - [ ] `App.tsx` 用 `useAppContext()` 拿 `baseApi / token / systemCode / userInfo`,不要 import.meta.env
 - [ ] 业务代码不 import `qiankun` / 主应用 `ipcBridge` / 主应用组件
+- [ ] 界面组件走 `@aionui/ui`(`AppIcon` / `EmptyState` / `AsyncBoundary`),不裸写 icon-park 图标 —— 裸写拿不到主应用的尺寸/描边契约
