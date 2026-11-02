@@ -13,6 +13,9 @@
  * 每路输出加彩色前缀,Ctrl-C 一次全停;任何一路非零退出会把其它几路一起收掉,
  * 避免留下孤儿 vite 进程占着 7991/7992/7993。
  *
+ * 启动前有两道预检:后端整包在不在(缺了后端起不来)、子应用端口空不空
+ * (被占的话 vite 会先成功起两个再报一个)。
+ *
  * 只想起主应用(调试 qiankun 之外的东西)用 `bun run dev`。
  *
  * 子应用发现逻辑与构建态(`scripts/build-micro-apps.mjs`,即 `bun run build:all`)共用
@@ -90,6 +93,57 @@ function run(command) {
     throw result.error ?? new Error(`命令执行失败: ${command}`);
   }
   return result.stdout.trim();
+}
+
+/** PATH 上有没有这个可执行文件。取不到就返回空字符串(检查降级,不阻断 dev)。 */
+function findOnPath(binaryName) {
+  try {
+    const output = run(isWindows ? `where ${binaryName}` : `which ${binaryName}`);
+    const first = output.split(/\r?\n/).find((line) => line.trim());
+    return first ? first.trim() : '';
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * 后端整包预检:随仓库的后端不在,就别指望后端能起来。
+ *
+ * `resources/bundled-aioncore/` 是 gitignore 的构建缓存,`git clean -xfd`、构建
+ * 中断、手误删都会把它清空。清空之后后端解析(binaryResolver)会退到 PATH 上的
+ * `aioncore` —— 那多半是**另一个仓库谱系**的二进制(本仓库 pin 的是
+ * zhaolinzhi/BadouWorkCore,PATH 上常见的是上游 iOfficeAI/AionCore)。两个谱系的
+ * sqlx migration 编号对不上,对着同一个数据目录跑会报 checksum 冲突,应用界面上
+ * 只显示成「本地数据迁移失败」,完全看不出是二进制拿错了。
+ *
+ * 所以在拉起任何进程之前先查一遍,把话说清楚,别让人对着弹窗猜。
+ */
+function assertBackendBundleReady() {
+  const runtimeKey = `${process.platform}-${process.arch}`;
+  const bundleDir = path.join(ROOT, 'resources', 'bundled-aioncore', runtimeKey);
+  const binaryName = process.platform === 'win32' ? 'aioncore.exe' : 'aioncore';
+  const binaryPath = path.join(bundleDir, binaryName);
+  if (fs.existsSync(binaryPath)) return;
+
+  const relative = path.relative(ROOT, binaryPath);
+  const onPath = findOnPath(binaryName);
+
+  if (!onPath) {
+    // PATH 上也没有 → 后端无论如何都起不来,直接拦在启动前
+    process.stderr.write(`${paint(COLOR.yellow, `[dev] 找不到后端二进制 ${relative}`)}\n\n`);
+    process.stderr.write(`  先把后端整包准备好:\n`);
+    process.stderr.write(`    ${paint(COLOR.yellow, 'node scripts/prepareAioncore.js')}\n\n`);
+    process.exit(1);
+  }
+
+  // PATH 上有 —— 可能对,也可能来自另一个谱系。先警告,不停,让用户自己判断。
+  process.stderr.write(
+    `${paint(COLOR.yellow, `[dev] 没找到随仓库的后端整包(${relative}),将改用 PATH 上的 ${onPath}`)}\n`
+  );
+  process.stderr.write(
+    `  ${paint(COLOR.dim, '若它与本仓库不是同一谱系,启动会报 migration checksum 冲突(界面上显示为「本地数据迁移失败」)。')}\n`
+  );
+  process.stderr.write(`  ${paint(COLOR.dim, '恢复随仓库的整包: node scripts/prepareAioncore.js')}\n\n`);
 }
 
 /**
@@ -193,6 +247,7 @@ function start(label, color, cwd, args) {
 
 function main() {
   const microApps = discoverMicroApps('dev');
+  assertBackendBundleReady();
   assertPortsFree(microApps);
 
   // 前缀对齐用:最长的一路决定宽度,输出看起来才是一列
