@@ -13,4 +13,8 @@
  * 要新增图标:把 SVG 丢进 `svg/` 目录就行,不用改这个文件。
  */
 
-export const CUSTOM_ICON_MAP = {} as const;
+import NewChatIcon from './svg/new-chat.svg?component';
+
+export const CUSTOM_ICON_MAP = {
+  'new-chat': NewChatIcon,
+} as const;

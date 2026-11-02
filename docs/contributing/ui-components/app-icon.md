@@ -47,38 +47,39 @@ import { IconApps } from '@icon-park/react';
 
 `ICON_MAP` 是 `icon-park` 组件名的 kebab-case 映射，外加一组产品语义别名。
 
-| 语义名           | 实际图标     | 备注                   |
-| ---------------- | ------------ | ---------------------- |
-| `arrow-left`     | `ArrowLeft`  |                        |
-| `book`           | `Book`       |                        |
-| `book-one`       | `BookOne`    |                        |
-| `delete`         | `Delete`     |                        |
-| `download`       | `Download`   |                        |
-| `down`           | `Down`       |                        |
-| `file-text`      | `FileText`   |                        |
-| `folder-open`    | `FolderOpen` |                        |
-| `info`           | `Info`       |                        |
-| `more-one`       | `MoreOne`    | 「更多」菜单           |
-| `plus`           | `Plus`       |                        |
-| `refresh`        | `Refresh`    |                        |
-| `robot`          | `Robot`      |                        |
-| `tips`           | `Tips`       |                        |
-| `notes`          | `Notes`      | 笔记（产品语义别名）   |
-| `knowledge-base` | `Book`       | 知识库（产品语义别名） |
-| `recording`      | `Microphone` | 录音（产品语义别名）   |
-| `record`         | `Record`     |                        |
-| `microphone`     | `Microphone` |                        |
+| 语义名           | 实际图标      | 备注                                                                         |
+| ---------------- | ------------- | ---------------------------------------------------------------------------- |
+| `arrow-left`     | `ArrowLeft`   |                                                                              |
+| `book`           | `Book`        |                                                                              |
+| `book-one`       | `BookOne`     |                                                                              |
+| `delete`         | `Delete`      |                                                                              |
+| `download`       | `Download`    |                                                                              |
+| `down`           | `Down`        |                                                                              |
+| `file-text`      | `FileText`    |                                                                              |
+| `folder-open`    | `FolderOpen`  |                                                                              |
+| `info`           | `Info`        |                                                                              |
+| `more-one`       | `MoreOne`     | 「更多」菜单                                                                 |
+| `plus`           | `Plus`        |                                                                              |
+| `refresh`        | `Refresh`     |                                                                              |
+| `robot`          | `Robot`       |                                                                              |
+| `tips`           | `Tips`        |                                                                              |
+| `notes`          | `Notes`       | 笔记（产品语义别名）                                                         |
+| `knowledge-base` | `Book`        | 知识库（产品语义别名）                                                       |
+| `recording`      | `Microphone`  | 录音（产品语义别名）                                                         |
+| `record`         | `Record`      |                                                                              |
+| `microphone`     | `Microphone`  |                                                                              |
+| `new-chat`       | `NewChatIcon` | 定制图标（`svg/new-chat.svg`）：气泡 `currentColor` 跟随主题，加号固定品牌蓝 |
 
 ## 如何新增一个图标
 
 ### 先分清是哪一种
 
-| 情况                                                 | 走哪条路                                            |
-| ---------------------------------------------------- | --------------------------------------------------- |
-| icon-park 的 2658 个里有能表达意思的                 | **路径 A** —— 直接 import 一个图标                  |
+| 情况                                                 | 走哪条路                                                  |
+| ---------------------------------------------------- | --------------------------------------------------------- |
+| icon-park 的 2658 个里有能表达意思的                 | **路径 A** —— 直接 import 一个图标                        |
 | 没有 —— 页面重新设计，图标是单独定制的               | **路径 B** —— SVG 丢进 `icons/svg/`，构建期自动转换并登记 |
-| 同一个图标在多处表达同一件事（如「知识库」到处出现） | 两条路都要登记，再加一条**语义别名**                |
-| 只临时用一次，不值得进映射表                         | 走 `icon` 透传：`<AppIcon icon={X} />`              |
+| 同一个图标在多处表达同一件事（如「知识库」到处出现） | 两条路都要登记，再加一条**语义别名**                      |
+| 只临时用一次，不值得进映射表                         | 走 `icon` 透传：`<AppIcon icon={X} />`                    |
 
 两条路的终点是一样的：**有一个 kebab-case 的语义名**，
 之后全产品（主应用 + 三个微应用）都能直接写 `<AppIcon name='...' />`。
