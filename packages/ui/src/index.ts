@@ -27,6 +27,7 @@ export {
   AppIcon,
   AsyncBoundary,
   ConfirmModal,
+  CUSTOM_ICON_MAP,
   EmptyState,
   ICON_MAP,
   IconButton,

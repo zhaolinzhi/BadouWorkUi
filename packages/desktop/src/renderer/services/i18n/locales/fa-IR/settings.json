@@ -783,6 +783,12 @@
   "devTools": "ابزارهای توسعه‌دهنده",
   "openDevTools": "باز کردن DevTools",
   "closeDevTools": "بستن DevTools",
+  "iconGallery": "گالری آیکون‌ها",
+  "iconGalleryDesc": "همهٔ آیکون‌های پروژه را ببینید — برای کپی کردن نامشان روی یکی کلیک کنید",
+  "openIconGallery": "باز کردن گالری آیکون‌ها",
+  "developerSettings": "تنظیمات توسعه‌دهنده",
+  "developerSettingsDesc": "ابزارهای توسعه‌دهنده:باز کردن DevTools، پیکربندی اشکال‌زدایی راه دور CDP و دیدن همهٔ آیکون‌های پروژه",
+  "groupDeveloper": "توسعه‌دهنده",
   "restartNow": "ری‌استارت اکنون",
   "cdp": {
     "title": "CDP (پروتکل Chrome DevTools)",

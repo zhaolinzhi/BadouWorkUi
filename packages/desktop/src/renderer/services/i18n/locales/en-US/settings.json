@@ -793,6 +793,12 @@
   "devTools": "Developer Tools",
   "openDevTools": "Open DevTools",
   "closeDevTools": "Close DevTools",
+  "iconGallery": "Icon Gallery",
+  "iconGalleryDesc": "Browse every icon available in the project — click one to copy its semantic name",
+  "openIconGallery": "Open Icon Gallery",
+  "developerSettings": "Developer Settings",
+  "developerSettingsDesc": "Developer tools: open DevTools, configure CDP remote debugging, browse every icon in the project",
+  "groupDeveloper": "Developer",
   "restartNow": "Restart Now",
   "cdp": {
     "title": "CDP (Chrome DevTools Protocol)",

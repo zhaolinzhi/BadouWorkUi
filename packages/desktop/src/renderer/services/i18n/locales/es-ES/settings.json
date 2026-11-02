@@ -773,6 +773,12 @@
   "devTools": "Herramientas de desarrollo",
   "openDevTools": "Abrir DevTools",
   "closeDevTools": "Cerrar DevTools",
+  "iconGallery": "Galería de iconos",
+  "iconGalleryDesc": "Consulta todos los iconos del proyecto: haz clic en uno para copiar su nombre",
+  "openIconGallery": "Abrir galería de iconos",
+  "developerSettings": "Ajustes de desarrollador",
+  "developerSettingsDesc": "Herramientas de desarrollador:abrir DevTools, configurar la depuración remota por CDP y ver todos los iconos del proyecto",
+  "groupDeveloper": "Desarrollador",
   "restartNow": "Reiniciar ahora",
   "cdp": {
     "title": "CDP (Protocolo de DevTools de Chrome)",

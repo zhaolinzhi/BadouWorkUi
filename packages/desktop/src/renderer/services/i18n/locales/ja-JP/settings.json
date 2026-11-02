@@ -771,6 +771,12 @@
   "devTools": "Developer Tools",
   "openDevTools": "Open DevTools",
   "closeDevTools": "Close DevTools",
+  "iconGallery": "アイコン一覧",
+  "iconGalleryDesc": "プロジェクトで使用できるすべてのアイコンを一覧表示。クリックで名前をコピーします",
+  "openIconGallery": "アイコン一覧を開く",
+  "developerSettings": "開発者設定",
+  "developerSettingsDesc": "開発者ツール:DevTools の起動、CDP リモートデバッグの設定、プロジェクト内のすべてのアイコンの確認",
+  "groupDeveloper": "開発者",
   "restartNow": "Restart Now",
   "cdp": {
     "title": "CDP (Chrome DevTools Protocol)",

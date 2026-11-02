@@ -771,6 +771,12 @@
   "devTools": "Developer Tools",
   "openDevTools": "Open DevTools",
   "closeDevTools": "Close DevTools",
+  "iconGallery": "아이콘 갤러리",
+  "iconGalleryDesc": "프로젝트에서 사용할 수 있는 모든 아이콘을 확인하고, 클릭하면 이름을 복사합니다",
+  "openIconGallery": "아이콘 갤러리 열기",
+  "developerSettings": "개발자 설정",
+  "developerSettingsDesc": "개발자 도구:DevTools 열기, CDP 원격 디버깅 설정, 프로젝트의 모든 아이콘 확인",
+  "groupDeveloper": "개발자",
   "restartNow": "Restart Now",
   "cdp": {
     "title": "CDP (Chrome DevTools Protocol)",

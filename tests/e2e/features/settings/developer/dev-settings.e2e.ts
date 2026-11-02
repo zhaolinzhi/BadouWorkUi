@@ -2,7 +2,7 @@
  * DevSettings E2E Tests
  *
  * Covers: DevTools toggle, CDP switch, CDP URL display, MCP config collapse.
- * Only visible in dev mode — gracefully skips when hidden.
+ * The developer group only exists in dev builds — gracefully skips when hidden.
  * All operations via UI — zero invokeBridge, zero mock.
  */
 
@@ -24,7 +24,24 @@ function devSection(page: import('@playwright/test').Page) {
 
 test.describe('DevSettings', () => {
   test.beforeEach(async ({ page }) => {
+    // 先落到「系统」页把设置侧栏渲染出来,再点「开发者」分组 —— 打包版没有这个导航项。
     await goToSettings(page, 'system');
+    await waitForSettle(page);
+
+    const navItem = page.locator('[data-settings-path="developer"]');
+    const attached = await navItem
+      .waitFor({ state: 'attached', timeout: 10_000 })
+      .then(() => true)
+      .catch(() => false);
+    if (!attached) {
+      test.skip(true, '开发者分组不存在 —— 打包版不显示');
+      return;
+    }
+
+    await navItem.click();
+    await page
+      .waitForFunction(() => window.location.hash.includes('/settings/developer'), { timeout: 10_000 })
+      .catch(() => {});
     await waitForSettle(page);
   });
 

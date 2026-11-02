@@ -771,6 +771,12 @@
   "devTools": "Developer Tools",
   "openDevTools": "Open DevTools",
   "closeDevTools": "Close DevTools",
+  "iconGallery": "İkon Galerisi",
+  "iconGalleryDesc": "Projedeki tüm ikonları görüntüleyin; birine tıklayınca adını kopyalar",
+  "openIconGallery": "İkon Galerisini Aç",
+  "developerSettings": "Geliştirici Ayarları",
+  "developerSettingsDesc": "Geliştirici araçları:DevTools uygulamasını açın, CDP uzak hata ayıklamayı yapılandırın, projedeki tüm simgeleri görün",
+  "groupDeveloper": "Geliştirici",
   "restartNow": "Restart Now",
   "cdp": {
     "title": "CDP (Chrome DevTools Protocol)",

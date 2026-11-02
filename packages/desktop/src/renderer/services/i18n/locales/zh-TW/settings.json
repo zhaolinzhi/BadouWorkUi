@@ -783,6 +783,12 @@
   "devTools": "Developer Tools",
   "openDevTools": "Open DevTools",
   "closeDevTools": "Close DevTools",
+  "iconGallery": "圖示總覽",
+  "iconGalleryDesc": "檢視專案裡全部可用的圖示，點一下複製它的語意名稱",
+  "openIconGallery": "開啟圖示總覽",
+  "developerSettings": "開發者設定",
+  "developerSettingsDesc": "開發者工具:開啟 DevTools、設定 CDP 遠端偵錯、查看專案裡的全部圖示",
+  "groupDeveloper": "開發者",
   "restartNow": "Restart Now",
   "cdp": {
     "title": "CDP (Chrome DevTools Protocol)",

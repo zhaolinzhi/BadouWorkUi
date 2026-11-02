@@ -21,6 +21,8 @@ export const ROUTES = {
     display: '#/settings/appearance',
     webui: '#/settings/webui',
     system: '#/settings/system',
+    /** 开发者分组只在开发构建里存在 —— 打包版侧栏没有这一项。 */
+    developer: '#/settings/developer',
     about: '#/settings/about',
   },
   /** Dynamic extension settings tab route */

@@ -5,21 +5,23 @@
  */
 
 import { ipcBridge } from '@/common';
+import PreferenceRow from '@/renderer/components/settings/SettingsModal/contents/SystemModalContent/PreferenceRow';
 import { notifyManualRestartRequired } from '@/renderer/utils/appRestart';
 import { Alert, Button, Collapse, Message, Switch, Tooltip } from '@arco-design/web-react';
 import { Copy, Down, Link } from '@icon-park/react';
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import useSWR, { mutate } from 'swr';
-import PreferenceRow from './PreferenceRow';
 
 /**
  * Developer Settings Component
- * Groups DevTools toggle and CDP remote debugging config.
+ * Groups DevTools toggle, CDP remote debugging config and the icon gallery entry.
  * Only visible in development mode.
  */
 const DevSettings: React.FC = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { data: cdpStatus, isLoading } = useSWR('cdp.status', () => ipcBridge.application.getCdpStatus.invoke());
   const [switchLoading, setSwitchLoading] = useState(false);
   const [isDevToolsOpen, setIsDevToolsOpen] = useState(false);
@@ -142,7 +144,19 @@ const DevSettings: React.FC = () => {
     }
   };
 
-  // Only show in development mode
+  const handleOpenIconGallery = () => {
+    void navigate('/test/icons');
+  };
+
+  // 只在开发构建里出现。
+  // import.meta.env.DEV 是构建期常量 —— renderer 打包时 mode=production,
+  // 这道闸在编译产物里就定死了,正式版永远进不来。
+  if (!import.meta.env.DEV) {
+    return null;
+  }
+
+  // 运行期再复核一次(!app.isPackaged):万一有人用 --mode development 打包,
+  // 构建期那道闸会放行,这里拦住。
   if (!isLoading && status?.isDevMode === false) {
     return null;
   }
@@ -307,6 +321,15 @@ const DevSettings: React.FC = () => {
             />
           )}
         </div>
+      </div>
+
+      {/* Icon gallery: browse every registered icon and copy its semantic name */}
+      <div className='px-[12px] md:px-[32px] py-16px bg-2 rd-16px'>
+        <PreferenceRow label={t('settings.iconGallery')} description={t('settings.iconGalleryDesc')}>
+          <Button size='small' type='secondary' onClick={handleOpenIconGallery}>
+            {t('settings.openIconGallery')}
+          </Button>
+        </PreferenceRow>
       </div>
     </div>
   );

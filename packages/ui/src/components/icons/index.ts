@@ -103,3 +103,11 @@ export const ICON_MAP = {
 
 /** 可用的图标语义名。 */
 export type AppIconName = keyof typeof ICON_MAP;
+
+/**
+ * 定制图标映射表 —— 构建期扫描 `icons/svg/` 自动生成。
+ *
+ * 单独导出是为了让「图标总览」这类工具页能区分图标来自哪里:
+ * 在这张表里 = 定制图标(设计单独给的 SVG),不在 = icon-park 自带。
+ */
+export { CUSTOM_ICON_MAP };

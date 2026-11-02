@@ -763,6 +763,12 @@
   "devTools": "Инструменты разработчика",
   "openDevTools": "Открыть DevTools",
   "closeDevTools": "Закрыть DevTools",
+  "iconGallery": "Галерея иконок",
+  "iconGalleryDesc": "Просмотрите все иконки проекта — нажмите на иконку, чтобы скопировать её имя",
+  "openIconGallery": "Открыть галерею иконок",
+  "developerSettings": "Настройки разработчика",
+  "developerSettingsDesc": "Инструменты разработчика:открыть DevTools, настроить удалённую отладку CDP, посмотреть все иконки проекта",
+  "groupDeveloper": "Разработчик",
   "restartNow": "Перезапустить сейчас",
   "cdp": {
     "title": "CDP (протокол Chrome DevTools)",

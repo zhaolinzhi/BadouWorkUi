@@ -85,6 +85,11 @@ import { IconApps } from '@icon-park/react';
 之后全产品（主应用 + 三个微应用）都能直接写 `<AppIcon name='...' />`。
 路径 A 要手工登记，路径 B 放进文件夹就自动登记。
 
+> **动手前先看一眼 `#/test/icons`** —— 那里列着全部已登记的图标，点一下就能复制语义名，
+> 也顺便能确认你要用的名字是不是已经有人占了（撞名会覆盖 icon-park 的同名图标）。
+>
+> 入口在 **设置 → 开发者 → 开发者设置 → 打开图标总览**（只在开发模式下显示）。
+
 ---
 
 ### 路径 A：icon-park 里就有
@@ -298,6 +303,7 @@ bunx tsc --noEmit -p packages/ui/tsconfig.json                # 类型
 - 生成物（**别手改**）：[`packages/ui/src/components/icons/svg.generated.ts`](../../../packages/ui/src/components/icons/svg.generated.ts)
 - 定制图标工厂（手写组件时用）：[`packages/ui/src/components/icons/customIcons.tsx`](../../../packages/ui/src/components/icons/customIcons.tsx)
 - 映射表源码：[`packages/ui/src/components/icons/index.ts`](../../../packages/ui/src/components/icons/index.ts)
+- **图标总览页**（开发用）：`#/test/icons` —— 列出全部已登记的图标，点一下就复制它的语义名；想知道「项目里有哪些图标」先看这里。入口在 **设置 → 开发者 → 开发者设置 → 打开图标总览**（仅开发模式可见）
 - [IconButton](icon-button.md) —— 需要键盘可达的图标按钮用它，不要用 `AppIcon` 的 `onClick`。
 - [MoreMenu](more-menu.md) —— 默认的「⋮」图标就是 `more-one`。
 

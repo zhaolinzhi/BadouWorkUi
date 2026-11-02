@@ -771,6 +771,12 @@
   "devTools": "Outils de développement",
   "openDevTools": "Ouvrir les DevTools",
   "closeDevTools": "Fermer les DevTools",
+  "iconGallery": "Galerie d'icônes",
+  "iconGalleryDesc": "Parcourez toutes les icônes du projet — cliquez sur une icône pour copier son nom",
+  "openIconGallery": "Ouvrir la galerie d'icônes",
+  "developerSettings": "Paramètres de développeur",
+  "developerSettingsDesc": "Outils de développeur : ouvrir DevTools, configurer le débogage à distance CDP et parcourir toutes les icônes du projet",
+  "groupDeveloper": "Développeur",
   "restartNow": "Redémarrer maintenant",
   "cdp": {
     "title": "CDP (Chrome DevTools Protocol)",

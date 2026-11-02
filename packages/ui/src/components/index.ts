@@ -9,7 +9,7 @@
  */
 export { default as AppIcon } from './AppIcon';
 export type { AppIconProps } from './AppIcon';
-export { ICON_MAP } from './icons';
+export { CUSTOM_ICON_MAP, ICON_MAP } from './icons';
 export type { AppIconComponent, AppIconComponentProps, AppIconName } from './icons';
 
 export { default as AppHeader } from './AppHeader';

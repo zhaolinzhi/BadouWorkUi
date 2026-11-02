@@ -812,6 +812,12 @@
   "devTools": "开发者工具",
   "openDevTools": "打开 DevTools",
   "closeDevTools": "关闭 DevTools",
+  "iconGallery": "图标总览",
+  "iconGalleryDesc": "查看项目里全部可用的图标，点一下复制它的语义名",
+  "openIconGallery": "打开图标总览",
+  "developerSettings": "开发者设置",
+  "developerSettingsDesc": "开发者工具:打开 DevTools、配置 CDP 远程调试、查看项目里的全部图标",
+  "groupDeveloper": "开发者",
   "restartNow": "立即重启",
   "cdp": {
     "title": "CDP（Chrome DevTools 协议）",
