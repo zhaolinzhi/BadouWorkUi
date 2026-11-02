@@ -44,7 +44,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { Plugin } from 'vite';
 
-import { findIconsDirectory, writeCustomIconRegistry } from './customIconRegistry';
+import {
+  customIconDirectory,
+  findIconsDirectory,
+  isCustomIconFile,
+  writeCustomIconRegistry,
+} from './customIconRegistry';
 import { convertSvgToComponent } from './svgToReact';
 
 export type SvgIconPluginOptions = {
@@ -93,6 +98,34 @@ export function aionuiSvgIconPlugin(options: SvgIconPluginOptions = {}): Plugin 
       if (!iconsDirectory) return;
       const { changed, filePath } = writeCustomIconRegistry(iconsDirectory);
       if (changed) this.info(`定制图标注册表已更新:${filePath}`);
+    },
+
+    /**
+     * dev server 起来之后,新增/删除 SVG 也要能自动生效 —— 不然每次加图标
+     * 都得重启一遍 dev server,「丢文件就完事」就成了一句空话。
+     *
+     * 要显式 `watcher.add()`:SVG 目录在**工程根之外**(共享层 `packages/ui/`),
+     * 而新加的文件还没进模块图,Vite 不会自动盯着它。
+     */
+    configureServer(server) {
+      if (!iconsDirectory) return;
+      const iconsDirectoryPath = iconsDirectory;
+
+      server.watcher.add(customIconDirectory(iconsDirectoryPath));
+
+      const regenerate = (filePath: string) => {
+        if (!isCustomIconFile(iconsDirectoryPath, filePath)) return;
+
+        const { changed, filePath: registryPath } = writeCustomIconRegistry(iconsDirectoryPath);
+        if (!changed) return;
+
+        server.config.logger.info(`定制图标注册表已更新:${registryPath}`);
+        // 映射表变了 —— 页面得重新加载才认得新的语义名。
+        server.ws.send({ type: 'full-reload' });
+      };
+
+      server.watcher.on('add', regenerate);
+      server.watcher.on('unlink', regenerate);
     },
 
     load(id) {

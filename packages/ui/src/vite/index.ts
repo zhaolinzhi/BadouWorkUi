@@ -30,7 +30,9 @@ export { convertSvgToComponent } from './svgToReact';
 export type { ConvertSvgOptions, ConvertSvgResult, SvgElementNode } from './svgToReact';
 export {
   CUSTOM_ICON_REGISTRY_FILENAME,
+  customIconDirectory,
   findIconsDirectory,
+  isCustomIconFile,
   renderCustomIconRegistry,
   scanCustomIcons,
   writeCustomIconRegistry,

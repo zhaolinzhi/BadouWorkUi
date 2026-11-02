@@ -151,16 +151,39 @@ function renderKey(name: string): string {
  * 重新生成注册表文件 —— **内容有变化才写盘**。
  *
  * 只在变化时写:dev server 盯着这个文件,内容不变就不该产生一次无意义的 HMR。
+ *
+ * 写盘是**原子**的(先写临时文件再改名):主应用与三个微应用的 dev server 会同时
+ * 盯着同一个目录,直接覆盖写可能让另一个进程读到写了一半的内容。
  */
 export function writeCustomIconRegistry(iconsDirectory: string): { changed: boolean; filePath: string } {
   const filePath = path.join(iconsDirectory, CUSTOM_ICON_REGISTRY_FILENAME);
-  const content = renderCustomIconRegistry(scanCustomIcons(path.join(iconsDirectory, SVG_DIRECTORY_NAME)));
+  const content = renderCustomIconRegistry(scanCustomIcons(customIconDirectory(iconsDirectory)));
 
   const existing = fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf8') : null;
   if (existing === content) return { changed: false, filePath };
 
-  fs.writeFileSync(filePath, content, 'utf8');
+  const temporaryPath = `${filePath}.tmp`;
+  fs.writeFileSync(temporaryPath, content, 'utf8');
+  fs.renameSync(temporaryPath, filePath);
+
   return { changed: true, filePath };
+}
+
+/** SVG 源目录的绝对路径。 */
+export function customIconDirectory(iconsDirectory: string): string {
+  return path.join(iconsDirectory, SVG_DIRECTORY_NAME);
+}
+
+/**
+ * 这个文件是不是「自动登记的定制图标」。
+ *
+ * dev server 监听目录变动时用它过滤 —— 只认 `svg/` 目录下的 `.svg`,
+ * 注册表文件自己、README 之类的都不算。
+ */
+export function isCustomIconFile(iconsDirectory: string, filePath: string): boolean {
+  const relative = path.relative(customIconDirectory(iconsDirectory), filePath);
+  if (!relative || relative.startsWith('..') || path.isAbsolute(relative)) return false;
+  return relative.toLowerCase().endsWith('.svg');
 }
 
 /**

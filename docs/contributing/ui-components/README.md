@@ -157,6 +157,7 @@ import { AppIcon, AsyncBoundary, EmptyState } from '@aionui/ui';
 定制图标（`packages/ui/src/components/icons/svg/` 下的 SVG）走的是另一个插件 `aionuiSvgIconPlugin`，
 它负责把 SVG 转成组件、扫描目录并生成 `icons/svg.generated.ts`（自动登记）。
 **同样装在这四处** —— 少了它，定制图标不会进映射表。
+dev server 起来后它还会盯着那个目录，**新增/删除 SVG 不用重启 dev server**。
 
 > **为什么不用 `globalThis`**：qiankun 的子应用共享同一个 `globalThis`，却各自打包了一份 React 与 Arco。
 > 把组件挂上去会被后加载的应用覆盖，先加载的应用于是拿别人的 React 元素渲染 —— 典型症状 "Invalid hook call"。

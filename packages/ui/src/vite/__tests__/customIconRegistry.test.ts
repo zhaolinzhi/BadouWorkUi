@@ -22,6 +22,7 @@ import { ICON_PARK_MAP } from '../../components/icons';
 import {
   CUSTOM_ICON_REGISTRY_FILENAME,
   findIconsDirectory,
+  isCustomIconFile,
   renderCustomIconRegistry,
   scanCustomIcons,
   writeCustomIconRegistry,
@@ -42,7 +43,7 @@ afterEach(() => {
 });
 
 /** 建一个临时的 `icons/` 目录,里面放一个 `svg/` 子目录。 */
-function createTemporaryIconsDirectory(files: Record<string, string>): string {
+function createTemporaryIconsDirectory(files: Record<string, string> = {}): string {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-icons-'));
   temporaryDirectories.push(root);
 
@@ -162,6 +163,42 @@ describe('写注册表文件', () => {
     const second = writeCustomIconRegistry(iconsDirectory);
 
     expect(second.changed).toBe(false);
+  });
+
+  it('不留下临时文件 —— 写盘是原子的(先写 tmp 再改名)', () => {
+    const iconsDirectory = createTemporaryIconsDirectory({ 'star-badge.svg': '<svg />' });
+
+    const result = writeCustomIconRegistry(iconsDirectory);
+
+    expect(fs.existsSync(`${result.filePath}.tmp`)).toBe(false);
+    expect(fs.readdirSync(iconsDirectory).filter((name) => name.endsWith('.tmp'))).toEqual([]);
+  });
+});
+
+describe('判断是不是自动登记的图标文件', () => {
+  it('svg 目录下的 .svg 算', () => {
+    const iconsDirectory = createTemporaryIconsDirectory();
+
+    expect(isCustomIconFile(iconsDirectory, path.join(iconsDirectory, 'svg', 'star-badge.svg'))).toBe(true);
+  });
+
+  it('svg 目录下的其它文件不算', () => {
+    const iconsDirectory = createTemporaryIconsDirectory();
+
+    expect(isCustomIconFile(iconsDirectory, path.join(iconsDirectory, 'svg', 'README.md'))).toBe(false);
+  });
+
+  it('svg 目录之外的文件不算', () => {
+    const iconsDirectory = createTemporaryIconsDirectory();
+
+    expect(isCustomIconFile(iconsDirectory, path.join(iconsDirectory, 'svg.generated.ts'))).toBe(false);
+    expect(isCustomIconFile(iconsDirectory, path.join(iconsDirectory, 'index.ts'))).toBe(false);
+  });
+
+  it('名字前缀相似但不在 svg 目录下的文件不算', () => {
+    const iconsDirectory = createTemporaryIconsDirectory();
+
+    expect(isCustomIconFile(iconsDirectory, path.join(iconsDirectory, 'svg-backup', 'star-badge.svg'))).toBe(false);
   });
 });
 

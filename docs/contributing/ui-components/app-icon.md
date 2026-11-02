@@ -195,6 +195,12 @@ export const ICON_MAP = {
 
 **所以新增定制图标只要丢文件，不用 import、也不用改 `ICON_MAP`。**
 
+> **dev 期间不用重启 dev server。**
+> 插件在 dev server 起来后会盯着 `icons/svg/` 目录 —— 新增或删除 SVG 的瞬间
+> 映射表就重新生成，页面自动重新加载。构建时也一样：每次构建都会重新生成。
+> 只有一种情况要手动重来：**新加了图标但 TS 还报「不在 `AppIconName` 里」** ——
+> 那是编辑器的类型服务还没看到新生成的 `.ts` 文件，重启一下 TS 服务（VS Code：_TypeScript: Restart TS Server_）即可。
+
 转换规则：
 
 | 设计稿里的东西                                                   | 编译后的行为                                                        |
@@ -262,21 +268,21 @@ bunx tsc --noEmit -p packages/ui/tsconfig.json                # 类型
 
 ### 坑
 
-| 现象                               | 原因                                                  | 修法                                                                                        |
-| ---------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| 键名报「不在 `AppIconName` 里」    | `ICON_MAP` 里没这个键                                 | 补上键；类型是从映射表推的，不用单独改类型                                                  |
-| 运行时 `AppIcon` 渲染成空白        | 键名拼错，或组件没 import 进来                        | 对照 `icons.json` 的 `name`；检查静态 import 是否存在                                       |
-| 从官网下了 svg / iconfont 的 css   | 以为「添加图标」= 下载文件                            | 删掉。本仓库不下载图标，`import { Xxx } from '@icon-park/react'` 就够                       |
-| bundle 体积暴涨                    | 用了 `import * as` / 动态 import                      | 改成具名静态 import                                                                         |
-| 图标大小 / 描边和别处不一样        | 业务代码直接 `import { Xxx } from '@icon-park/react'` | 改用 `<AppIcon name='...' />`，参数由共享层统一                                             |
-| 新键在主应用能显示、微应用里是裸的 | 绕过了 `AppIcon`，直接渲染了 icon-park 组件           | 同上 —— 微应用没有 `iconParkPlugin`，只有 `AppIcon` 会统一参数                              |
-| 定制图标颜色不跟随主题             | SVG 里写死了 `fill="#86909C"` / `stroke="#000"`       | 改成 `currentColor`（外层 `<svg>` 的 `style.color` 已经跟着 `fill` 走）；构建时也会打印提示 |
-| 定制图标形状变形                   | SVG 的 `viewBox` 被改了                               | `viewBox` 原样保留                                                                          |
-| 定制图标跟某个已有图标长得一样     | 语义名撞了，定制图标把 icon-park 的那个覆盖了          | 换个不冲突的语义名（守卫测试会报出撞车的名字）                                               |
-| 新加了 SVG，名字却报「不在 `AppIconName` 里」 | 注册表还没重新生成                        | 启动一次 dev server 或构建 —— `svg.generated.ts` 是构建期生成的                             |
-| 手改了 `svg.generated.ts`          | 它是**生成物**                                         | 别手改；下一次构建会覆盖。要改就改 `svg/` 下的 SVG                                          |
-| 导入定制图标报「找不到模块」       | 少了 `?component`，或该工程没装 `aionuiSvgIconPlugin` | 加上查询参数；四个构建入口都要装这个插件（见下）                                            |
-| 改了 SVG 页面没变                  | 只改了文件没重新构建                                  | dev server 会自动重编译；生产构建重新跑一次即可                                             |
+| 现象                                          | 原因                                                  | 修法                                                                                        |
+| --------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| 键名报「不在 `AppIconName` 里」               | `ICON_MAP` 里没这个键                                 | 补上键；类型是从映射表推的，不用单独改类型                                                  |
+| 运行时 `AppIcon` 渲染成空白                   | 键名拼错，或组件没 import 进来                        | 对照 `icons.json` 的 `name`；检查静态 import 是否存在                                       |
+| 从官网下了 svg / iconfont 的 css              | 以为「添加图标」= 下载文件                            | 删掉。本仓库不下载图标，`import { Xxx } from '@icon-park/react'` 就够                       |
+| bundle 体积暴涨                               | 用了 `import * as` / 动态 import                      | 改成具名静态 import                                                                         |
+| 图标大小 / 描边和别处不一样                   | 业务代码直接 `import { Xxx } from '@icon-park/react'` | 改用 `<AppIcon name='...' />`，参数由共享层统一                                             |
+| 新键在主应用能显示、微应用里是裸的            | 绕过了 `AppIcon`，直接渲染了 icon-park 组件           | 同上 —— 微应用没有 `iconParkPlugin`，只有 `AppIcon` 会统一参数                              |
+| 定制图标颜色不跟随主题                        | SVG 里写死了 `fill="#86909C"` / `stroke="#000"`       | 改成 `currentColor`（外层 `<svg>` 的 `style.color` 已经跟着 `fill` 走）；构建时也会打印提示 |
+| 定制图标形状变形                              | SVG 的 `viewBox` 被改了                               | `viewBox` 原样保留                                                                          |
+| 定制图标跟某个已有图标长得一样                | 语义名撞了，定制图标把 icon-park 的那个覆盖了         | 换个不冲突的语义名（守卫测试会报出撞车的名字）                                              |
+| 新加了 SVG，名字却报「不在 `AppIconName` 里」 | 编辑器的类型服务还没看到新生成的注册表                | 重启一下 TS 服务（VS Code：_TypeScript: Restart TS Server_）—— `svg.generated.ts` 是生成物  |
+| 手改了 `svg.generated.ts`                     | 它是**生成物**                                        | 别手改；下一次构建会覆盖。要改就改 `svg/` 下的 SVG                                          |
+| 导入定制图标报「找不到模块」                  | 少了 `?component`，或该工程没装 `aionuiSvgIconPlugin` | 加上查询参数；四个构建入口都要装这个插件（见下）                                            |
+| 改了 SVG 页面没变                             | 只改了文件没重新构建                                  | dev server 会自动重编译；生产构建重新跑一次即可                                             |
 
 ## 行为约定
 
