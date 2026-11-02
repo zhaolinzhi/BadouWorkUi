@@ -23,6 +23,11 @@
 | [AppHeader](app-header.md)         | notes 工具条与各页顶部条结构各不相同                  | 可用 · notes/KB 已接入    |
 | [cx](cx.md)                        | 拼接 className                                        | 可用                      |
 
+要**新增图标**（在现有图标之外加一个）走的是另一条流程：icon-park 里有的走 [路径 A](app-icon.md#路径-aicon-park-里就有)，
+需要单独定制的走 [路径 B：定制图标](app-icon.md#路径-b定制图标icon-park-里没有) —— 把设计给的 SVG 丢进
+`packages/ui/src/components/icons/svg/`，构建期自动转成图标组件**并自动登记进 `ICON_MAP`**，
+不用改代码，**运行时零开销**。
+
 已经接入的地方（可以直接照抄用法）：
 
 | 位置                                                  | 用的组件        |
@@ -126,6 +131,40 @@ import { AppIcon, AsyncBoundary, EmptyState } from '@aionui/ui';
 > 为什么不提供 `@aionui/ui/components` 子路径：各消费方的 `resolve.alias` 是**前缀匹配**，
 > `@aionui/ui/components` 会被拼成 `.../src/index.ts/components` 而解析失败。
 > 想要子路径就得把 5 处 alias 全改成正则，收益不抵成本。
+
+### 4. 图标与按钮：免 import 直接用
+
+`AppIcon` 与 `IconButton` 是全产品重复度最高的两类标记，已经**全局注册** —— 业务文件里直接写：
+
+```tsx
+// 不用 import { AppIcon, IconButton } from '@aionui/ui';
+<IconButton icon={<AppIcon name='plus' />} label='新建笔记' onClick={handleCreate} />
+```
+
+| 环节   | 做法                                                                                        |
+| ------ | ------------------------------------------------------------------------------------------- |
+| 运行时 | 构建期的 `aionuiGlobalComponentsPlugin`（`packages/ui/src/vite/`）扫源码，补上缺失的 import |
+| 类型   | `packages/ui/src/globals.d.ts` 里的 `declare global`                                        |
+
+四个工程入口（主应用 + 三个微应用 + 根测试）都装了这个插件 —— **少一个就会出现「类型过了、运行时 `ReferenceError`」**：
+
+| 入口       | 位置                                                   |
+| ---------- | ------------------------------------------------------ |
+| 主应用     | `packages/desktop/electron.vite.config.ts` 的 renderer |
+| 三个微应用 | 各自的 `vite.config.ts` 的 `plugins`                   |
+| 根测试     | `vitest.config.ts` 的 `plugins`                        |
+
+定制图标（`packages/ui/src/components/icons/svg/` 下的 SVG）走的是另一个插件 `aionuiSvgIconPlugin`，
+它负责把 SVG 转成组件、扫描目录并生成 `icons/svg.generated.ts`（自动登记）。
+**同样装在这四处** —— 少了它，定制图标不会进映射表。
+
+> **为什么不用 `globalThis`**：qiankun 的子应用共享同一个 `globalThis`，却各自打包了一份 React 与 Arco。
+> 把组件挂上去会被后加载的应用覆盖，先加载的应用于是拿别人的 React 元素渲染 —— 典型症状 "Invalid hook call"。
+> 构建期注入的是**各应用自己 bundle 里**的那份，与显式 import 完全等价。
+
+其余组件（`EmptyState` / `AsyncBoundary` / `ConfirmModal` / `MoreMenu` / `AppHeader`）**仍然要显式 import** ——
+显式 import 更能说清依赖关系。要把哪个组件也注册成全局：往 `packages/ui/src/vite/globalComponentsPlugin.ts` 的
+`GLOBAL_COMPONENT_NAMES` 里加名字，并同步在 `packages/ui/src/globals.d.ts` 里补一条 `declare global`。
 
 ---
 

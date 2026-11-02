@@ -20,5 +20,5 @@
       "@aionui/ui": ["../../ui/src/index.ts"]
     }
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*", "../../ui/src/**/*.d.ts"]
 }

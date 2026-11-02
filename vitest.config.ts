@@ -1,6 +1,8 @@
 import { defineConfig } from 'vitest/config';
 import path from 'path';
 
+import { aionuiGlobalComponentsPlugin, aionuiSvgIconPlugin } from './packages/ui/src/vite/index.ts';
+
 const aliases = {
   '@/': path.resolve(__dirname, './packages/desktop/src') + '/',
   '@process/': path.resolve(__dirname, './packages/desktop/src/process') + '/',
@@ -29,6 +31,13 @@ export default defineConfig({
   resolve: {
     alias: aliases,
   },
+  plugins: [
+    // 全局注册 @aionui/ui 的图标 / 按钮 —— 测试里也能直接写 <AppIcon />,
+    // 不用每个文件都 import。少了它,类型过了运行时却报 ReferenceError。
+    aionuiGlobalComponentsPlugin(),
+    // `*.svg?component` 编译成图标组件 —— 少了它,测试里导入定制图标会拿到一个 URL 字符串。
+    aionuiSvgIconPlugin(),
+  ],
   test: {
     globals: true,
     // CI runners (especially windows-2022) can be slow enough that dom tests
@@ -47,6 +56,7 @@ export default defineConfig({
             'packages/desktop/src/renderer/micro-app/**/*.test.ts',
             'packages/desktop/src/renderer/shared/**/*.test.ts',
             'packages/desktop/src/process/resources/**/*.test.ts',
+            'packages/desktop/src/process/backend/**/*.test.ts',
             'packages/microapps/**/*.test.ts',
             'packages/ui/src/**/*.test.ts',
             'tests/unit/**/*.test.ts',

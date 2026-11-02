@@ -23,7 +23,7 @@ See [docs/contributing/file-structure.md](docs/contributing/file-structure.md) f
 ### UI Library & Icons
 
 - **Components**: `@arco-design/web-react` — no raw interactive HTML (`<button>`, `<input>`, `<select>`, etc.)
-- **Icons**: `@icon-park/react`
+- **Icons**: `@icon-park/react`. Only when it has no suitable icon, add a custom one: drop the design's SVG into `packages/ui/src/components/icons/svg/` — the build-time plugin turns it into the same kind of React component and registers it automatically. See [docs/contributing/ui-components/app-icon.md](docs/contributing/ui-components/app-icon.md).
 
 ### CSS
 

@@ -4,6 +4,8 @@ import qiankun from 'vite-plugin-qiankun';
 import UnoCSS from 'unocss/vite';
 import path from 'node:path';
 
+import { aionuiGlobalComponentsPlugin, aionuiSvgIconPlugin } from '../../ui/src/vite/index.ts';
+
 /**
  * vite-plugin-qiankun 的 selector(`body script[type=module], head script[crossorigin=""]`)
  * 漏了 head 里的 `<script type="module">`(主要是 Vite 的 React Refresh runtime,
@@ -76,6 +78,12 @@ export default defineConfig(({ command }) => ({
   base: './',
   plugins: [
     react(),
+    // 全局注册 @aionui/ui 的图标 / 按钮:<AppIcon />、<IconButton /> 不用再 import。
+    // 必须在 react() 之前 —— 它 enforce:'pre',要赶在 babel 的 JSX 转换之前。
+    aionuiGlobalComponentsPlugin(),
+    // `*.svg?component` 编译成图标组件 —— 定制图标放在 @aionui/ui 的 svg 目录里,
+    // 构建期转成普通 React 组件,运行时零开销。
+    aionuiSvgIconPlugin(),
     // UnoCSS:插件之间没有硬性先后依赖(它靠 `transform` 扫模块内容,
     // qiankun 插件只改 HTML),放在前面是为了让"子应用自带样式链路"一眼可见。
     UnoCSS(),

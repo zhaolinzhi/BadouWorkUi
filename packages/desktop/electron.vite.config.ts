@@ -7,6 +7,8 @@ import UnoCSS from 'unocss/vite';
 import unoConfig from '../../uno.config.ts';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
 
+import { aionuiGlobalComponentsPlugin, aionuiSvgIconPlugin } from '../ui/src/vite/index.ts';
+
 // Read the real AionUi version from the repo-root package.json.
 // `packages/desktop/package.json` is a workspace-internal placeholder pinned
 // at "0.0.0" — never use it for user-visible version strings.
@@ -257,6 +259,12 @@ export default defineConfig(({ mode }) => {
       plugins: [
         UnoCSS(unoConfig),
         iconParkPlugin(),
+        // 全局注册 @aionui/ui 的图标 / 按钮:<AppIcon />、<IconButton /> 不用再 import。
+        // enforce:'pre',要赶在 esbuild 的 JSX 转换之前 —— 之后源码里就没有 JSX 标签了。
+        aionuiGlobalComponentsPlugin(),
+        // `*.svg?component` 编译成图标组件 —— 定制图标放在 @aionui/ui 的 svg 目录里,
+        // 构建期转成普通 React 组件,运行时零开销。
+        aionuiSvgIconPlugin(),
         viteStaticCopy({
           // Vditor hardcodes requests like `${cdn}/dist/js/i18n/zh_CN.js`
           // and `${cdn}/dist/js/lute/lute.min.js`. The renderer root is
