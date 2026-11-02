@@ -7,7 +7,8 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Tooltip } from '@arco-design/web-react';
-import { ListCheckbox, Plus } from '@icon-park/react';
+import { ListCheckbox } from '@icon-park/react';
+import { AppIcon } from '@aionui/ui';
 import classNames from 'classnames';
 import CollapsedRailTooltip from '../CollapsedRailTooltip';
 import styles from '../Sider.module.css';
@@ -33,13 +34,8 @@ const SiderToolbar: React.FC<SiderToolbarProps> = ({
     return (
       <div className='shrink-0 flex flex-col items-center gap-2px w-full'>
         <CollapsedRailTooltip label={t('conversation.welcome.newConversation')} onClick={onNewChat}>
-          <Plus
-            theme='outline'
-            size='20'
-            fill='currentColor'
-            className={classNames('block leading-none', styles.newChatIcon)}
-            style={{ lineHeight: 0 }}
-          />
+          {/* 「新会话」用定制图标 —— 设计单独给的,颜色跟着文字色走(fill='currentColor')。 */}
+          <AppIcon name='new-chat' size={20} className={classNames(styles.newChatIcon)} />
         </CollapsedRailTooltip>
       </div>
     );
@@ -57,13 +53,7 @@ const SiderToolbar: React.FC<SiderToolbarProps> = ({
           onClick={onNewChat}
         >
           <span className='size-22px rd-6px bg-aou-2 border border-solid border-[var(--color-border-2)] group-hover:bg-fill-3 group-hover:border-transparent flex items-center justify-center shrink-0 transition-colors'>
-            <Plus
-              theme='outline'
-              size='14'
-              fill='currentColor'
-              className={classNames('block leading-none', styles.newChatIcon)}
-              style={{ lineHeight: 0 }}
-            />
+            <AppIcon name='new-chat' size={14} className={classNames(styles.newChatIcon)} />
           </span>
           <span className='collapsed-hidden text-t-primary text-14px font-[500] leading-24px'>
             {t('conversation.welcome.newConversation')}
