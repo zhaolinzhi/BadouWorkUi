@@ -335,14 +335,18 @@ function buildModuleCode(
   iconOptions: IconOptions,
   tree: SvgElementNode[]
 ): string {
-  const body = tree.length > 0 ? tree.map((node) => `  ${emitNode(node)}`).join(',\n') : '  null';
+  const body = tree.length > 0 ? tree.map((node) => `    ${emitNode(node)}`).join(',\n') : '    null';
 
   return [
     "import React from 'react';",
     `import { createCustomIcon } from '${factoryImport}';`,
     '',
     `export default createCustomIcon(${JSON.stringify(name)}, ${serializeOptions(iconOptions)}, () => (`,
+    // 子元素必须包一层 Fragment —— 直接写成 `() => (a, b, c)` 会被当成逗号表达式,
+    // 只返回最后一个元素,SVG 里其余的形状就全丢了(一个多路径的图标只剩一条线)。
+    '  React.createElement(React.Fragment, null,',
     body,
+    '  )',
     '));',
     '',
   ].join('\n');

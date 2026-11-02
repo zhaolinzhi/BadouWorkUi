@@ -27,6 +27,15 @@ describe('convertSvgToComponent', () => {
     expect(code).toContain('viewBox: "0 0 24 24"');
   });
 
+  it('多个子元素包在 Fragment 里 —— 不能写成逗号表达式', () => {
+    const { code } = convert('<svg viewBox="0 0 24 24"><path d="M0 0" /><path d="M1 1" /></svg>');
+
+    // 逗号表达式 `() => (a, b)` 只返回最后一个 —— 那样多路径的图标就只剩一条线。
+    expect(code).toContain('React.createElement(React.Fragment, null,');
+    expect(code).toContain('"d": "M0 0"');
+    expect(code).toContain('"d": "M1 1"');
+  });
+
   it('删掉子元素上的描边属性 —— 它们由外层 svg 统一给', () => {
     const { code } = convert(
       '<svg viewBox="0 0 24 24"><path d="M4 12h16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>'

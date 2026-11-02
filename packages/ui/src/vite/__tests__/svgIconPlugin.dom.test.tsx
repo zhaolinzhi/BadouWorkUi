@@ -14,6 +14,7 @@ import React from 'react';
 import { describe, expect, it } from 'vitest';
 import { render } from '@testing-library/react';
 
+import MultiIcon from '../../components/icons/svg/_multi-icon.svg?component';
 import SampleIcon from '../../components/icons/svg/_sample-icon.svg?component';
 
 describe('SVG 编译成图标组件', () => {
@@ -58,5 +59,11 @@ describe('SVG 编译成图标组件', () => {
     const { container } = render(<SampleIcon />);
 
     expect(container.querySelector('path')?.getAttribute('d')).toContain('M12 2');
+  });
+
+  it('多个子元素都画出来 —— 不能只留最后一个', () => {
+    const { container } = render(<MultiIcon />);
+
+    expect(container.querySelectorAll('path')).toHaveLength(2);
   });
 });
