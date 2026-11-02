@@ -710,7 +710,7 @@ Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a PR.
 
 ### Development Setup
 
-AionUi local development uses two repositories: AionUi for the Electron frontend and AionCore for the local backend. See the [Development Guide](docs/contributing/development.md) for the full macOS, Linux, and Windows setup.
+AionUi local development uses two repositories: AionUi for the Electron frontend and BadouWorkCore for the local backend. See the [Development Guide](docs/contributing/development.md) for the full macOS, Linux, and Windows setup.
 
 ---
 

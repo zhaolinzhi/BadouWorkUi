@@ -4,7 +4,7 @@
 
 - **Node.js** 22 or higher
 - **bun** — Package manager & runtime ([install](https://bun.sh))
-- **Rust stable + Cargo** — Required to build the local AionCore backend ([install](https://rustup.rs))
+- **Rust stable + Cargo** — Only required when building the local backend from source ([install](https://rustup.rs))
 - **Python** 3.11+ (for native module compilation)
 - **prek** — PR code checker (`npm install -g @j178/prek`)
 
@@ -14,105 +14,191 @@ On Windows, install the Rust MSVC toolchain. If Rust compilation fails because n
 
 AionUi development uses two repositories:
 
-- **AionCore** (`https://github.com/iOfficeAI/AionCore.git`) builds the local backend binary: `aioncore` on macOS/Linux and `aioncore.exe` on Windows.
+- **BadouWorkCore** (`https://github.com/zhaolinzhi/BadouWorkCore`) builds the local backend binary: `aioncore` on macOS/Linux and `aioncore.exe` on Windows. The exact version is pinned by `aioncoreVersion` in the repo-root `package.json`.
 - **AionUi** (`https://github.com/iOfficeAI/AionUi.git`) starts the Electron desktop app and launches the backend binary automatically.
 
 Keep the repositories side by side when possible:
 
 ```text
 workspace/
-|-- AionCore/
+|-- BadouWorkCore/
 `-- AionUi/
 ```
 
-The desktop development server resolves the backend from the `PATH` inherited by `bun run start`. Install AionCore first, verify the binary is discoverable in the same terminal, then start AionUi.
+### 后端二进制从哪来
+
+后端二进制有**两个来源**，开发时优先用第一个：
+
+| 顺序 | 来源                                                    | 什么时候有                                                                                     |
+| ---- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| 1    | `resources/bundled-aioncore/<platform>-<arch>/aioncore` | `node scripts/prepareAioncore.js` 准备好之后（**gitignore 的构建缓存**，dev 与打包都从这儿取） |
+| 2    | `PATH` 上的 `aioncore`                                  | 随包整包不在时的兜底 —— **可能不是同一条谱系**                                                 |
+
+> ⚠️ **两个来源必须同一条迁移谱系。**
+> 本仓库 pin 的是 `zhaolinzhi/BadouWorkCore`；上游 `iOfficeAI/AionCore` 是**另一条** ——
+> 两边的 sqlx migration 编号与内容都不同，混用会在启动时报
+> `migration 38 was previously applied but been modified`，
+> 界面上只显示成「本地数据迁移失败」，重装应用治不了（库里记的 checksum 不会变）。
+> 排查见[后端启动疑难](#backend-startup-troubleshooting)。
+
+`resources/bundled-aioncore/` 是**构建缓存**：`git clean -xfd`、构建中断、手误删都会清空它。
+清空之后应用会退到 PATH 上的二进制 —— `bun run dev:all` 现在会在拉起任何进程之前先查一遍并提示，
+单独起主应用则会在解析后端时打一条 warn。两条提示都指向同一个恢复命令：`node scripts/prepareAioncore.js`。
 
 ## Quick Start
 
-### 1. Clone Both Repositories
+### 1. 克隆两个仓库
 
 ```bash
-git clone https://github.com/iOfficeAI/AionCore.git
+git clone https://github.com/zhaolinzhi/BadouWorkCore.git
 git clone https://github.com/iOfficeAI/AionUi.git
 ```
 
-Use the `main` branch for both repositories unless a maintainer asks you to test another branch.
+只有打算自己编后端时才需要克隆后端仓库 —— 第 2 步会直接下载现成的整包。
+两个仓库默认都用 `main` 分支，除非维护者让你试别的分支。
 
-### 2. Build and Install AionCore
+### 2. 准备后端二进制
 
-Run these commands from the `AionCore` repository.
+后端二进制（`aioncore`）必须与本仓库**同一条迁移谱系** —— 本仓库 pin 的是
+`zhaolinzhi/BadouWorkCore`，版本由仓库根 `package.json` 的 `aioncoreVersion` 决定。
 
-#### macOS / Linux
+最省事的做法是直接拉整包（脚本按 pin 好的版本取，并写好 `manifest.json` 与 `managed-resources/`）：
 
 ```bash
-cd AionCore
-cargo clean
-cargo install --path crates/aionui-app --locked
-
-# Make Cargo-installed binaries visible to this shell if needed.
-export PATH="$HOME/.cargo/bin:$PATH"
-
-# Verify that AionUi will be able to find the backend.
-which aioncore
-aioncore --help
+cd AionUi
+node scripts/prepareAioncore.js
 ```
 
-If `which aioncore` prints nothing, add `export PATH="$HOME/.cargo/bin:$PATH"` to your shell profile (`~/.zshrc`, `~/.bashrc`, or your shell's equivalent), open a new terminal, and verify again.
+产物在 `resources/bundled-aioncore/<platform>-<arch>/`（**gitignore 的构建缓存**）。
 
-#### Windows PowerShell
+没有外网、或者本机装过同版本应用时，让脚本复用本机已有的整包：
 
-```powershell
-cd AionCore
+```bash
+# macOS —— 复用已安装应用里的那份
+AIONUI_BACKEND_LOCAL_BUNDLE_DIR="/Applications/BadouWorklocal.app/Contents/Resources/bundled-aioncore/darwin-x64" \
+  node scripts/prepareAioncore.js
+```
+
+> 这个环境变量会**跳过版本校验**，用之前自己核对 `manifest.json` 的 `version`
+> 与 `package.json` 的 `aioncoreVersion` 一致。
+
+准备完验一下：
+
+```bash
+ls resources/bundled-aioncore/*/   # 应看到 aioncore、manifest.json、managed-resources/
+```
+
+#### 只有要改后端源码时才需要自己编
+
+```bash
+cd BadouWorkCore            # ⚠️ 必须是 zhaolinzhi/BadouWorkCore，别用上游 iOfficeAI/AionCore
 cargo clean
 cargo install --path crates/aionui-app --locked
 
-# Make Cargo-installed binaries visible to this PowerShell session if needed.
-$env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"
+# macOS / Linux：让 cargo 装出来的二进制在 PATH 上
+export PATH="$HOME/.cargo/bin:$PATH"
+which aioncore && aioncore --help
+```
 
-# Verify that AionUi will be able to find the backend.
+Windows PowerShell：
+
+```powershell
+cd BadouWorkCore
+cargo clean
+cargo install --path crates/aionui-app --locked
+
+$env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"
 where.exe aioncore
 aioncore --help
 ```
 
-If `where.exe aioncore` prints nothing, make sure `%USERPROFILE%\.cargo\bin` is in your user `Path`, open a new PowerShell window, and verify again.
+> ⚠️ **自编的二进制落在 PATH 上，是兜底来源。** `resources/bundled-aioncore/` 还在时，
+> 应用用的是整包里那份，不是你刚编的 —— 想让改动生效，得把整包换成新的，
+> 或者把整包挪开让它退到 PATH 上那份。两种做法见
+> [后端改了不生效](#后端改了不生效)。
+>
+> 另外**别编错仓库**：上游 `iOfficeAI/AionCore` 是另一条迁移谱系，
+> 混用会在启动时直接报 checksum 冲突（界面上是「本地数据迁移失败」）。
 
-### 3. Start AionUi
+### 3. 启动 AionUi
 
-Run these commands from the `AionUi` repository in a terminal where `aioncore` is discoverable.
+在 `AionUi` 仓库里执行：
 
 ```bash
 cd AionUi
 
-# Install dependencies
+# 安装依赖
 bun install
 
-# Start the Electron desktop app in development mode
+# 以开发模式启动 Electron 桌面应用
 bun run start
 ```
 
-During startup, AionUi launches `aioncore` automatically and passes the backend port to the renderer. You do not need to start AionCore in a separate terminal.
+启动时 AionUi 会自己拉起 `aioncore`，并把后端端口传给渲染进程 —— **不用另开终端起后端**。
 
 ## Updating the Local Backend
 
-When you pull or change AionCore, reinstall the backend binary and restart AionUi:
+改动后端源码后，重建二进制并重启 AionUi：
 
 ```bash
-cd ../AionCore
+cd ../BadouWorkCore
 cargo install --path crates/aionui-app --locked --force
 
 cd ../AionUi
 bun run start
 ```
 
-Use `--force` when rebuilding local changes with the same AionCore package version; otherwise Cargo may keep the already installed binary.
+用 `--force` 是为了强制覆盖已安装的二进制 —— 否则 Cargo 可能留着旧的那份。
+
+> ⚠️ **只 `cargo install` 看不到效果。** dev 优先用 `resources/bundled-aioncore/` 里那份，
+> 不是 PATH 上这份 —— 要么把整包换成新编的，要么把整包挪开让它退到 PATH。
+> 两种做法见 [后端改了不生效](#后端改了不生效)。
 
 ## Backend Startup Troubleshooting
 
-### `Cannot find "aioncore" binary`
+### 界面报「本地数据迁移失败」（migration checksum 冲突）
 
-AionUi cannot find the backend from the `PATH` inherited by `bun run start`.
+**症状**：启动时弹「本地数据迁移失败」，后端日志里有
+`migration 38 was previously applied but been modified`（或别的编号）。
 
-Check from the same terminal where you start AionUi:
+**原因**：用的后端二进制**不是本仓库 pin 的那一条迁移谱系**。本仓库 pin 的是
+`zhaolinzhi/BadouWorkCore`（`package.json` 的 `aioncoreVersion`），上游 `iOfficeAI/AionCore`
+是另一条 —— 两边的 sqlx migration 编号与内容都不同，对着同一个数据目录跑必然对不上 checksum。
+
+**排查**：先看用的是哪一个二进制。
+
+```bash
+ls resources/bundled-aioncore/*/   # 随包整包在不在
+which aioncore                     # PATH 上那份是哪来的
+```
+
+**修法**：把随包整包准备好。
+
+```bash
+node scripts/prepareAioncore.js
+```
+
+> ⚠️ **重装应用治不了。** 库里记的 migration checksum 不会因为重装而变，冲突照样报。
+> **也别删数据目录** —— 删掉确实能绕开冲突，但本地 dev 数据会一起没。
+
+### `dev:all` 启动前的预检
+
+`bun run dev:all` 在拉起任何进程之前先查 `resources/bundled-aioncore/<platform>-<arch>/aioncore`：
+
+| 情况                    | 行为                                                         |
+| ----------------------- | ------------------------------------------------------------ |
+| 整包在                  | 照常启动，不打扰                                             |
+| 整包不在、PATH 上也没有 | 直接退出（exit 1），提示跑 `node scripts/prepareAioncore.js` |
+| 整包不在、PATH 上有     | 警告后继续，并提示「若不是同一谱系会报 migration 冲突」      |
+
+单独起主应用（`bun run dev`）没有这道预检 —— 它会在**解析后端时**打一条 warn
+（`[aioncore] 没找到随包后端…`），内容与上表第三行相同。
+
+### 找不到 aioncore 二进制
+
+随包整包与 `PATH` 上都没找到后端二进制。
+
+在启动 AionUi 的同一个终端里查：
 
 ```bash
 # macOS / Linux
@@ -122,19 +208,44 @@ which aioncore
 where.exe aioncore
 ```
 
-If the command fails, add Cargo's binary directory to `PATH` and start AionUi from a new terminal.
+查不到就把 Cargo 的二进制目录加进 `PATH`，另开一个终端再启动 AionUi。
+但更推荐 `node scripts/prepareAioncore.js` —— 它放进去的是**pin 好的那一版谱系**，
+而不是 `PATH` 上碰巧存在的那个。
 
-### `aioncore` Works in a Terminal but AionUi Still Cannot Find It
+### 终端里能跑 aioncore，应用却找不到
 
-Make sure you start `bun run start` from the same terminal environment that can run `aioncore --help`. IDE terminals and GUI-launched shells can inherit a different `PATH`; restart the IDE or launch it from a terminal after updating `PATH`.
+确认启动 `bun run start` 的那个终端环境也能跑 `aioncore --help`。IDE 的终端与从图形界面
+拉起的 shell 继承到的 `PATH` 可能不一样 —— 改完 `PATH` 后重启 IDE，或从终端里启动。
 
-### Backend Changes Do Not Show Up
+### 后端改了不生效
 
-Quit AionUi, reinstall AionCore with `cargo install --path crates/aionui-app --locked --force`, then start AionUi again. The Electron app owns the backend subprocess during development, so a running AionUi instance will not pick up a newly installed binary until it restarts.
+dev 时应用优先用 `resources/bundled-aioncore/<platform>-<arch>/aioncore` ——
+**整包还在时，PATH 上那份自编的二进制根本不会被执行**，所以 `cargo install --force` 之后
+看不到变化是正常的。要让新二进制生效，得把它换进整包：
 
-### Windows Rust Build Errors
+```bash
+# 在 BadouWorkCore 仓库里先编出新的
+cargo install --path crates/aionui-app --locked --force
 
-Use the Rust MSVC toolchain and install Microsoft C++ Build Tools. After installing or changing toolchains, open a new PowerShell window and rerun the AionCore install command.
+# 再用它重建整包（会重新准备 managed-resources，需要联网）
+AIONUI_BACKEND_LOCAL_BINARY="$HOME/.cargo/bin/aioncore" node scripts/prepareAioncore.js
+```
+
+或者把整包挪开，让应用退到 PATH 上那份（启动时会打 warn 说明在用兜底来源）：
+
+```bash
+mv resources/bundled-aioncore resources/bundled-aioncore.bak
+```
+
+> 整包挪走之后记得挪回来 —— `build:all` 打包要用它。
+>
+> 应用在开发期自己持有后端子进程，所以**必须先退出 AionUi 再重启**，
+> 正在跑的实例不会换二进制。
+
+### Windows 上 Rust 编译报错
+
+用 Rust MSVC 工具链，并安装 Microsoft C++ Build Tools。装完或换了工具链之后，
+另开一个 PowerShell 窗口重新跑后端的安装命令。
 
 ## Scripts Reference
 
