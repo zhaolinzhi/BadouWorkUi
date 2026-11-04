@@ -30,6 +30,7 @@ import { assertStartupArchitectureCompatible } from './process/startup/architect
 import { classifyBackendStartupFailure } from './process/startup/backendStartupFailure';
 import { installQuitCleanup } from './process/startup/quitCleanup';
 import { shouldRegisterBackendStartup } from './process/startup/singleInstanceGating';
+import { installReactDevToolsInBackground } from './process/startup/devtoolsInstaller';
 import { ProcessConfig } from './process/utils/initStorage';
 import type { BackendStartupFailureInfo } from './common/types/platform/electron';
 import { registerWindowMaximizeListeners } from '@process/bridge';
@@ -646,21 +647,19 @@ const handleAppReady = async (): Promise<void> => {
   // first navigation. No-op in dev: bun run dev uses localhost dev-server entries instead.
   registerMicroAppAssetProtocol();
 
-  if (!app.isPackaged) {
-    try {
-      const { default: installExtension, REACT_DEVELOPER_TOOLS } = await import('electron-devtools-installer');
-      await installExtension(REACT_DEVELOPER_TOOLS);
-      console.log('[DevTools] React Developer Tools installed');
-    } catch (e) {
-      console.warn('[DevTools] Failed to install React DevTools:', e);
-    }
-  }
-
   // CLI mode: print app version and exit immediately (used by CI smoke tests)
   if (isVersionMode) {
     console.log(app.getVersion());
     app.exit(0);
     return;
+  }
+
+  // React DevTools is a dev-only convenience. Installing it must never gate
+  // startup: the CRX download targets clients2.google.com, which blocks until
+  // the socket timeout on restricted networks and froze `bun run dev` for
+  // minutes with no window on screen. Run it detached instead of awaiting it.
+  if (!app.isPackaged) {
+    installReactDevToolsInBackground();
   }
 
   // Set dock icon in development mode on macOS
