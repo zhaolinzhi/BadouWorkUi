@@ -171,7 +171,7 @@ body.sider-animating .settings-sider__item {
   padding-right: 0;
   gap: 0;
 }
-/* Collapsed-rail hover popup (desktop, 64px sider). Pure CSS — no React
+/* Collapsed-rail hover popup (desktop, 72px sider). Pure CSS — no React
    state, so the row can render identically in both states and React.memo
    can skip per-row work on sider toggle. The `data-name` attribute is set
    on the row by ConversationRow. */
@@ -213,7 +213,7 @@ body.sider-animating .settings-sider__item {
 .arco-message-wrapper {
   left: 0 !important;
   width: 100% !important;
-  padding-left: 266px;
+  padding-left: 254px;
   box-sizing: border-box;
   z-index: 10001 !important;
 }

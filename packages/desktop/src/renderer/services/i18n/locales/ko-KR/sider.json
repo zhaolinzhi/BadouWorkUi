@@ -1,0 +1,18 @@
+{
+  "nav": {
+    "meetingRecordingShort": "녹음",
+    "taskCenterShort": "작업",
+    "scheduledShort": "예약",
+    "appMarketShort": "앱",
+    "ariaLabel": "주 탐색"
+  },
+  "appMarket": {
+    "title": "앱 마켓",
+    "comingSoon": "앱 마켓이 곧 공개됩니다."
+  },
+  "account": {
+    "menuLabel": "계정",
+    "openMenu": "계정 메뉴 열기",
+    "appearance": "모양"
+  }
+}

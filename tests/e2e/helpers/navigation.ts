@@ -59,6 +59,31 @@ function isAlreadyAt(page: Page, hash: string): boolean {
 }
 
 /**
+ * 点击侧栏底部的「设置 / 返回」入口。
+ *
+ * 侧栏底部是设计稿的账号区:
+ * - 展开态 —— 账号行右侧有独立的齿轮按钮(`sider-settings-trigger`);
+ * - 收缩态 —— 齿轮被设计稿藏起来了,只能点头像打开个人菜单,再点菜单里的「设置」。
+ *
+ * 两种路径都要走一遍,因为侧栏默认就是收缩状态。
+ */
+export async function clickSiderSettings(page: Page): Promise<void> {
+  const direct = page.getByTestId('sider-settings-trigger');
+  if (await direct.isVisible().catch(() => false)) {
+    await direct.click();
+    return;
+  }
+
+  const trigger = page.getByTestId('sider-account-trigger');
+  await trigger.waitFor({ state: 'visible', timeout: 10_000 });
+  await trigger.click();
+
+  const menuItem = page.getByTestId('sider-account-settings');
+  await menuItem.waitFor({ state: 'visible', timeout: 10_000 });
+  await menuItem.click();
+}
+
+/**
  * Navigate to a hash route via UI clicks.
  *
  * This app uses HashRouter with ProtectedLayout, so programmatic
@@ -85,9 +110,7 @@ export async function navigateTo(page: Page, hash: string): Promise<void> {
     // Target is non-settings (guid, conversation, etc.)
     if (isOnSettings) {
       // Click the sider back button to leave settings
-      const siderBtn = page.locator('.sider-footer div').first();
-      await siderBtn.waitFor({ state: 'visible', timeout: 10_000 });
-      await siderBtn.click();
+      await clickSiderSettings(page);
       // Wait for hash to change away from settings
       await page
         .waitForFunction(() => !window.location.hash.includes('/settings/'), { timeout: 10_000 })
@@ -107,9 +130,7 @@ export async function navigateTo(page: Page, hash: string): Promise<void> {
     // Target is a settings sub-page
     if (!isOnSettings) {
       // Click sider settings button to enter settings
-      const siderBtn = page.locator('.sider-footer div').first();
-      await siderBtn.waitFor({ state: 'visible', timeout: 10_000 });
-      await siderBtn.click();
+      await clickSiderSettings(page);
       await page
         .waitForFunction(() => window.location.hash.includes('/settings/'), { timeout: 10_000 })
         .catch(() => {});

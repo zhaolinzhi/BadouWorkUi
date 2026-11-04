@@ -10,8 +10,8 @@ import { Tooltip } from '@arco-design/web-react';
 import { ListCheckbox } from '@icon-park/react';
 import { AppIcon } from '@aionui/ui';
 import classNames from 'classnames';
-import CollapsedRailTooltip from '../CollapsedRailTooltip';
 import styles from '../Sider.module.css';
+import SiderNavItem from './SiderNavItem';
 
 interface SiderToolbarProps {
   isMobile: boolean;
@@ -21,6 +21,15 @@ interface SiderToolbarProps {
   onToggleBatchMode: () => void;
 }
 
+/**
+ * 「新会话」入口 —— 侧栏导航的第一项。
+ *
+ * 设计稿把它画成**浅蓝描边的主入口磁贴**(`.nav-item.new-chat`),和其他导航项
+ * 在同一个列表里,不是独立的一行工具条。
+ *
+ * 批量管理按钮挂在这一行右侧(仅展开态 —— 收缩态的 56px 磁贴放不下),
+ * 点击时必须 `stopPropagation`,否则会连带触发「新会话」。
+ */
 const SiderToolbar: React.FC<SiderToolbarProps> = ({
   isMobile,
   isBatchMode,
@@ -29,57 +38,54 @@ const SiderToolbar: React.FC<SiderToolbarProps> = ({
   onToggleBatchMode,
 }) => {
   const { t } = useTranslation();
+  const label = t('conversation.welcome.newConversation');
 
-  if (collapsed) {
-    return (
-      <div className='shrink-0 flex flex-col items-center gap-2px w-full'>
-        <CollapsedRailTooltip label={t('conversation.welcome.newConversation')} onClick={onNewChat}>
-          {/* 「新会话」用定制图标 —— 设计单独给的,颜色跟着文字色走(fill='currentColor')。 */}
-          <AppIcon name='new-chat' size={20} className={classNames(styles.newChatIcon)} />
-        </CollapsedRailTooltip>
+  const batchButton = (
+    <Tooltip
+      content={isBatchMode ? t('conversation.history.batchModeExit') : t('conversation.history.batchManage')}
+      position='right'
+    >
+      <div
+        role='button'
+        tabIndex={-1}
+        aria-label={isBatchMode ? t('conversation.history.batchModeExit') : t('conversation.history.batchManage')}
+        onClick={(event) => {
+          event.stopPropagation();
+          onToggleBatchMode();
+        }}
+        className={classNames(
+          'size-24px rd-6px flex items-center justify-center cursor-pointer shrink-0 transition-colors border border-solid border-transparent text-t-secondary hover:text-t-primary',
+          isMobile && 'sider-action-icon-btn-mobile',
+          {
+            'hover:bg-fill-3': !isBatchMode,
+            'bg-[rgba(var(--primary-6),0.12)] border-[rgba(var(--primary-6),0.24)] !text-primary': isBatchMode,
+          }
+        )}
+      >
+        <ListCheckbox theme='outline' size='14' className='block leading-none shrink-0' style={{ lineHeight: 0 }} />
       </div>
-    );
-  }
+    </Tooltip>
+  );
 
   return (
-    <div className='shrink-0 flex items-center gap-8px'>
-      <Tooltip content={t('conversation.welcome.newConversation')} disabled={!collapsed} position='right'>
-        <div
-          className={classNames(
-            styles.newChatTrigger,
-            'h-34px flex-1 flex items-center justify-start gap-8px pl-10px pr-8px rd-0.5rem cursor-pointer group transition-all bg-transparent text-t-primary hover:bg-fill-3 active:bg-fill-4',
-            isMobile && 'sider-action-btn-mobile'
-          )}
-          onClick={onNewChat}
-        >
-          <span className='size-22px rd-6px bg-aou-2 border border-solid border-[var(--color-border-2)] group-hover:bg-fill-3 group-hover:border-transparent flex items-center justify-center shrink-0 transition-colors'>
-            <AppIcon name='new-chat' size={14} className={classNames(styles.newChatIcon)} />
-          </span>
-          <span className='collapsed-hidden text-t-primary text-14px font-[500] leading-24px'>
-            {t('conversation.welcome.newConversation')}
-          </span>
-        </div>
-      </Tooltip>
-      <Tooltip
-        content={isBatchMode ? t('conversation.history.batchModeExit') : t('conversation.history.batchManage')}
-        disabled={!collapsed}
-        position='right'
-      >
-        <div
-          className={classNames(
-            'size-26px rd-6px flex items-center justify-center cursor-pointer shrink-0 transition-colors border border-solid border-transparent text-t-secondary hover:text-t-primary',
-            isMobile && 'sider-action-icon-btn-mobile',
-            {
-              'hover:bg-fill-3': !isBatchMode,
-              'bg-[rgba(var(--primary-6),0.12)] border-[rgba(var(--primary-6),0.24)] !text-primary': isBatchMode,
-            }
-          )}
-          onClick={onToggleBatchMode}
-        >
-          <ListCheckbox theme='outline' size='14' className='block leading-none shrink-0' style={{ lineHeight: 0 }} />
-        </div>
-      </Tooltip>
-    </div>
+    <SiderNavItem
+      accent
+      collapsed={collapsed}
+      isMobile={isMobile}
+      collapsedLabel={label}
+      expandedLabel={label}
+      onClick={onNewChat}
+      // 展开态下设计稿把主入口图标缩到 90%(`.nav-item[data-nav="新会话"] .nav-icon>img`)。
+      icon={
+        <AppIcon
+          name='new-chat'
+          size={collapsed ? 20 : 18}
+          className={collapsed ? undefined : styles.navAccentIcon}
+        />
+      }
+      trailing={collapsed ? undefined : batchButton}
+      testId='sider-new-chat'
+    />
   );
 };
 

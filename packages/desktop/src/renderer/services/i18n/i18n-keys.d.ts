@@ -2546,6 +2546,16 @@ export type I18nKey =
   | 'settings.weixin.step3'
   | 'settings.workDir'
   | 'settings.yoloMode'
+  | 'sider.account.appearance'
+  | 'sider.account.menuLabel'
+  | 'sider.account.openMenu'
+  | 'sider.appMarket.comingSoon'
+  | 'sider.appMarket.title'
+  | 'sider.nav.appMarketShort'
+  | 'sider.nav.ariaLabel'
+  | 'sider.nav.meetingRecordingShort'
+  | 'sider.nav.scheduledShort'
+  | 'sider.nav.taskCenterShort'
   | 'taskCenter.detail.basicInfo'
   | 'taskCenter.detail.content'
   | 'taskCenter.detail.fields.closeTime'
@@ -2840,4 +2850,5 @@ export type I18nModule =
   | 'workbench'
   | 'kb-chat'
   | 'taskCenter'
-  | 'meeting-recording';
+  | 'meeting-recording'
+  | 'sider';
