@@ -56,7 +56,9 @@ test.describe('Theme Switching', () => {
     const initialTheme = await page.evaluate(() => document.documentElement.getAttribute('data-theme'));
     const targetTheme = initialTheme === 'light' ? 'dark' : 'light';
     const targetItem =
-      targetTheme === 'dark' ? page.getByTestId('sider-account-theme-dark') : page.getByTestId('sider-account-theme-light');
+      targetTheme === 'dark'
+        ? page.getByTestId('sider-account-theme-dark')
+        : page.getByTestId('sider-account-theme-light');
 
     await trigger.click();
     await targetItem.waitFor({ state: 'visible', timeout: 10_000 });
@@ -68,7 +70,9 @@ test.describe('Theme Switching', () => {
     );
 
     const backItem =
-      targetTheme === 'dark' ? page.getByTestId('sider-account-theme-light') : page.getByTestId('sider-account-theme-dark');
+      targetTheme === 'dark'
+        ? page.getByTestId('sider-account-theme-light')
+        : page.getByTestId('sider-account-theme-dark');
     await trigger.click();
     await backItem.waitFor({ state: 'visible', timeout: 10_000 });
     await backItem.click();

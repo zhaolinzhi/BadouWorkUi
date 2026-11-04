@@ -13,10 +13,6 @@
   background-color: var(--bg-hover);
 }
 
-.newChatTrigger {
-  position: relative;
-}
-
 /* 展开态下设计稿把「新会话」主入口图标缩到 90%
    (`.nav-item[data-nav="新会话"] .nav-icon>img { transform: scale(.9) }`)。 */
 .navAccentIcon {

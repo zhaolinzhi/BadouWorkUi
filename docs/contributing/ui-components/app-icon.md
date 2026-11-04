@@ -47,36 +47,40 @@ import { IconApps } from '@icon-park/react';
 
 `ICON_MAP` 是 `icon-park` 组件名的 kebab-case 映射，外加一组产品语义别名。
 
-| 语义名           | 实际图标      | 备注                                                                                              |
-| ---------------- | ------------- | ------------------------------------------------------------------------------------------------- |
-| `arrow-left`     | `ArrowLeft`   |                                                                                                   |
-| `book`           | `Book`        |                                                                                                   |
-| `book-one`       | `BookOne`     |                                                                                                   |
-| `delete`         | `Delete`      |                                                                                                   |
-| `download`       | `Download`    |                                                                                                   |
-| `down`           | `Down`        |                                                                                                   |
-| `file-text`      | `FileText`    |                                                                                                   |
-| `folder-open`    | `FolderOpen`  |                                                                                                   |
-| `info`           | `Info`        |                                                                                                   |
-| `more-one`       | `MoreOne`     | 「更多」菜单                                                                                      |
-| `plus`           | `Plus`        |                                                                                                   |
-| `refresh`        | `Refresh`     |                                                                                                   |
-| `robot`          | `Robot`       |                                                                                                   |
-| `tips`           | `Tips`        |                                                                                                   |
-| `notes`          | `Notes`       | 笔记（产品语义别名）                                                                              |
-| `knowledge-base` | `Book`        | 知识库（产品语义别名）                                                                            |
-| `recording`      | `Microphone`  | 录音（产品语义别名）                                                                              |
-| `record`         | `Record`      |                                                                                                   |
-| `microphone`     | `Microphone`  |                                                                                                   |
-| `new-chat`       | `NewChatIcon` | 定制图标（`svg/new-chat.svg`）：「新会话」按钮；气泡与加号都是 `currentColor`，颜色跟随主题与样式 |
-| `nav-task`       | `NavTaskIcon` | 定制图标（`svg/nav-task.svg`）：侧栏「任务」入口；填充型图标，`fill` 为 `currentColor`           |
-| `nav-workbench`  | `NavWorkbenchIcon` | 定制图标（`svg/nav-workbench.svg`）：侧栏「工作台」入口；描边型图标，粗细按设计稿比例换算    |
-| `nav-note`       | `NavNoteIcon` | 定制图标（`svg/nav-note.svg`）：侧栏「笔记」入口；图形在 SVG 内已按设计稿旋转 180°              |
-| `nav-recording`  | `NavRecordingIcon` | 定制图标（`svg/nav-recording.svg`）：侧栏「会议录音」入口；描边型图标                          |
-| `nav-knowledge`  | `NavKnowledgeIcon` | 定制图标（`svg/nav-knowledge.svg`）：侧栏「知识库」入口；书本为描边、星芒为填充                |
-| `nav-app-market` | `NavAppMarketIcon` | 定制图标（`svg/nav-app-market.svg`）：侧栏「应用市场」入口                                    |
-| `sider-settings` | `SiderSettingsIcon` | 定制图标（`svg/sider-settings.svg`）：侧栏底部设置齿轮；填充型图标                          |
-| `sider-chevron-right` | `SiderChevronRightIcon` | 定制图标（`svg/sider-chevron-right.svg`）：侧栏底部账号区右箭头                          |
+| 语义名                | 实际图标                | 备注                                                                                              |
+| --------------------- | ----------------------- | ------------------------------------------------------------------------------------------------- |
+| `arrow-left`          | `ArrowLeft`             |                                                                                                   |
+| `book`                | `Book`                  |                                                                                                   |
+| `book-one`            | `BookOne`               |                                                                                                   |
+| `delete`              | `Delete`                |                                                                                                   |
+| `download`            | `Download`              |                                                                                                   |
+| `down`                | `Down`                  |                                                                                                   |
+| `file-text`           | `FileText`              |                                                                                                   |
+| `folder-open`         | `FolderOpen`            |                                                                                                   |
+| `info`                | `Info`                  |                                                                                                   |
+| `more-one`            | `MoreOne`               | 「更多」菜单                                                                                      |
+| `plus`                | `Plus`                  |                                                                                                   |
+| `refresh`             | `Refresh`               |                                                                                                   |
+| `robot`               | `Robot`                 |                                                                                                   |
+| `tips`                | `Tips`                  |                                                                                                   |
+| `notes`               | `Notes`                 | 笔记（产品语义别名）                                                                              |
+| `knowledge-base`      | `Book`                  | 知识库（产品语义别名）                                                                            |
+| `recording`           | `Microphone`            | 录音（产品语义别名）                                                                              |
+| `record`              | `Record`                |                                                                                                   |
+| `microphone`          | `Microphone`            |                                                                                                   |
+| `new-chat`            | `NewChatIcon`           | 定制图标（`svg/new-chat.svg`）：「新会话」按钮；气泡与加号都是 `currentColor`，颜色跟随主题与样式 |
+| `nav-task`            | `NavTaskIcon`           | 定制图标（`svg/nav-task.svg`）：侧栏「任务」入口；填充型图标，`fill` 为 `currentColor`            |
+| `nav-workbench`       | `NavWorkbenchIcon`      | 定制图标（`svg/nav-workbench.svg`）：侧栏「工作台」入口；描边型图标，粗细按设计稿比例换算         |
+| `nav-note`            | `NavNoteIcon`           | 定制图标（`svg/nav-note.svg`）：侧栏「笔记」入口；图形在 SVG 内已按设计稿旋转 180°                |
+| `nav-recording`       | `NavRecordingIcon`      | 定制图标（`svg/nav-recording.svg`）：侧栏「会议录音」入口；描边型图标                             |
+| `nav-knowledge`       | `NavKnowledgeIcon`      | 定制图标（`svg/nav-knowledge.svg`）：侧栏「知识库」入口；书本为描边、星芒为填充                   |
+| `nav-app-market`      | `NavAppMarketIcon`      | 定制图标（`svg/nav-app-market.svg`）：侧栏「应用市场」入口                                        |
+| `sider-settings`      | `SiderSettingsIcon`     | 定制图标（`svg/sider-settings.svg`）：侧栏底部设置齿轮；填充型图标                                |
+| `sider-chevron-right` | `SiderChevronRightIcon` | 定制图标（`svg/sider-chevron-right.svg`）：侧栏底部账号区右箭头                                   |
+| `account-appearance`  | `AccountAppearanceIcon` | 定制图标（`svg/account-appearance.svg`）：个人菜单「外观」调色板；填充型图标                      |
+| `account-light`       | `AccountLightIcon`      | 定制图标（`svg/account-light.svg`）：个人菜单「浅色」太阳；填充型图标                             |
+| `account-dark`        | `AccountDarkIcon`       | 定制图标（`svg/account-dark.svg`）：个人菜单「深色」月亮；填充型图标                              |
+| `account-logout`      | `AccountLogoutIcon`     | 定制图标（`svg/account-logout.svg`）：个人菜单「退出登录」；填充型图标，颜色用 `text-danger`        |
 
 ## 如何新增一个图标
 

@@ -7,7 +7,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Dropdown, Menu } from '@arco-design/web-react';
-import { ArrowCircleLeft, CloseOne, Moon, SunOne } from '@icon-park/react';
+import { ArrowCircleLeft, Check } from '@icon-park/react';
 import { AppIcon } from '@aionui/ui';
 import classNames from 'classnames';
 import styles from './Sider.module.css';
@@ -56,7 +56,7 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
   const avatar = (size: 28 | 32) => (
     <span
       className={classNames(
-        'shrink-0 rd-full flex items-center justify-center bg-[var(--primary-6)] text-white font-[500]',
+        'shrink-0 rd-full flex items-center justify-center bg-[var(--sider-account-avatar-bg)] text-white font-[500]',
         size === 28 ? 'size-28px text-12px' : 'size-32px text-14px'
       )}
     >
@@ -86,24 +86,33 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
       </Menu.Item>
       {/* 外观 —— 设计稿里是一个二级菜单,这里用分组标题把「浅色 / 深色」平铺出来,
           少一层悬停展开,点按路径更短。 */}
-      <Menu.ItemGroup title={t('sider.account.appearance')}>
+      <Menu.ItemGroup
+        title={
+          <>
+            <AppIcon name='account-appearance' size={16} className='mr-6px' />
+            {t('sider.account.appearance')}
+          </>
+        }
+      >
         <Menu.Item key='theme-light'>
-          <span data-testid='sider-account-theme-light' className='flex items-center'>
-            <SunOne theme='outline' size={16} className='mr-6px' />
+          <span data-testid='sider-account-theme-light' className='w-full flex items-center'>
+            <AppIcon name='account-light' size={16} className='mr-6px' />
             {t('settings.lightMode')}
+            {isDark ? null : <Check theme='outline' size={16} className='ml-auto' />}
           </span>
         </Menu.Item>
         <Menu.Item key='theme-dark'>
-          <span data-testid='sider-account-theme-dark' className='flex items-center'>
-            <Moon theme='outline' size={16} className='mr-6px' />
+          <span data-testid='sider-account-theme-dark' className='w-full flex items-center'>
+            <AppIcon name='account-dark' size={16} className='mr-6px' />
             {t('settings.darkMode')}
+            {isDark ? <Check theme='outline' size={16} className='ml-auto' /> : null}
           </span>
         </Menu.Item>
       </Menu.ItemGroup>
       {showLogout && onLogoutClick && (
         <Menu.Item key='logout'>
           <span data-testid='sider-account-logout' className='flex items-center'>
-            <CloseOne theme='outline' size={16} className='mr-6px' />
+            <AppIcon name='account-logout' size={16} className='mr-6px text-danger' />
             {t('settings.googleLogout')}
           </span>
         </Menu.Item>
@@ -148,10 +157,12 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
   }
 
   // 展开态 —— 账号按钮(头像 + 名字 + 右箭头)+ 右侧的设置齿轮。
+  // 左右留白由外层 `layout-sider-content` 的 px-8px 提供,这里补上设计稿
+  // `.account-anchor` 剩下的右边距(18px)与上下内边距。
   return (
     <div
       className={classNames(
-        'shrink-0 sider-footer mt-auto h-65px box-border flex items-center justify-between gap-40px pt-13px pr-18px pb-10px pl-8px',
+        'shrink-0 sider-footer mt-auto h-65px box-border flex items-center justify-between gap-40px pt-13px pr-10px pb-10px pl-0',
         styles.accountAnchor
       )}
     >

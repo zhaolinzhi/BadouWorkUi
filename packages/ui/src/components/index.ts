@@ -12,6 +12,9 @@ export type { AppIconProps } from './AppIcon';
 export { CUSTOM_ICON_MAP, ICON_MAP } from './icons';
 export type { AppIconComponent, AppIconComponentProps, AppIconName } from './icons';
 
+export { default as BrandWordmark } from './icons/BrandWordmark';
+export type { BrandWordmarkProps } from './icons/BrandWordmark';
+
 export { default as AppHeader } from './AppHeader';
 export type { AppHeaderProps } from './AppHeader';
 

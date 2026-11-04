@@ -77,11 +77,7 @@ const SiderToolbar: React.FC<SiderToolbarProps> = ({
       onClick={onNewChat}
       // 展开态下设计稿把主入口图标缩到 90%(`.nav-item[data-nav="新会话"] .nav-icon>img`)。
       icon={
-        <AppIcon
-          name='new-chat'
-          size={collapsed ? 20 : 18}
-          className={collapsed ? undefined : styles.navAccentIcon}
-        />
+        <AppIcon name='new-chat' size={collapsed ? 20 : 18} className={collapsed ? undefined : styles.navAccentIcon} />
       }
       trailing={collapsed ? undefined : batchButton}
       testId='sider-new-chat'

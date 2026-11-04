@@ -159,7 +159,7 @@ describe('Layout sider brand Home button', () => {
 
     // No actionable role/label in chat routes.
     expect(screen.queryByLabelText(BACK_KEY)).toBeNull();
-    const wordmark = screen.getByText('BadouWork');
+    const wordmark = screen.getByLabelText('BadouWorker');
     fireEvent.click(wordmark);
     expect(navigate).not.toHaveBeenCalled();
   });
@@ -168,7 +168,7 @@ describe('Layout sider brand Home button', () => {
     currentPathname = '/conversation/xyz';
     renderLayout();
 
-    fireEvent.click(screen.getByText('BadouWork'));
+    fireEvent.click(screen.getByLabelText('BadouWorker'));
     expect(navigate).not.toHaveBeenCalled();
   });
 

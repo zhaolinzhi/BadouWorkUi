@@ -9,6 +9,7 @@ import { TEAM_MODE_ENABLED } from '@/common/config/constants';
 import PwaPullToRefresh from '@/renderer/components/layout/PwaPullToRefresh';
 import Titlebar from '@/renderer/components/layout/Titlebar';
 import { Layout as ArcoLayout, Tooltip } from '@arco-design/web-react';
+import { BrandWordmark } from '@aionui/ui';
 import classNames from 'classnames';
 import React, { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -510,7 +511,7 @@ const Layout: React.FC<{
                   {isSettingsRoute ? (
                     <Tooltip content={t('common.back', { defaultValue: 'Back to Chat' })} position='bottom'>
                       <div
-                        className='text-16px text-t-primary collapsed-hidden font-semibold cursor-pointer'
+                        className='collapsed-hidden cursor-pointer'
                         role='button'
                         tabIndex={0}
                         aria-label={t('common.back', { defaultValue: 'Back to Chat' })}
@@ -522,11 +523,13 @@ const Layout: React.FC<{
                           }
                         }}
                       >
-                        BadouWork
+                        <BrandWordmark className='text-[var(--sider-brand-color)]' />
                       </div>
                     </Tooltip>
                   ) : (
-                    <div className='text-16px text-t-primary collapsed-hidden font-semibold'>BadouWork</div>
+                    <div className='collapsed-hidden'>
+                      <BrandWordmark className='text-[var(--sider-brand-color)]' />
+                    </div>
                   )}
                   {isMobile && !collapsed && (
                     <button

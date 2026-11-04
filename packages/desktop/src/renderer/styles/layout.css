@@ -69,7 +69,7 @@
   /* No overflow clip: the children stack intentionally hosts tooltip popups
      and the conversation scroll list. Horizontal scrollbars are already hidden
      in the inner .scrollArea, so removing overflow-x: hidden does not surface
-     a sidebar scrollbar in the 48px collapsed rail. */
+     a sidebar scrollbar in the 56px collapsed rail. */
 }
 
 /* Disable transition during drag for smooth dragging */

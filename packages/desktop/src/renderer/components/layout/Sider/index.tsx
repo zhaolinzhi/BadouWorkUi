@@ -304,12 +304,14 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
           <div className='size-full flex flex-col'>
             {/* 固定导航区 —— 设计稿的 `<nav>`。
                 收缩态:56px 磁贴居中、间距 8px、上下留白 10px;
-                展开态:整行 32px、间距 4px、四周留白 8px。 */}
+                展开态:整行 32px、间距 4px、上下留白 8px。
+                左右留白由外层 `layout-sider-content` 的 px-8px 提供 —— 设计稿的
+                侧栏本身也是「0 内边距 + 导航区 8px 内边距」,两者叠起来才对得上。 */}
             <nav
               aria-label={t('sider.nav.ariaLabel')}
               className={classNames(
                 'shrink-0 flex flex-col',
-                collapsed ? 'items-center gap-8px py-10px' : 'gap-4px p-8px'
+                collapsed ? 'items-center gap-8px py-10px' : 'gap-4px py-8px'
               )}
             >
               <SiderToolbar
@@ -330,33 +332,14 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
                   onSessionClick={onSessionClick}
                 />
               )}
-              {/* Assistant nav entry - fixed above Scheduled */}
-              <SiderAssistantEntry
+              {/* 导航项顺序对齐设计稿:新会话 → 任务 → 工作台 → 笔记 → 录音 → 知识库 → 应用。
+                  「助手」与「任务中心」设计稿里没有对应项,排在最后。 */}
+              {/* Scheduled tasks nav entry - 复用设计稿的「任务」图标 */}
+              <SiderScheduledEntry
                 isMobile={isMobile}
-                isActive={pathname.startsWith('/assistants')}
+                isActive={pathname === '/scheduled'}
                 collapsed={collapsed}
-                onClick={handleAssistantClick}
-              />
-              {/* Knowledge base nav entry - fixed below Assistant */}
-              <SiderKnowledgeEntry
-                isMobile={isMobile}
-                isActive={pathname.startsWith('/knowledge-base')}
-                collapsed={collapsed}
-                onClick={handleKnowledgeClick}
-              />
-              {/* Notes nav entry - fixed below Knowledge base */}
-              <SiderNoteEntry
-                isMobile={isMobile}
-                isActive={pathname.startsWith('/notes')}
-                collapsed={collapsed}
-                onClick={handleNoteClick}
-              />
-              {/* Meeting recording nav entry - fixed below Notes */}
-              <SiderMeetingRecordingEntry
-                isMobile={isMobile}
-                isActive={pathname.startsWith('/meeting-recording')}
-                collapsed={collapsed}
-                onClick={handleMeetingRecordingClick}
+                onClick={handleScheduledClick}
               />
               {/* Workbench nav entry - opens external PM center in-app webview (enterprise only) */}
               {SiderWorkbenchEntry && (
@@ -367,6 +350,41 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
                   onClick={handleWorkbenchClick}
                 />
               )}
+              {/* Notes nav entry */}
+              <SiderNoteEntry
+                isMobile={isMobile}
+                isActive={pathname.startsWith('/notes')}
+                collapsed={collapsed}
+                onClick={handleNoteClick}
+              />
+              {/* Meeting recording nav entry */}
+              <SiderMeetingRecordingEntry
+                isMobile={isMobile}
+                isActive={pathname.startsWith('/meeting-recording')}
+                collapsed={collapsed}
+                onClick={handleMeetingRecordingClick}
+              />
+              {/* Knowledge base nav entry */}
+              <SiderKnowledgeEntry
+                isMobile={isMobile}
+                isActive={pathname.startsWith('/knowledge-base')}
+                collapsed={collapsed}
+                onClick={handleKnowledgeClick}
+              />
+              {/* 应用市场 —— 设计稿有这一项,产品里还没有对应路由,先占位。 */}
+              <SiderAppMarketEntry
+                isMobile={isMobile}
+                isActive={false}
+                collapsed={collapsed}
+                onClick={handleAppMarketClick}
+              />
+              {/* Assistant nav entry - 设计稿没有对应项 */}
+              <SiderAssistantEntry
+                isMobile={isMobile}
+                isActive={pathname.startsWith('/assistants')}
+                collapsed={collapsed}
+                onClick={handleAssistantClick}
+              />
               {/* Task Center nav entry - native task list page (enterprise only) */}
               {SiderTaskCenterEntry && (
                 <SiderTaskCenterEntry
@@ -376,20 +394,6 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
                   onClick={handleTaskCenterClick}
                 />
               )}
-              {/* Scheduled tasks nav entry - fixed above scroll */}
-              <SiderScheduledEntry
-                isMobile={isMobile}
-                isActive={pathname === '/scheduled'}
-                collapsed={collapsed}
-                onClick={handleScheduledClick}
-              />
-              {/* 应用市场 —— 设计稿有这一项,产品里还没有对应路由,先占位。 */}
-              <SiderAppMarketEntry
-                isMobile={isMobile}
-                isActive={false}
-                collapsed={collapsed}
-                onClick={handleAppMarketClick}
-              />
             </nav>
             {/* Scrollable content: pinned → team (slot) → projects → conversations */}
             <div className={classNames('flex-1 min-h-0 overflow-y-auto', siderStyles.scrollArea)}>
