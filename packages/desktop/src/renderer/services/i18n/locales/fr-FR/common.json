@@ -43,6 +43,7 @@
   "saveFailed": "Échec de l'enregistrement",
   "unknownError": "Erreur inconnue",
   "sessionExpired": "Votre session a expiré. Veuillez vous reconnecter.",
+  "accountSwitchFailed": "Échec du changement vers le répertoire de données de ce compte. Veuillez redémarrer l'application et réessayer.",
   "confirmDelete": "Confirmer la suppression",
   "deleteSuccess": "Supprimé avec succès",
   "deleteFailed": "Échec de la suppression",

@@ -5,8 +5,28 @@ import { PREVIEW_SCOPE_KEY_PREFIX } from '@/renderer/pages/conversation/Preview/
 import { AIPAAS_BASE_URL } from '@/renderer/api';
 import { ensureKnowledgeServerMcp } from '@/renderer/hooks/mcp/ensureDefaultMcpServers';
 import { runNewapiPostLogin } from '@/renderer/services/newapi';
+import { ipcBridge } from '@/common';
+import { resetWsForBackendRestart } from '@/common/adapter/httpBridge';
 
 const LOGOUT_ENDPOINT = `${AIPAAS_BASE_URL}/system/security/logout/logout`;
+
+/**
+ * Tell the main process which account is signed in, and adopt the backend
+ * port it reports.
+ *
+ * The main process may need to restart the backend against the account's own
+ * data directory, which changes the port the renderer must talk to.
+ *
+ * Errors are re-thrown so the caller can surface them with the translation
+ * function, which is only available inside the React component.
+ */
+async function activateAccount(userId: string, username: string): Promise<void> {
+  const result = await ipcBridge.account.setActive.invoke({ userId, username });
+  if (result.restarted) {
+    window.__backendPort = result.backendPort;
+    resetWsForBackendRestart();
+  }
+}
 
 type AuthStatus = 'checking' | 'authenticated' | 'unauthenticated';
 
@@ -28,7 +48,7 @@ interface AuthContextValue {
   ready: boolean;
   user: AuthUser | null;
   status: AuthStatus;
-  completeExternalLogin: (token: string, user: { id: string; username: string }) => void;
+  completeExternalLogin: (token: string, user: { id: string; username: string }) => Promise<void>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
   notifyTokenExpired: (source: TokenExpiredSource) => void;
@@ -100,7 +120,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     void refresh();
   }, [refresh]);
 
-  const completeExternalLogin = useCallback((token: string, payload: { id: string; username: string }) => {
+  const completeExternalLogin = useCallback(async (token: string, payload: { id: string; username: string }) => {
     const record: ExternalAuthPayload = {
       token,
       userId: payload.id,
@@ -115,12 +135,26 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     setStatus('authenticated');
     setReady(true);
     tokenExpiredFiredRef.current = false;
+
+    // Switch the backend to this account's data directory before anything
+    // talks to it — the backend may have been serving another account's
+    // database.
+    try {
+      await activateAccount(payload.id, payload.username);
+    } catch (error) {
+      console.error('Failed to activate the account scope:', error);
+      // The app is now signed in but pointing at the previous account's
+      // data. Tell the user rather than letting them write into the wrong
+      // account's database.
+      Message.error(t('common.accountSwitchFailed'));
+    }
+
     // Fire-and-forget:登录成功后自动从 AIPAAS 取 NewAPI Key 密文并尝试自动建 provider。
     // 失败静默,不阻塞 /guid 跳转。详见 docs/superpowers/specs/2026-09-24-newapi-postlogin-design.md。
     void runNewapiPostLogin(token);
     // Fire-and-forget: ensure the default knowledge-base MCP server exists after login.
     void ensureKnowledgeServerMcp();
-  }, []);
+  }, [t]);
 
   const logout = useCallback(async () => {
     const token = readExternalAuth()?.token;
@@ -134,6 +168,15 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
         console.error('Logout request failed:', error);
       }
     }
+    // Stop the backend and release the account's data directory.
+    //
+    // Fire-and-forget on purpose: the main process stops the backend, which
+    // can take a moment, and the local session must not stay "signed in"
+    // while that happens. The UI flips to signed-out immediately; the
+    // backend release follows.
+    void ipcBridge.account.clearActive.invoke().catch((error: unknown) => {
+      console.error('Failed to clear the account scope:', error);
+    });
     setUser(null);
     setStatus('unauthenticated');
     clearAuthCache();

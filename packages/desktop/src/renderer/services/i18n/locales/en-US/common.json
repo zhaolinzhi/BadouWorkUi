@@ -43,6 +43,7 @@
   "saveFailed": "Failed to save",
   "unknownError": "Unknown error",
   "sessionExpired": "Your session has expired. Please sign in again.",
+  "accountSwitchFailed": "Failed to switch to this account's data directory. Please restart the app and try again.",
   "confirmDelete": "Confirm Delete",
   "deleteSuccess": "Deleted successfully",
   "deleteFailed": "Failed to delete",

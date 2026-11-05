@@ -97,7 +97,9 @@ const LoginPage: React.FC = () => {
 
     const unsubscribe = ipcBridge.auth.externalLoginCompleted.on((payload) => {
       if (!active) return;
-      completeExternalLogin(payload.token, { id: payload.user.id, username: payload.user.username });
+      // Awaited so the account switch (and any backend restart) completes
+      // before the app starts talking to the backend.
+      void completeExternalLogin(payload.token, { id: payload.user.id, username: payload.user.username });
       // Navigation to /guid is driven by the `status === 'authenticated'` effect
       // above once AuthContext flips its state.
     });

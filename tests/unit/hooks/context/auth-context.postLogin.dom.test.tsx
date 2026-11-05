@@ -2,10 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, render } from '@testing-library/react';
 import React from 'react';
 
-const { runNewapiPostLogin, ensureKnowledgeServerMcp, messageWarning } = vi.hoisted(() => ({
+const { runNewapiPostLogin, ensureKnowledgeServerMcp, messageWarning, accountSetActive } = vi.hoisted(() => ({
   runNewapiPostLogin: vi.fn(),
   ensureKnowledgeServerMcp: vi.fn(),
   messageWarning: vi.fn(),
+  accountSetActive: vi.fn(async () => ({ backendPort: 13400, restarted: false })),
 }));
 
 vi.mock('@/renderer/services/newapi', () => ({
@@ -17,8 +18,25 @@ vi.mock('@/renderer/hooks/mcp/ensureDefaultMcpServers', () => ({
 }));
 
 vi.mock('@arco-design/web-react', () => ({
-  Message: { warning: messageWarning },
+  Message: { warning: messageWarning, error: vi.fn() },
 }));
+
+// The account switch runs before the post-login bootstrap (the bootstrap
+// writes a provider into the backend's database, so the backend must already
+// be pointed at the right account).
+vi.mock('@/common', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/common')>();
+  return {
+    ...actual,
+    ipcBridge: {
+      ...actual.ipcBridge,
+      account: {
+        ...actual.ipcBridge.account,
+        setActive: { invoke: accountSetActive },
+      },
+    },
+  };
+});
 
 import { AuthProvider, useAuth } from '@/renderer/hooks/context/AuthContext';
 
