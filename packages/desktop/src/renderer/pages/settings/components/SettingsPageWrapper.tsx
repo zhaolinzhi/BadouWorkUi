@@ -27,6 +27,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useExtI18n } from '@/renderer/hooks/system/useExtI18n';
 import { BUILTIN_TAB_IDS, LEGACY_ANCHOR_REMAP } from './SettingsSider';
 import './settings.css';
+import ThumbnailImage from '@/renderer/components/media/ThumbnailImage';
 
 interface SettingsPageWrapperProps {
   children: React.ReactNode;
@@ -139,7 +140,7 @@ const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, cla
         id: tab.id,
         label: resolveExtTabName(tab),
         icon: resolvedIcon ? (
-          <img src={resolvedIcon} alt='' className='w-16px h-16px object-contain' />
+          <ThumbnailImage src={resolvedIcon} size={16} alt='' className='w-16px h-16px object-contain' />
         ) : (
           <Puzzle theme='outline' size='16' />
         ),

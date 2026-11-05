@@ -14,8 +14,14 @@
  * 要付 12 次全页 reflow,肉眼看到的就是「十分卡顿」。
  *
  * 现在的做法:侧栏浮在内容区之上,内容区用 `padding-left` 让出侧栏的位置。
- * 过渡期间这个 inset 被钉在收缩宽度上,内容区宽度全程不变,侧栏收缩时
- * 内容区只是从侧栏底下露出来。
+ * 过渡开始时内容区**立刻**采用目标几何(展开=248px / 收缩=72px),之后
+ * 全程不变:
+ *  - 展开:内容区一次性让位,侧栏在空白背景上长大,不遮挡任何文字;
+ *  - 收缩:内容区一次性左移,侧栏从内容区上方收走。
+ *
+ * 两种方向都只付一次 reflow,过渡期间零布局工作。此前把 inset 钉在收缩
+ * 宽度上的做法在展开方向上更省,但过渡结束时整列会跳一下 —— 那一跳
+ * 反而比 reflow 更刺眼。
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, render } from '@testing-library/react';
@@ -112,7 +118,7 @@ describe('Layout sider width transition', () => {
     vi.useRealTimers();
   });
 
-  it('keeps the content inset stable while the sider expands, then settles on the expanded width', () => {
+  it('takes the expanded width immediately when the sider expands and keeps it stable', () => {
     const { container } = renderLayout();
 
     // 桌面端默认收缩。
@@ -120,8 +126,8 @@ describe('Layout sider width transition', () => {
 
     act(() => shortcutMocks.params?.toggleSider());
 
-    // 过渡期间内容区宽度不变 —— 只是从侧栏底下露出来。
-    expect(getInset(container)).toBe(COLLAPSED_INSET);
+    // 过渡一开始内容区就采用最终宽度,过渡期间不再变化。
+    expect(getInset(container)).toBe(EXPANDED_INSET);
 
     act(() => {
       vi.advanceTimersByTime(SIDER_ANIMATION_WINDOW_MS);
@@ -130,7 +136,7 @@ describe('Layout sider width transition', () => {
     expect(getInset(container)).toBe(EXPANDED_INSET);
   });
 
-  it('keeps the content inset stable while the sider collapses, then settles on the collapsed width', () => {
+  it('takes the collapsed width immediately when the sider collapses and keeps it stable', () => {
     const { container } = renderLayout();
 
     act(() => shortcutMocks.params?.toggleSider());
@@ -141,8 +147,8 @@ describe('Layout sider width transition', () => {
 
     act(() => shortcutMocks.params?.toggleSider());
 
-    // 收缩时内容区要立刻让出空间(否则侧栏收窄后会露出一条空隙),
-    // 但宽度在过渡期间保持稳定。
+    // 收缩时内容区立刻让出空间(否则侧栏收窄后会露出一条空隙),
+    // 过渡期间宽度保持稳定。
     expect(getInset(container)).toBe(COLLAPSED_INSET);
 
     act(() => {

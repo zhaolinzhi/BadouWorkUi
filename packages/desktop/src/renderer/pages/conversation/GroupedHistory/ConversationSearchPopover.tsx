@@ -21,6 +21,7 @@ import { flushSync } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import './ConversationSearchPopover.css';
+import ThumbnailImage from '@/renderer/components/media/ThumbnailImage';
 
 const PAGE_SIZE = 20;
 const MAX_RECENT_SEARCHES = 8;
@@ -113,8 +114,9 @@ const ConversationAgentMark: React.FC<{ conversation: IMessageSearchItem['conver
   }
   if (leadingMark.kind === 'image') {
     return (
-      <img
+      <ThumbnailImage
         src={leadingMark.value}
+        size={18}
         alt={leadingMark.label}
         title={leadingMark.label}
         className='w-18px h-18px rounded-50% flex-shrink-0'

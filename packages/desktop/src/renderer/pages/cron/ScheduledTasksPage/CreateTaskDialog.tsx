@@ -27,6 +27,7 @@ import { resolveAssistantAvatar } from '@renderer/utils/model/assistantAvatar';
 import { resolveAssistantName } from '@renderer/utils/model/assistantDisplay';
 import { resolveCronAgentConfig } from './resolveCronAgentConfig';
 import { assistantRuntimeKey, isAionrsAssistant } from '@/common/types/agent/assistantTypes';
+import ThumbnailImage from '@/renderer/components/media/ThumbnailImage';
 
 const FormItem = Form.Item;
 const TextArea = Input.TextArea;
@@ -653,7 +654,12 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                 return (
                   <div className='flex items-center gap-8px'>
                     {avatar.kind === 'image' ? (
-                      <img src={avatar.value} alt={name} className='w-16px h-16px object-contain' />
+                      <ThumbnailImage
+                        src={avatar.value}
+                        size={16}
+                        alt={name}
+                        className='w-16px h-16px object-contain'
+                      />
                     ) : avatar.kind === 'emoji' ? (
                       <span className='text-14px leading-16px'>{avatar.value}</span>
                     ) : (
@@ -675,7 +681,12 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                       title={disabled ? t('cron.page.form.aionrsNoProvider') : undefined}
                     >
                       {avatar.kind === 'image' ? (
-                        <img src={avatar.value} alt={name} className='w-16px h-16px object-contain' />
+                        <ThumbnailImage
+                          src={avatar.value}
+                          size={16}
+                          alt={name}
+                          className='w-16px h-16px object-contain'
+                        />
                       ) : avatar.kind === 'emoji' ? (
                         <span className='text-14px leading-16px'>{avatar.value}</span>
                       ) : (

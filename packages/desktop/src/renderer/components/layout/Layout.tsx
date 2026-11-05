@@ -47,7 +47,12 @@ import { isElectronDesktop } from '@renderer/utils/platform';
 import { IS_DISCONTINUED_BUILD } from '@/renderer/utils/discontinuedBuild';
 import UpdateMigrationDialog from '@/renderer/components/settings/UpdateMigrationDialog';
 import '@renderer/styles/layout.css';
-import logoImage from '@renderer/assets/logos/brand/app.gif';
+// The static brand mark. The animated variant of this logo (app.gif, 1418x996)
+// was used here before, but a running GIF inside the sider forced the whole
+// sider layer to be re-rastered on every frame of the animation — ~490ms of
+// raster work per second, which starved the collapse/expand transition. At the
+// 22px this is rendered at, the animation was not perceptible anyway.
+import logoImage from '@renderer/assets/logos/brand/app.png';
 
 const SidebarIcon: React.FC<{ size?: number; strokeWidth?: number }> = ({ size = 18, strokeWidth = 4 }) => (
   <svg
@@ -344,11 +349,21 @@ const Layout: React.FC<{
   // Skipped on mobile (no width transition there) and when `collapsed` did
   // not actually change (e.g. an `isMobile` flip alone).
   //
-  // The content row's inset is pinned to the collapsed width for the whole
-  // window: the content column keeps a stable width, so the transition costs
-  // one re-layout (when the inset changes) instead of one per frame. The
-  // sider floats above the content row, so the content is revealed from under
-  // it as the sider shrinks.
+  // The content row takes the *final* geometry right away, before the
+  // transition starts. That costs one re-layout per toggle (the content
+  // column really is a different width in the two states), but it keeps the
+  // transition itself free of any layout work:
+  //
+  //  - expanding: the sider grows from the collapsed width towards the
+  //    content column's left edge, so what it uncovers is empty background,
+  //    never text that would have to be re-flowed;
+  //  - collapsing: the sider shrinks over the content column, which simply
+  //    gets covered.
+  //
+  // Pinning the inset to the collapsed width for the duration (the previous
+  // approach) was cheaper still, but it left the content column at the wrong
+  // width while the transition ran, so the whole column jumped — and had to
+  // re-flow — once the transition ended. That jump is what read as a stutter.
   const prevCollapsedForAnimationRef = useRef(collapsed);
   useLayoutEffect(() => {
     const changed = prevCollapsedForAnimationRef.current !== collapsed;
@@ -358,11 +373,9 @@ const Layout: React.FC<{
       return undefined;
     }
     document.body.classList.add(SIDER_ANIMATING_CLASS);
-    setContentInset(DESKTOP_COLLAPSED_WIDTH);
+    setContentInset(collapsed ? DESKTOP_COLLAPSED_WIDTH : DEFAULT_SIDER_WIDTH);
     const timer = setTimeout(() => {
       document.body.classList.remove(SIDER_ANIMATING_CLASS);
-      // The transition is over: the content row takes the sider's final width.
-      setContentInset(collapsed ? DESKTOP_COLLAPSED_WIDTH : DEFAULT_SIDER_WIDTH);
       // Tell the subscribers that skipped a measurement during the transition
       // (see useAutoScroll) that they can measure again now. Deferred by one
       // frame so the layout change above has been committed and painted.

@@ -3,6 +3,7 @@ import { Button, Typography, Tooltip, Link } from '@arco-design/web-react';
 import { IconDownload, IconRefresh } from '@arco-design/web-react/icon';
 import { useTranslation } from 'react-i18next';
 import AionModal from '@/renderer/components/base/AionModal';
+import ThumbnailImage from '@/renderer/components/media/ThumbnailImage';
 import { useHubAgents } from '@/renderer/hooks/agent/useHubAgents';
 import type { IHubAgentItem } from '@/common/types/agent/hub';
 import { resolveAgentAvatar, useAgentLogos } from '@renderer/utils/model/agentLogo';
@@ -148,8 +149,9 @@ export const AgentHubModal: React.FC<AgentHubModalProps> = ({ visible, onCancel 
 
                   <div className='mb-6px flex h-40px items-center justify-center'>
                     {avatar.kind === 'image' ? (
-                      <img
+                      <ThumbnailImage
                         src={avatar.value}
+                        size={36}
                         alt={agent.display_name}
                         className='h-36px w-36px rounded-10px object-contain'
                       />

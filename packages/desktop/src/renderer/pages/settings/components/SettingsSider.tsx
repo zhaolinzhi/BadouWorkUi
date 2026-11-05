@@ -24,6 +24,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Tooltip } from '@arco-design/web-react';
 import { getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
 import { PerfProfiler, mark } from '@/renderer/utils/perf';
+import ThumbnailImage from '@/renderer/components/media/ThumbnailImage';
 
 /** Builtin settings tab IDs in display order (must match router paths). */
 export const BUILTIN_TAB_IDS = [
@@ -160,7 +161,11 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
       return {
         id: tab.id,
         label: resolveExtTabName(tab),
-        icon: resolvedIcon ? <img src={resolvedIcon} alt='' className='w-full h-full object-contain' /> : <Puzzle />,
+        icon: resolvedIcon ? (
+          <ThumbnailImage src={resolvedIcon} size={20} alt='' className='w-full h-full object-contain' />
+        ) : (
+          <Puzzle />
+        ),
         isImageIcon: Boolean(resolvedIcon),
         path: `ext/${tab.id}`,
       };
