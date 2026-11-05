@@ -50,10 +50,7 @@ export const ACCOUNTS_DIR_NAME = 'accounts';
  * caught by `account.json`, which stores the real userId.
  */
 export function resolveAccountKey(userId: string): string {
-  return createHash('sha256')
-    .update(userId, 'utf8')
-    .digest('hex')
-    .slice(0, ACCOUNT_KEY_LENGTH);
+  return createHash('sha256').update(userId, 'utf8').digest('hex').slice(0, ACCOUNT_KEY_LENGTH);
 }
 
 /**

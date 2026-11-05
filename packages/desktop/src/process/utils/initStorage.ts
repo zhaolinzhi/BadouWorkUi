@@ -507,7 +507,10 @@ export const ProcessConfig = {
   remove: <K extends keyof ILegacyConfigStorageRefer>(key: K) => handles().configFile.remove(key),
   update: <K extends keyof ILegacyConfigStorageRefer>(
     key: K,
-    updateFn: (value: ILegacyConfigStorageRefer[K], data: ILegacyConfigStorageRefer) => Promise<ILegacyConfigStorageRefer[K]>
+    updateFn: (
+      value: ILegacyConfigStorageRefer[K],
+      data: ILegacyConfigStorageRefer
+    ) => Promise<ILegacyConfigStorageRefer[K]>
   ) => handles().configFile.update(key, updateFn),
   toJson: () => handles().configFile.toJson(),
   toJsonSync: () => handles().configFile.toJsonSync(),

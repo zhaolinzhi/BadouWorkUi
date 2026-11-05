@@ -26,6 +26,15 @@ async function activateAccount(userId: string, username: string): Promise<void> 
     window.__backendPort = result.backendPort;
     resetWsForBackendRestart();
   }
+  // The in-app browser partition holds site cookies that may be logged in.
+  // Clear it so accounts cannot see each other's sessions.
+  //
+  // Fire-and-forget: clearing browser data is a hygiene step, not a
+  // precondition for the login, and it must not delay the post-login
+  // bootstrap that follows.
+  void ipcBridge.application.clearBrowserData.invoke().catch((error: unknown) => {
+    console.warn('Failed to clear the browser session on account switch:', error);
+  });
 }
 
 type AuthStatus = 'checking' | 'authenticated' | 'unauthenticated';
@@ -120,41 +129,44 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     void refresh();
   }, [refresh]);
 
-  const completeExternalLogin = useCallback(async (token: string, payload: { id: string; username: string }) => {
-    const record: ExternalAuthPayload = {
-      token,
-      userId: payload.id,
-      username: payload.username,
-    };
-    try {
-      localStorage.setItem(EXTERNAL_AUTH_STORAGE_KEY, JSON.stringify(record));
-    } catch (error) {
-      console.error('Failed to persist external_auth:', error);
-    }
-    setUser({ id: payload.id, username: payload.username, token });
-    setStatus('authenticated');
-    setReady(true);
-    tokenExpiredFiredRef.current = false;
+  const completeExternalLogin = useCallback(
+    async (token: string, payload: { id: string; username: string }) => {
+      const record: ExternalAuthPayload = {
+        token,
+        userId: payload.id,
+        username: payload.username,
+      };
+      try {
+        localStorage.setItem(EXTERNAL_AUTH_STORAGE_KEY, JSON.stringify(record));
+      } catch (error) {
+        console.error('Failed to persist external_auth:', error);
+      }
+      setUser({ id: payload.id, username: payload.username, token });
+      setStatus('authenticated');
+      setReady(true);
+      tokenExpiredFiredRef.current = false;
 
-    // Switch the backend to this account's data directory before anything
-    // talks to it — the backend may have been serving another account's
-    // database.
-    try {
-      await activateAccount(payload.id, payload.username);
-    } catch (error) {
-      console.error('Failed to activate the account scope:', error);
-      // The app is now signed in but pointing at the previous account's
-      // data. Tell the user rather than letting them write into the wrong
-      // account's database.
-      Message.error(t('common.accountSwitchFailed'));
-    }
+      // Switch the backend to this account's data directory before anything
+      // talks to it — the backend may have been serving another account's
+      // database.
+      try {
+        await activateAccount(payload.id, payload.username);
+      } catch (error) {
+        console.error('Failed to activate the account scope:', error);
+        // The app is now signed in but pointing at the previous account's
+        // data. Tell the user rather than letting them write into the wrong
+        // account's database.
+        Message.error(t('common.accountSwitchFailed'));
+      }
 
-    // Fire-and-forget:登录成功后自动从 AIPAAS 取 NewAPI Key 密文并尝试自动建 provider。
-    // 失败静默,不阻塞 /guid 跳转。详见 docs/superpowers/specs/2026-09-24-newapi-postlogin-design.md。
-    void runNewapiPostLogin(token);
-    // Fire-and-forget: ensure the default knowledge-base MCP server exists after login.
-    void ensureKnowledgeServerMcp();
-  }, [t]);
+      // Fire-and-forget:登录成功后自动从 AIPAAS 取 NewAPI Key 密文并尝试自动建 provider。
+      // 失败静默,不阻塞 /guid 跳转。详见 docs/superpowers/specs/2026-09-24-newapi-postlogin-design.md。
+      void runNewapiPostLogin(token);
+      // Fire-and-forget: ensure the default knowledge-base MCP server exists after login.
+      void ensureKnowledgeServerMcp();
+    },
+    [t]
+  );
 
   const logout = useCallback(async () => {
     const token = readExternalAuth()?.token;

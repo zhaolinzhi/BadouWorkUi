@@ -27,6 +27,7 @@ import { adoptLegacyDataIfNeeded } from './migrateLegacyAccountData';
 import { ensureAccountDirectories } from './ensureAccountDirectories';
 import { getCurrentBackendDataDir, startBackendForAccount, stopBackendForAccount } from './backendControl';
 import { getUserDataRoot } from '@/process/utils/utils';
+import { stopDesktopWebUI } from '@/process/utils/webuiConfig';
 
 /**
  * Sign in as an account.
@@ -34,7 +35,10 @@ import { getUserDataRoot } from '@/process/utils/utils';
  * Switches the active data directory and, when the directory changed, stops
  * the running backend and starts a new one against the account's directory.
  */
-export async function setActiveAccount(userId: string, username: string): Promise<{
+export async function setActiveAccount(
+  userId: string,
+  username: string
+): Promise<{
   backendPort: number;
   restarted: boolean;
 }> {
@@ -55,6 +59,8 @@ export async function setActiveAccount(userId: string, username: string): Promis
   let backendPort = 0;
 
   if (currentDataDir !== scope.dataDir) {
+    // The WebUI reuses the running backend, so it must not outlive it.
+    await stopDesktopWebUI();
     await stopBackendForAccount();
     backendPort = await startBackendForAccount(scope.dataDir);
     restarted = true;
@@ -77,6 +83,7 @@ export async function setActiveAccount(userId: string, username: string): Promis
  * restart.
  */
 export async function clearActiveAccount(): Promise<void> {
+  await stopDesktopWebUI();
   await stopBackendForAccount();
   clearActiveScope();
 }
