@@ -36,6 +36,25 @@
   overflow-x: hidden;
   box-shadow: none !important;
   border-right: 1px solid var(--border-base);
+
+  /* Promote the sider to its own compositor layer.
+   *
+   * The sider's width is animated (Arco transitions `width`). Without its own
+   * layer the whole window shares one layer, so every animation frame has to
+   * re-rasterize everything the sider uncovers — the entire page, every frame.
+   * Measured on the reference machine that was ~950ms of raster work per
+   * collapse/expand, with single frames as long as 436ms, which is what made
+   * the animation look like a stutter.
+   *
+   * With its own layer only the sider's tiles are re-rastered (~150ms per
+   * toggle, longest frame 56ms) and the content underneath is merely
+   * re-composited.
+   *
+   * Note: like `transform`, `will-change: transform` makes the sider a
+   * containing block for `position: fixed` descendants. The only fixed
+   * element inside the sider is react-dnd's 1x1 a11y live region, so nothing
+   * is affected by it. */
+  will-change: transform;
 }
 
 .app-img {
