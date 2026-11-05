@@ -356,6 +356,106 @@ describe('useGuidSend', () => {
     expect(createConversationInvokeMock).not.toHaveBeenCalled();
   });
 
+  // The ask-user MCP server must reach the agent even when the assistant is
+  // pinned to a fixed MCP set that predates it. The backend hard-excludes
+  // builtin rows from its repo-backed resolver, so the ONLY way it gets in is
+  // the inline `selected_session_mcp_servers` snapshot — which is why it has to
+  // be force-attached here rather than merely registered.
+
+  it('force-attaches the ask-user MCP server when the assistant selection omits it', async () => {
+    const deps = createDeps();
+    deps.availableMcpServers = [
+      { id: 'mcp-user', name: 'User MCP', enabled: true, builtin: false } as IMcpServer,
+      { id: 'mcp-ask', name: 'badouwork-ask-user', enabled: true, builtin: true } as IMcpServer,
+    ];
+    deps.selectedMcpServerIds = ['mcp-user'];
+
+    const { result } = renderHook(() => useGuidSend(deps));
+
+    await act(async () => {
+      await result.current.handleSend();
+    });
+
+    const payload = createConversationInvokeMock.mock.calls[0][0];
+    const sessionServers = payload.extra.selected_session_mcp_servers as Array<{ id: string }>;
+    expect(sessionServers.map((server) => server.id)).toContain('mcp-ask');
+    expect(payload.assistant?.conversation_overrides?.mcp_ids).toContain('mcp-ask');
+  });
+
+  it('force-attaches the ask-user MCP server for an assistant pinned to a fixed set', async () => {
+    const deps = createDeps();
+    deps.availableMcpServers = [
+      { id: 'mcp-user', name: 'User MCP', enabled: true, builtin: false } as IMcpServer,
+      { id: 'mcp-ask', name: 'badouwork-ask-user', enabled: true, builtin: true } as IMcpServer,
+    ];
+    // No local override — the assistant's own fixed list is used.
+    deps.selectedMcpServerIds = undefined;
+    deps.assistantDefaultMcpIds = ['mcp-user'];
+
+    const { result } = renderHook(() => useGuidSend(deps));
+
+    await act(async () => {
+      await result.current.handleSend();
+    });
+
+    const payload = createConversationInvokeMock.mock.calls[0][0];
+    const sessionServers = payload.extra.selected_session_mcp_servers as Array<{ id: string }>;
+    expect(sessionServers.map((server) => server.id)).toContain('mcp-ask');
+  });
+
+  it('does not duplicate the ask-user MCP server when it is already selected', async () => {
+    const deps = createDeps();
+    deps.availableMcpServers = [
+      { id: 'mcp-user', name: 'User MCP', enabled: true, builtin: false } as IMcpServer,
+      { id: 'mcp-ask', name: 'badouwork-ask-user', enabled: true, builtin: true } as IMcpServer,
+    ];
+    deps.selectedMcpServerIds = ['mcp-user', 'mcp-ask'];
+
+    const { result } = renderHook(() => useGuidSend(deps));
+
+    await act(async () => {
+      await result.current.handleSend();
+    });
+
+    const payload = createConversationInvokeMock.mock.calls[0][0];
+    const sessionServers = payload.extra.selected_session_mcp_servers as Array<{ id: string }>;
+    expect(sessionServers.filter((server) => server.id === 'mcp-ask')).toHaveLength(1);
+  });
+
+  it('does not attach anything when the ask-user MCP server is not registered', async () => {
+    const deps = createDeps();
+    deps.availableMcpServers = [{ id: 'mcp-user', name: 'User MCP', enabled: true, builtin: false } as IMcpServer];
+    deps.selectedMcpServerIds = ['mcp-user'];
+
+    const { result } = renderHook(() => useGuidSend(deps));
+
+    await act(async () => {
+      await result.current.handleSend();
+    });
+
+    const payload = createConversationInvokeMock.mock.calls[0][0];
+    const sessionServers = payload.extra.selected_session_mcp_servers as Array<{ id: string }>;
+    expect(sessionServers.some((server) => server.id === 'mcp-ask')).toBe(false);
+  });
+
+  it('does not mutate the caller-provided MCP id array', async () => {
+    const deps = createDeps();
+    deps.availableMcpServers = [
+      { id: 'mcp-user', name: 'User MCP', enabled: true, builtin: false } as IMcpServer,
+      { id: 'mcp-ask', name: 'badouwork-ask-user', enabled: true, builtin: true } as IMcpServer,
+    ];
+    const selected = ['mcp-user'];
+    deps.selectedMcpServerIds = selected;
+
+    const { result } = renderHook(() => useGuidSend(deps));
+
+    await act(async () => {
+      await result.current.handleSend();
+    });
+
+    expect(selected).toEqual(['mcp-user']);
+  });
+
   // Hidden chatWithStream hint is APPENDED to the user message body
   // (not to a system-prompt slot) because the backend agent framework
   // does not yet read `conversation_overrides.system_prompt`. The hint

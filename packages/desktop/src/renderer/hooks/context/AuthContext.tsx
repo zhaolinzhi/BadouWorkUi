@@ -3,6 +3,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { useTranslation } from 'react-i18next';
 import { PREVIEW_SCOPE_KEY_PREFIX } from '@/renderer/pages/conversation/Preview/context/previewScope';
 import { AIPAAS_BASE_URL } from '@/renderer/api';
+import { ensureKnowledgeServerMcp } from '@/renderer/hooks/mcp/ensureDefaultMcpServers';
 import { runNewapiPostLogin } from '@/renderer/services/newapi';
 
 const LOGOUT_ENDPOINT = `${AIPAAS_BASE_URL}/system/security/logout/logout`;
@@ -117,6 +118,8 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     // Fire-and-forget:登录成功后自动从 AIPAAS 取 NewAPI Key 密文并尝试自动建 provider。
     // 失败静默,不阻塞 /guid 跳转。详见 docs/superpowers/specs/2026-09-24-newapi-postlogin-design.md。
     void runNewapiPostLogin(token);
+    // Fire-and-forget: ensure the default knowledge-base MCP server exists after login.
+    void ensureKnowledgeServerMcp();
   }, []);
 
   const logout = useCallback(async () => {

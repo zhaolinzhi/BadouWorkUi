@@ -149,14 +149,16 @@ describe('useTaskCenterList — fetch path', () => {
     expect(result.current.items).toHaveLength(0);
   });
 
-  it('signals token_expired on 2xx empty body', async () => {
+  it('returns an empty list without signalling token_expired on 2xx empty body', async () => {
     stubFetch(async () => emptyResponse(200));
 
     const { result } = renderHook(() => useTaskCenterList('tok'));
 
     await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(result.current.error).toMatch(/Empty response/);
-    expect(notifyTokenExpiredMock).toHaveBeenCalledWith('task-center');
+    expect(result.current.items).toHaveLength(0);
+    expect(result.current.total).toBe(0);
+    expect(result.current.error).toBeNull();
+    expect(notifyTokenExpiredMock).not.toHaveBeenCalled();
   });
 
   it('does NOT signal token_expired on non-2xx empty body', async () => {

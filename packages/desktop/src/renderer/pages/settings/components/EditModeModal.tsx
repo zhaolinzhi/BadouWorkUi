@@ -1,6 +1,6 @@
 import type { IProvider } from '@/common/config/storage';
 import ModalHOC from '@/renderer/utils/ui/ModalHOC';
-import { Form, Input, Message, Select, Tag } from '@arco-design/web-react';
+import { Button, Form, Input, Message, Select, Tag } from '@arco-design/web-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import AionModal from '@/renderer/components/base/AionModal';
@@ -20,10 +20,10 @@ const ProviderLogo: React.FC<{ logo: string | null; name: string; size?: number 
   return <LinkCloud theme='outline' size={size} className='text-t-secondary flex shrink-0' />;
 };
 
-const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): void }>(
+const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): void; readOnly?: boolean }>(
   ({ modalProps, modalCtrl, ...props }) => {
     const { t } = useTranslation();
-    const { data } = props;
+    const { data, readOnly = false } = props;
     const [form] = Form.useForm();
     const [message, messageContext] = Message.useMessage();
 
@@ -57,8 +57,8 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
     // When is_full_url, pass empty base_url to prevent auto-fetch with the full endpoint URL
     const modelListState = useModeModeList(
       data?.platform || 'gemini',
-      isFullUrl ? '' : effectiveBaseUrl,
-      isFullUrl ? '' : effectiveApiKey,
+      readOnly || isFullUrl ? '' : effectiveBaseUrl,
+      readOnly || isFullUrl ? '' : effectiveApiKey,
       true,
       undefined
     );
@@ -71,6 +71,7 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
     // a refresh result. When the refresh succeeds and a selected model is
     // missing from the new list we surface a passive hint only.
     const handleBaseUrlBlur = async () => {
+      if (readOnly) return;
       // is_full_url providers don't fetch a model list (the endpoint is a full
       // chat URL, not a base), so there is nothing to refresh — mirror onFocus.
       if (isFullUrl || isBedrock) return;
@@ -123,8 +124,11 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
 
     useEffect(() => {
       if (data) {
+        // Read-only mode never puts credentials into the form store: the fields
+        // are not rendered, and nothing should be able to read them back.
+        const { api_key: _apiKey, base_url: _baseUrl, bedrock_config: _bedrockConfig, ...safeData } = data;
         form.setFieldsValue({
-          ...data,
+          ...(readOnly ? safeData : data),
           model:
             data.models && data.models.length > 0
               ? data.models.length === 1
@@ -138,16 +142,39 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
           bedrockProfile: data.bedrock_config?.profile || '',
         });
       }
-    }, [data, form]);
+    }, [data, form, readOnly]);
 
     return (
       <AionModal
         variant='standard'
         visible={modalProps.visible}
         onCancel={modalCtrl.close}
-        header={{ title: t('settings.editModel'), showClose: true }}
+        header={{
+          title: readOnly ? (
+            <span className='inline-flex items-center gap-8px'>
+              {t('settings.editModel')}
+              <Tag size='small'>{t('common.readOnly')}</Tag>
+            </span>
+          ) : (
+            t('settings.editModel')
+          ),
+          showClose: true,
+        }}
         style={{ minHeight: '400px' }}
+        footer={
+          readOnly ? (
+            <div className='flex justify-end gap-10px'>
+              <Button onClick={modalCtrl.close} className='px-20px min-w-80px' style={{ borderRadius: 8 }}>
+                {t('common.close')}
+              </Button>
+              <Button type='primary' disabled className='px-20px min-w-80px' style={{ borderRadius: 8 }}>
+                {t('common.save')}
+              </Button>
+            </div>
+          ) : undefined
+        }
         onOk={async () => {
+          if (readOnly) return;
           try {
             const values = await form.validate();
             const updatedProvider: IProvider = {
@@ -201,40 +228,46 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
             </Form.Item>
 
             {/* Base URL */}
-            <Form.Item
-              hidden={isBedrock}
-              label={
-                <span className='inline-flex items-center gap-4px'>
-                  {t('settings.apiEndpoint', 'API 请求地址')}
-                  {isFullUrl && (
-                    <Tag size='small' color='arcoblue'>
-                      {t('settings.fullUrl', '完整URL')}
-                    </Tag>
-                  )}
-                </span>
-              }
-              required={data?.platform !== 'gemini' && data?.platform !== 'gemini-vertex-ai' && !isBedrock}
-              rules={[{ required: data?.platform !== 'gemini' && data?.platform !== 'gemini-vertex-ai' && !isBedrock }]}
-              field={'base_url'}
-            >
-              <Input onBlur={handleBaseUrlBlur} />
-            </Form.Item>
-            {modelsMissingAfterRefresh.length > 0 && (
-              <div className='text-11px text-t-secondary -mt-8px mb-12px'>
-                {t('settings.modelNotFoundAfterUrlChange', { model: modelsMissingAfterRefresh.join(', ') })}
-              </div>
-            )}
+            {!readOnly && (
+              <>
+                <Form.Item
+                  hidden={isBedrock}
+                  label={
+                    <span className='inline-flex items-center gap-4px'>
+                      {t('settings.apiEndpoint', 'API 请求地址')}
+                      {isFullUrl && (
+                        <Tag size='small' color='arcoblue'>
+                          {t('settings.fullUrl', '完整URL')}
+                        </Tag>
+                      )}
+                    </span>
+                  }
+                  required={data?.platform !== 'gemini' && data?.platform !== 'gemini-vertex-ai' && !isBedrock}
+                  rules={[
+                    { required: data?.platform !== 'gemini' && data?.platform !== 'gemini-vertex-ai' && !isBedrock },
+                  ]}
+                  field={'base_url'}
+                >
+                  <Input onBlur={handleBaseUrlBlur} />
+                </Form.Item>
+                {modelsMissingAfterRefresh.length > 0 && (
+                  <div className='text-11px text-t-secondary -mt-8px mb-12px'>
+                    {t('settings.modelNotFoundAfterUrlChange', { model: modelsMissingAfterRefresh.join(', ') })}
+                  </div>
+                )}
 
-            <Form.Item
-              hidden={isBedrock}
-              label={t('settings.apiKey')}
-              required={!isBedrock}
-              rules={[{ required: !isBedrock }]}
-              field={'api_key'}
-              extra={<div className='text-11px text-t-secondary mt-2'>💡 {t('settings.multiApiKeyEditTip')}</div>}
-            >
-              <Input.TextArea rows={4} placeholder={t('settings.apiKeyPlaceholder')} />
-            </Form.Item>
+                <Form.Item
+                  hidden={isBedrock}
+                  label={t('settings.apiKey')}
+                  required={!isBedrock}
+                  rules={[{ required: !isBedrock }]}
+                  field={'api_key'}
+                  extra={<div className='text-11px text-t-secondary mt-2'>💡 {t('settings.multiApiKeyEditTip')}</div>}
+                >
+                  <Input.TextArea rows={4} placeholder={t('settings.apiKeyPlaceholder')} />
+                </Form.Item>
+              </>
+            )}
 
             {/* AWS Bedrock Authentication Method */}
             <Form.Item
@@ -326,7 +359,7 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
                 allowCreate
                 mode={data?.models && data.models.length > 1 ? 'multiple' : undefined}
                 onFocus={async () => {
-                  if (isFullUrl) return;
+                  if (readOnly || isFullUrl) return;
                   // For Bedrock, build bedrock_config from current form values and fetch models
                   if (isBedrock) {
                     const values = form.getFields();
@@ -381,7 +414,13 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
                   }
                   void modelListState.mutate();
                 }}
-                options={isFullUrl ? [] : modelListState.data?.models || []}
+                options={
+                  readOnly
+                    ? (data?.models ?? []).map((model) => ({ label: model, value: model }))
+                    : isFullUrl
+                      ? []
+                      : modelListState.data?.models || []
+                }
               />
             </Form.Item>
           </Form>
