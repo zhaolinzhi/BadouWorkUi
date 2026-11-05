@@ -90,6 +90,12 @@ const ensureCliSafeSymlink = (targetPath: string, symlinkName: string): string =
 };
 
 /**
+ * The Electron `userData` directory — the root that holds the shared
+ * application-level state and the per-account roots.
+ */
+export const getUserDataRoot = (): string => getElectronPathOrFallback('userData');
+
+/**
  * Get data path, using CLI-safe symlink on macOS.
  * Release builds use ~/.aionui; dev builds use ~/.aionui-dev.
  * 获取数据目录路径，macOS 上使用符号链接。
