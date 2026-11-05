@@ -1,31 +1,36 @@
 /* GPU-friendly: transform applies to the + SVG only (see Sider.tsx), not the padded row or icon frame */
 
-.newChatTrigger {
-  position: relative;
+/* 「新会话」主入口 —— 设计稿的浅蓝描边磁贴。
+   描边色/底色走主题 token(见 styles/themes/default-color-scheme.css),
+   悬停态用 --bg-hover,暗色模式下同样跟随。 */
+.navAccent {
+  border: 0.5px solid var(--sider-nav-accent-border);
+  background-color: var(--sider-nav-accent-bg);
 }
 
-.newChatIcon {
-  transform: translateZ(0);
-  transition: transform 0.14s cubic-bezier(0.33, 1, 0.68, 1);
+.navAccent:hover,
+.navAccent:focus-visible {
+  background-color: var(--bg-hover);
 }
 
-.newChatTrigger:hover .newChatIcon {
-  transform: scale(0.92) translateZ(0);
+/* 展开态下设计稿把「新会话」主入口图标缩到 90%
+   (`.nav-item[data-nav="新会话"] .nav-icon>img { transform: scale(.9) }`)。 */
+.navAccentIcon {
+  transform: scale(0.9) translateZ(0);
 }
 
-.newChatTrigger:active .newChatIcon {
-  transform: scale(0.84) translateZ(0);
+/* 底部账号区 —— 设计稿的 `.account-anchor` / `.account-button`。
+   分隔线与按钮底色走主题 token(见 styles/themes/default-color-scheme.css)。 */
+.accountAnchor {
+  border-top: 1px solid var(--sider-account-border);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .newChatIcon {
-    transition: none;
-  }
+.accountButton {
+  background-color: var(--sider-account-bg);
+}
 
-  .newChatTrigger:hover .newChatIcon,
-  .newChatTrigger:active .newChatIcon {
-    transform: translateZ(0);
-  }
+.accountButton:hover {
+  background-color: var(--bg-hover);
 }
 
 /* Overlay-style scroll area: scrollbar takes zero layout width so icons in the

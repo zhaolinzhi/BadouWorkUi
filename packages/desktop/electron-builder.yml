@@ -213,8 +213,11 @@ asarUnpack:
 # The build script sets ELECTRON_BUILDER_COMPRESSION_LEVEL env var which takes precedence
 compression: normal
 removePackageScripts: true
-electronDownload:
-  cache: ${env.ELECTRON_CACHE}
+# 这里不要写 `cache: ${env.ELECTRON_CACHE}` 之类的写法 —— electron-builder 不做 shell
+# 变量插值,那串字面量会被当成相对路径,在仓库根生成一个名为 `${env.ELECTRON_CACHE}`
+# 的目录,把 Electron 的 zip 又下载一份进去(见 tests/unit/build-scripts/electronDownloadCache.test.ts)。
+# 下载缓存由 ELECTRON_BUILDER_CACHE 环境变量控制(必须是绝对路径),electron-builder
+# 会用它拼出 `<cache>/downloads`;不设则退回系统默认缓存目录。
 
 publish:
   provider: github

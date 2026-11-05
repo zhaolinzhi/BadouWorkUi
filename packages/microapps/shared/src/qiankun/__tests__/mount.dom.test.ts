@@ -193,6 +193,125 @@ describe('createMicroAppRenderer', () => {
   });
 });
 
+/** 造一个 qiankun wrapper 元素,内容就是子应用模板的 HTML。 */
+const buildWrapper = (html: string): HTMLElement => {
+  const wrapper = document.createElement('div');
+  wrapper.id = '__qiankun_microapp_wrapper_for_notes__';
+  wrapper.innerHTML = html;
+  document.body.appendChild(wrapper);
+  return wrapper;
+};
+
+/**
+ * 打包态样式丢失的回归测试(坑四)。
+ *
+ * 打包后 `import-html-entry` 会把 CSS 内联成 `<style>` 塞进 qiankun wrapper 里的
+ * `<qiankun-head>`,而 React 的 `createRoot().render()` 首次提交会清空容器 ——
+ * 样式就这样没了。这里断言样式在 `createRoot` 之前就被搬到了真实的
+ * `document.head`。
+ */
+describe('createMicroAppRenderer —— 样式节点搬运', () => {
+  const MARK = 'data-test-hoist';
+
+  const headStyles = (): HTMLStyleElement[] =>
+    Array.from(document.head.querySelectorAll<HTMLStyleElement>(`style[${MARK}]`));
+
+  beforeEach(() => {
+    document.body.innerHTML = '';
+    headStyles().forEach((node) => node.remove());
+    renderMock.mockClear();
+    unmountMock.mockClear();
+  });
+
+  afterEach(() => {
+    headStyles().forEach((node) => node.remove());
+    document.body.innerHTML = '';
+  });
+
+  it('把 <qiankun-head> 里的内联样式搬到 document.head', () => {
+    const wrapper = buildWrapper(
+      `<qiankun-head><style ${MARK}>.microapp-notes{color:red}</style></qiankun-head><div id="notes-root"></div>`
+    );
+
+    const renderer = createMicroAppRenderer({
+      name: 'notes',
+      renderApp: () => React.createElement('div'),
+    });
+    renderer.render({ ...baseProps, container: wrapper });
+
+    const moved = headStyles();
+    expect(moved).toHaveLength(1);
+    expect(moved[0].textContent).toContain('.microapp-notes{color:red}');
+    // 容器里不能再有样式节点 —— 否则 React 清空容器时会被一起抹掉。
+    expect(wrapper.querySelector('style')).toBeNull();
+  });
+
+  it('搬运发生在 createRoot 之前', async () => {
+    const wrapper = buildWrapper(`<qiankun-head><style ${MARK}>.x{}</style></qiankun-head>`);
+
+    const { createRoot } = await import('react-dom/client');
+    let styleCountAtRootCreation = -1;
+    vi.mocked(createRoot).mockImplementationOnce((container: Element) => {
+      styleCountAtRootCreation = container.querySelectorAll('style').length;
+      return { render: renderMock, unmount: unmountMock } as unknown as ReturnType<typeof createRoot>;
+    });
+
+    const renderer = createMicroAppRenderer({
+      name: 'notes',
+      renderApp: () => React.createElement('div'),
+    });
+    renderer.render({ ...baseProps, container: wrapper });
+
+    expect(styleCountAtRootCreation).toBe(0);
+  });
+
+  it('把 <link rel="stylesheet"> 一并搬走', () => {
+    const wrapper = buildWrapper(`<qiankun-head><link rel="stylesheet" href="./assets/app.css"></qiankun-head>`);
+
+    const renderer = createMicroAppRenderer({
+      name: 'notes',
+      renderApp: () => React.createElement('div'),
+    });
+    renderer.render({ ...baseProps, container: wrapper });
+
+    expect(document.head.querySelector('link[rel="stylesheet"][href="./assets/app.css"]')).not.toBeNull();
+    expect(wrapper.querySelector('link')).toBeNull();
+  });
+
+  it('重复挂载不会在 head 里堆积多份样式', () => {
+    const renderer = createMicroAppRenderer({
+      name: 'notes',
+      renderApp: () => React.createElement('div'),
+    });
+
+    const first = buildWrapper(`<qiankun-head><style ${MARK}>.v1{}</style></qiankun-head>`);
+    renderer.render({ ...baseProps, container: first });
+    expect(headStyles()).toHaveLength(1);
+
+    // remount:qiankun 会重新生成一个 wrapper,里面是新的 style 节点。
+    first.remove();
+    const second = buildWrapper(`<qiankun-head><style ${MARK}>.v2{}</style></qiankun-head>`);
+    renderer.render({ ...baseProps, container: second });
+
+    expect(headStyles()).toHaveLength(1);
+    expect(headStyles()[0].textContent).toContain('.v2{}');
+  });
+
+  it('unmount 时把搬走的样式一并清理', () => {
+    const wrapper = buildWrapper(`<qiankun-head><style ${MARK}>.gone{}</style></qiankun-head>`);
+
+    const renderer = createMicroAppRenderer({
+      name: 'notes',
+      renderApp: () => React.createElement('div'),
+    });
+    renderer.render({ ...baseProps, container: wrapper });
+    expect(headStyles()).toHaveLength(1);
+
+    renderer.unmount({ ...baseProps, container: wrapper });
+    expect(headStyles()).toHaveLength(0);
+  });
+});
+
 describe('clearAppLocalStorage', () => {
   beforeEach(() => {
     localStorage.clear();

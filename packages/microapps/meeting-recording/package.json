@@ -11,8 +11,9 @@
   },
   "dependencies": {
     "@aionui/microapp-shared": "workspace:*",
+    "@aionui/ui": "workspace:*",
     "@arco-design/web-react": "^2.66.1",
-    "@icon-park/react": "^1.5.1",
+    "@icon-park/react": "^1.4.2",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-i18next": "^14.0.5",
@@ -24,6 +25,7 @@
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.3.4",
     "typescript": "^5.8.3",
+    "unocss": "^66.3.3",
     "vite": "^6.4.1",
     "vite-plugin-qiankun": "^1.0.15",
     "vitest": "^4.0.18"

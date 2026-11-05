@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Button, Empty } from '@arco-design/web-react';
-import { Plus } from '@icon-park/react';
+import { AppIcon, EmptyState } from '@aionui/ui';
+import { Button } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import NotebookItem from './NotebookItem';
@@ -84,7 +84,7 @@ const NotesSidebar: React.FC<NotesSidebarProps> = ({
         </span>
         <Button
           type='text'
-          icon={<Plus size={16} />}
+          icon={<AppIcon name='plus' size={16} />}
           onClick={startCreatingNotebook}
           className='!flex !h-28px !w-28px !items-center !justify-center !rounded-6px !p-0'
           aria-label={t('settings.notesCreateNotebook', { defaultValue: 'New Notebook' })}
@@ -93,15 +93,18 @@ const NotesSidebar: React.FC<NotesSidebarProps> = ({
       <div className={styles.sidebarList}>
         {notebooks.length === 0 && !creatingNotebook ? (
           <div className={styles.empty}>
-            <Empty description={t('settings.notesNoNotebooks', { defaultValue: 'No notebooks yet' })} />
-            <div className='mt-8px text-12px text-t-secondary'>
-              {t('settings.notesNoNotebooksHint', {
+            <EmptyState
+              icon={<AppIcon name='notes' size={40} />}
+              title={t('settings.notesNoNotebooks', { defaultValue: 'No notebooks yet' })}
+              description={t('settings.notesNoNotebooksHint', {
                 defaultValue: 'Create your first notebook to organize your notes.',
               })}
-            </div>
-            <Button type='primary' size='small' className='!mt-12px !rounded-8px' onClick={startCreatingNotebook}>
-              {t('settings.notesCreateNotebook', { defaultValue: 'New Notebook' })}
-            </Button>
+              action={
+                <Button type='primary' size='small' className='!rounded-8px' onClick={startCreatingNotebook}>
+                  {t('settings.notesCreateNotebook', { defaultValue: 'New Notebook' })}
+                </Button>
+              }
+            />
           </div>
         ) : (
           <div className='flex flex-col gap-8px'>

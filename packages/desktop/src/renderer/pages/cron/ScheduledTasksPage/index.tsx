@@ -23,6 +23,7 @@ import TalkToButlerButton from '@/renderer/components/base/TalkToButlerButton';
 import { AionSearchInput } from '@/renderer/components/base';
 import SettingsPageHeader from '@/renderer/pages/settings/components/SettingsPageHeader';
 import { Attention, Robot } from '@icon-park/react';
+import ThumbnailImage from '@/renderer/components/media/ThumbnailImage';
 
 const ScheduledTasksPage: React.FC = () => {
   const layout = useLayoutContext();
@@ -225,7 +226,12 @@ const ScheduledTasksPage: React.FC = () => {
                       <Tooltip content={agentMeta.name}>
                         <div className='flex h-24px w-24px shrink-0 items-center justify-center overflow-hidden rounded-50% bg-fill-2 text-11px text-t-secondary'>
                           {agentMeta.logo ? (
-                            <img src={agentMeta.logo} alt={agentMeta.name} className='h-full w-full object-cover' />
+                            <ThumbnailImage
+                              src={agentMeta.logo}
+                              size={24}
+                              alt={agentMeta.name}
+                              className='h-full w-full object-cover'
+                            />
                           ) : agentMeta.emoji ? (
                             agentMeta.emoji
                           ) : (

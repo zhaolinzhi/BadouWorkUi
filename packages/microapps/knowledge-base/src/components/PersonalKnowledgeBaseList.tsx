@@ -6,8 +6,8 @@
 
 import type { KnowledgeBaseItem } from '../types';
 import KnowledgeBaseRow from './KnowledgeBaseRow';
+import { AppIcon, AsyncBoundary, EmptyState } from '@aionui/ui';
 import { Button } from '@arco-design/web-react';
-import { Plus } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -40,87 +40,58 @@ const PersonalKnowledgeBaseList: React.FC<PersonalKnowledgeBaseListProps> = ({
 }) => {
   const { t } = useTranslation();
 
-  if (loading) {
-    return (
-      <div
-        className='flex items-center justify-center rounded-14px border border-dashed border-border-2 bg-fill-1/40 px-20px py-28px text-center'
-        data-testid='personal-kb-loading'
-      >
+  return (
+    <AsyncBoundary
+      loading={loading}
+      error={error}
+      onRetry={onRetry}
+      retryText={t('common.retry', { defaultValue: 'Retry' })}
+      errorContent={t('settings.knowledgeBasePersonalLoadFailed', {
+        defaultValue: 'Failed to load personal knowledge bases',
+      })}
+      loadingContent={
         <div className='text-13px text-t-tertiary'>
           {t('settings.knowledgeBasePersonalLoading', { defaultValue: 'Loading personal knowledge bases…' })}
         </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div
-        className='flex flex-col items-center rounded-14px border border-dashed border-border-2 bg-fill-1/40 px-20px py-20px text-center'
-        data-testid='personal-kb-error'
-      >
-        <div className='mb-6px text-13px font-600 text-t-primary'>
-          {t('settings.knowledgeBasePersonalLoadFailed', { defaultValue: 'Failed to load personal knowledge bases' })}
-        </div>
-        <div className='mb-10px text-12px text-t-tertiary'>{error}</div>
-        {onRetry ? (
-          <Button
-            type='primary'
-            size='small'
-            className='!h-28px !rounded-9px'
-            onClick={onRetry}
-            data-testid='personal-kb-retry'
-          >
-            {t('common.retry', { defaultValue: 'Retry' })}
-          </Button>
-        ) : null}
-      </div>
-    );
-  }
-
-  if (items.length === 0) {
-    return (
-      <div
-        className='flex flex-col items-center rounded-14px border border-dashed border-border-2 bg-fill-1/40 px-20px py-28px text-center'
-        data-testid='personal-kb-empty'
-      >
-        <div className='mb-6px text-13px font-600 text-t-primary'>
-          {t('settings.knowledgeBaseEmptyTitle', { defaultValue: 'No personal knowledge base yet' })}
-        </div>
-        <p className='mb-16px max-w-360px text-12px leading-[1.6] text-t-secondary'>
-          {t('settings.knowledgeBaseEmptyBody', {
+      }
+      isEmpty={items.length === 0}
+      emptyContent={
+        <EmptyState
+          icon={<AppIcon name='knowledge-base' size={40} />}
+          title={t('settings.knowledgeBaseEmptyTitle', { defaultValue: 'No personal knowledge base yet' })}
+          description={t('settings.knowledgeBaseEmptyBody', {
             defaultValue: 'Create your first knowledge base to start organizing documents.',
           })}
-        </p>
-        <Button
-          type='primary'
-          size='small'
-          icon={<Plus theme='outline' size={14} fill='currentColor' />}
-          className='!rounded-8px'
-          onClick={onCreate}
-          data-testid='btn-personal-kb-create'
-        >
-          {t('settings.knowledgeBaseCreate', { defaultValue: 'Create knowledge base' })}
-        </Button>
-      </div>
-    );
-  }
-
-  return (
-    <div data-testid='personal-kb-list' className='space-y-8px'>
-      {items.map((item) => (
-        <KnowledgeBaseRow
-          key={item.id}
-          item={item}
-          onEdit={onEdit}
-          onDelete={onDelete}
-          onOpen={onOpen}
-          onOpenEdit={onOpenEdit}
-          onStartChat={onStartChat}
-          hideDelete
+          action={
+            <Button
+              type='primary'
+              size='small'
+              icon={<AppIcon name='plus' size={14} />}
+              className='!rounded-8px'
+              onClick={onCreate}
+              data-testid='btn-personal-kb-create'
+            >
+              {t('settings.knowledgeBaseCreate', { defaultValue: 'Create knowledge base' })}
+            </Button>
+          }
         />
-      ))}
-    </div>
+      }
+    >
+      <div data-testid='personal-kb-list' className='space-y-8px'>
+        {items.map((item) => (
+          <KnowledgeBaseRow
+            key={item.id}
+            item={item}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            onOpen={onOpen}
+            onOpenEdit={onOpenEdit}
+            onStartChat={onStartChat}
+            hideDelete
+          />
+        ))}
+      </div>
+    </AsyncBoundary>
   );
 };
 

@@ -7,6 +7,8 @@ import UnoCSS from 'unocss/vite';
 import unoConfig from '../../uno.config.ts';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
 
+import { aionuiGlobalComponentsPlugin, aionuiSvgIconPlugin } from '../ui/src/vite/index.ts';
+
 // Read the real AionUi version from the repo-root package.json.
 // `packages/desktop/package.json` is a workspace-internal placeholder pinned
 // at "0.0.0" — never use it for user-visible version strings.
@@ -195,6 +197,16 @@ export default defineConfig(({ mode }) => {
       // Make the root explicit so Vite emits page names relative to that directory
       // instead of leaking source-relative ../../ paths into HTML asset names.
       root: rendererRoot,
+      // `.env` 文件在 packages/desktop/ 下,不在 Vite 的 root(rendererRoot)里。
+      // electron-vite 默认把 envDir 设成 `options.root || process.cwd()` —— CLI 没带
+      // `[root]` 位置参数,所以是仓库根;那里一个 .env 都没有,于是
+      // packages/desktop/.env.production / .env.development 永远读不到,里面的
+      // VITE_* 变量全部失效(文档 02-config.md 2.3.1 描述的加载顺序因此从未成立)。
+      // 显式指到本包目录,让它们真正生效。
+      //
+      // 注意优先级:Vite 里 `process.env` 高于 .env 文件 —— 所以 `bun run build:all`
+      // 注入的 VITE_MICRO_APP_ENABLED=true / app://microapps 依旧盖得住这里的占位值。
+      envDir: resolve(__dirname),
       base: './',
       publicDir: resolve('public'),
       appType: 'mpa',
@@ -217,6 +229,10 @@ export default defineConfig(({ mode }) => {
           '@renderer': resolve('packages/desktop/src/renderer'),
           '@process': resolve('packages/desktop/src/process'),
           '@worker': resolve('packages/desktop/src/process/worker'),
+          // 主应用与三个 qiankun 微应用共用的 UI 组件层。
+          // 源码级共享 —— 包内不发布构建产物,各自的 bundler 把用到的部分
+          // 打进自己的 chunk(与 `@aionui/microapp-shared` 同一模式)。
+          '@aionui/ui': resolve('packages/ui/src/index.ts'),
           // Force ESM version of streamdown
           streamdown: resolve('node_modules/streamdown/dist/index.js'),
         },
@@ -243,6 +259,12 @@ export default defineConfig(({ mode }) => {
       plugins: [
         UnoCSS(unoConfig),
         iconParkPlugin(),
+        // 全局注册 @aionui/ui 的图标 / 按钮:<AppIcon />、<IconButton /> 不用再 import。
+        // enforce:'pre',要赶在 esbuild 的 JSX 转换之前 —— 之后源码里就没有 JSX 标签了。
+        aionuiGlobalComponentsPlugin(),
+        // `*.svg?component` 编译成图标组件 —— 定制图标放在 @aionui/ui 的 svg 目录里,
+        // 构建期转成普通 React 组件,运行时零开销。
+        aionuiSvgIconPlugin(),
         viteStaticCopy({
           // Vditor hardcodes requests like `${cdn}/dist/js/i18n/zh_CN.js`
           // and `${cdn}/dist/js/lute/lute.min.js`. The renderer root is

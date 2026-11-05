@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { Assistant } from '@/common/types/agent/assistantTypes';
+import type { Assistant, AssistantAgent } from '@/common/types/agent/assistantTypes';
 import {
   pickDefaultAssistantSelectionKey,
   resolveAssistantSelectionKey,
@@ -26,16 +26,44 @@ describe('guid assistant selection helpers', () => {
     expect(pickDefaultAssistantSelectionKey(assistants)).toBe('bare-aionrs');
   });
 
+  it('defaults to the internal aionrs runtime (Badou Cli) even when a generated aionrs assistant exists', () => {
+    const withBadouCli: Assistant[] = [
+      assistant({ id: 'bare-aionrs-generated', source: 'generated', runtimeKey: 'aionrs', agentSource: 'generated' }),
+      assistant({ id: 'bare-badou-cli', source: 'builtin', runtimeKey: 'aionrs', agentSource: 'internal' }),
+      assistant({ id: 'builtin-writer', source: 'builtin', runtimeKey: 'claude', sort_order: 20 }),
+    ];
+
+    expect(pickDefaultAssistantSelectionKey(withBadouCli)).toBe('bare-badou-cli');
+  });
+
+  it('skips a disabled Badou Cli assistant when picking the default', () => {
+    const withDisabledBadouCli: Assistant[] = [
+      {
+        ...assistant({ id: 'bare-badou-cli', source: 'builtin', runtimeKey: 'aionrs', agentSource: 'internal' }),
+        enabled: false,
+      },
+      assistant({ id: 'bare-aionrs', source: 'generated', runtimeKey: 'aionrs' }),
+    ];
+
+    expect(pickDefaultAssistantSelectionKey(withDisabledBadouCli)).toBe('bare-aionrs');
+  });
+
   it('returns null when no assistants are available', () => {
     expect(pickDefaultAssistantSelectionKey([])).toBeNull();
   });
 });
 
-function assistant(
-  overrides: Partial<Assistant> & { id: string; source: Assistant['source']; runtimeKey: string }
-): Assistant {
+type AssistantOverrides = Partial<Assistant> & {
+  id: string;
+  source: Assistant['source'];
+  runtimeKey: string;
+  agentSource?: AssistantAgent['source'];
+};
+
+function assistant({ agentSource, ...overrides }: AssistantOverrides): Assistant {
   const agentId = `agent-${overrides.runtimeKey}`;
   const isAionrs = overrides.runtimeKey === 'aionrs';
+  const resolvedAgentSource = agentSource ?? (isAionrs ? 'internal' : 'builtin');
   return {
     id: overrides.id,
     source: overrides.source,
@@ -46,7 +74,7 @@ function assistant(
     sort_order: overrides.sort_order ?? 0,
     agent_id: agentId,
     agent: isAionrs
-      ? { type: 'aionrs', source: 'internal' }
+      ? { type: 'aionrs', source: resolvedAgentSource }
       : { type: 'acp', source: 'builtin', acp_backend: overrides.runtimeKey },
     enabled_skills: [],
     custom_skill_names: [],

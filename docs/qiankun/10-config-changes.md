@@ -19,6 +19,8 @@
 
 > [08-checklist.md](08-checklist.md)「新增子应用检查清单」已经列了 9 个一致点,按那个走最稳。
 
+> ⚠️ **`.env.development` / `.env.production` 只有在渲染进程的 `envDir` 指向 `packages/desktop/` 时才生效**。electron-vite 默认把 `envDir` 设成仓库根,那样这两个文件永远读不到(历史上就是这么翻车的)。现在 `packages/desktop/electron.vite.config.ts` 里已显式设 `envDir: resolve(__dirname)`,改这两处时不必再操心;回归测试见 [tests/unit/build-scripts/rendererEnvDir.test.ts](../../tests/unit/build-scripts/rendererEnvDir.test.ts)。
+
 ## 10.2 修改 dev 端口
 
 | 文件                                                                                                                               | 改什么                       |
@@ -38,17 +40,21 @@
 | -------------------------------------------------------------------------- | ----------------------------- |
 | [packages/desktop/.env.production](../../packages/desktop/.env.production) | `VITE_<NAME>_APP_ENTRY=新URL` |
 
+> `VITE_<NAME>_APP_ENTRY` 是**单应用覆盖** —— 只影响这一个子应用,其余仍走 `VITE_MICRO_APP_ASSET_BASE`。想让整批换分发地址,改 `VITE_MICRO_APP_ASSET_BASE`。解析链见 [02-config.md#232-为什么这些变量可以留空](02-config.md#232-为什么这些变量可以留空)。
+
 > 改完后必须 `bun run build` 重新构建。`import.meta.env.VITE_*` 是构建时常量,改 env 文件后浏览器读到的还是旧值。
+>
+> 变量名写错 / 拼错的话**不会有任何报错** —— Vite 只是把它当成一个无关的 `VITE_*` 变量注入,主应用读不到就回退到 dev port 或 asset base。改完用这个确认变量真的进去了:`bun run build` 后在 `out/renderer/assets/index-*.js` 里 grep 变量名,应该能看到 `"VITE_<NAME>_APP_ENTRY": "..."`。
 
 ## 10.4 临时屏蔽某个子应用(无需发版)
 
 走 [07-disable.md](07-disable.md) 方式 A:把 `VITE_<NAME>_APP_ENTRY` 指向一个无效 URL,`loadMicroApp` 加载失败但不影响主应用,MicroAppErrorBoundary 会渲染降级页面。
 
-| 场景         | 做法                                                                               |
-| ------------ | ---------------------------------------------------------------------------------- |
-| 临时调试     | shell 临时变量 `VITE_<NAME>_APP_ENTRY=https://invalid.local/<name>.js bun run dev` |
-| 个人持久覆盖 | [packages/desktop/.env.local](../../packages/desktop/.env.local)(gitignore)写一条  |
-| 生产灰度     | CI 注入 `VITE_<NAME>_APP_ENTRY` 指向 stub / invalid URL                            |
+| 场景         | 做法                                                                                       |
+| ------------ | ------------------------------------------------------------------------------------------ |
+| 临时调试     | shell 临时变量 `VITE_<NAME>_APP_ENTRY=https://invalid.local/<name>/index.html bun run dev` |
+| 个人持久覆盖 | [packages/desktop/.env.local](../../packages/desktop/.env.local)(gitignore)写一条          |
+| 生产灰度     | CI 注入 `VITE_<NAME>_APP_ENTRY` 指向 stub / invalid URL                                    |
 
 **代码、env 默认文件、测试全部不动**。
 
@@ -86,7 +92,7 @@
 | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
 | [packages/desktop/src/renderer/micro-app/config/micro-apps.ts](../../packages/desktop/src/renderer/micro-app/config/micro-apps.ts)       | `MICRO_APP_DEFAULTS` 的 key、name 字段、container 选择器(`#${name}-container`) |
 | [packages/desktop/src/renderer/components/layout/Router.tsx](../../packages/desktop/src/renderer/components/layout/Router.tsx)           | `microAppName='新名'`                                                          |
-| `packages/microapps/<name>/vite.config.ts`                                                                                               | `lib.name: '新名'`(UMD global,必须严格一致)                                    |
+| `packages/microapps/<name>/src/main.ts`                                                                                                  | `window['新名']` 生命周期注册的键名(必须严格一致)                              |
 | [packages/desktop/.env.development](../../packages/desktop/.env.development) / [.env.production](../../packages/desktop/.env.production) | 改 `VITE_<NAME>_APP_ENTRY=...` 的变量名                                        |
 | 子应用内部                                                                                                                               | `qiankun lifecycle`、state key、localStorage 命名空间等所有引用 name 的地方    |
 | 外部系统                                                                                                                                 | localStorage / API 路径中用到旧 name 的地方                                    |

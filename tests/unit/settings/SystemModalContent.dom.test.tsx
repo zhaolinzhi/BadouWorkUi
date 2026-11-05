@@ -49,10 +49,6 @@ vi.mock('@/renderer/components/settings/LanguageSwitcher', () => ({
   default: () => <div>LanguageSwitcher</div>,
 }));
 
-vi.mock('@/renderer/components/settings/SettingsModal/contents/SystemModalContent/DevSettings', () => ({
-  default: () => <div>DevSettings</div>,
-}));
-
 vi.mock('@/renderer/services/clientBusinessSettings', () => ({
   getClientBusinessSetting: clientBusinessSettingsMocks.getClientBusinessSetting,
   setClientBusinessSetting: clientBusinessSettingsMocks.setClientBusinessSetting,

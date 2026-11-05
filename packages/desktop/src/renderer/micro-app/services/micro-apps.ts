@@ -27,9 +27,15 @@ function resolveBaseApi(): string {
 }
 
 export function isMicroAppEnabled(): boolean {
-  // 优先读 process.env（vi.stubEnv 一定会更新这个）；
-  // fallback 到 import.meta.env（dev/prod 构建里）
-  const raw = process.env.VITE_MICRO_APP_ENABLED ?? import.meta.env.VITE_MICRO_APP_ENABLED ?? '';
+  // 只认 import.meta.env —— 那是构建期烘进 bundle 的常量,dev 与打包态是同一套语义。
+  //
+  // 之前这里还有一条 process.env 分支,但它在两种形态下都取不到值:
+  // - 打包态:Vite 把 `process.env` 静态替换成 `{}`,第一个操作数恒为 undefined
+  // - dev 态:Vite 不替换 `process.env`,读的是渲染进程运行时的 process.env,而那里
+  //   只有 electron.vite.config.ts 的 define 列出的那几个键(NODE_ENV / env /
+  //   AIONUI_MULTI_INSTANCE / SENTRY_DSN),不含 VITE_*。
+  // 留着它只会让人误以为在 shell 里 export 一个同名变量就能开/关微应用。
+  const raw = import.meta.env.VITE_MICRO_APP_ENABLED ?? '';
   return raw.toString().toLowerCase() === 'true';
 }
 

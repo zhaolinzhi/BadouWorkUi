@@ -1,0 +1,18 @@
+{
+  "nav": {
+    "meetingRecordingShort": "ضبط",
+    "taskCenterShort": "وظایف",
+    "scheduledShort": "زمان‌بندی",
+    "appMarketShort": "برنامه‌ها",
+    "ariaLabel": "ناوبری اصلی"
+  },
+  "appMarket": {
+    "title": "بازار برنامه‌ها",
+    "comingSoon": "بازار برنامه‌ها به‌زودی در دسترس قرار می‌گیرد."
+  },
+  "account": {
+    "menuLabel": "حساب",
+    "openMenu": "باز کردن منوی حساب",
+    "appearance": "ظاهر"
+  }
+}

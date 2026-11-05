@@ -14,6 +14,33 @@
  * ⚠️ 微应用**不共享 preflights**:preflight 是 `*` 选择器,而微应用的 CSS 注入
  * 到真实 document 上会污染 shell。`border-width: 0` 这条基线 shell 已经注入过,
  * standalone 场景下缺失的影响可接受。需要时在微应用自己的 uno.config 里补。
+ *
+ * ⚠️ 虚拟模块前缀(`virtualModulePrefix`)**每个应用必须不一样**
+ * =====================================================
+ * 四个应用(shell + 三个微应用)都 `import 'uno.css'`,UnoCSS 默认把虚拟模块
+ * 的 id 定成 `__uno.css`。dev 下 Vite 用这个 id 给注入的 `<style>` 打标:
+ * `<style data-vite-dev-id="/__uno.css">`,而 **Vite 客户端注入样式时按这个 id
+ * 复用标签**。
+ *
+ * 坑在于 qiankun 的微应用与 shell **共用同一个 document**,并且**两个 Vite 客户端
+ * 会各自从 DOM 里反向认领标签**:
+ *
+ * ```js
+ * // vite/dist/client/client.mjs
+ * const sheetsMap = new Map();
+ * document.querySelectorAll("style[data-vite-dev-id]").forEach((el) => {
+ *   sheetsMap.set(el.getAttribute("data-vite-dev-id"), el);   // ← 认领别人的标签
+ * });
+ * ```
+ *
+ * 于是 notes 的客户端启动时把 **shell 的 `/__uno.css` 标签**认领进自己的
+ * `sheetsMap`,随后 `updateStyle('/__uno.css', notesCss)` 命中它、直接
+ * `textContent = notesCss` —— **shell 的 UnoCSS 产物被整个覆盖掉**,shell 的
+ * 工具类全部失效(左侧栏塌成竖排图标、文字互相重叠,即「点击笔记后样式全乱」)。
+ *
+ * 修法:给每个应用一个专属前缀(`__uno_shell` / `__uno_notes` / …),虚拟模块
+ * id 随之不同,标签就不会互相认领。前缀只影响 dev 的样式注入,**产物 CSS 不受影响**
+ * (build 时虚拟模块被内联进 CSS chunk,id 不出现)。
  */
 import { presetExtra } from 'unocss-preset-extra';
 import { presetMini, presetWind3 } from 'unocss';

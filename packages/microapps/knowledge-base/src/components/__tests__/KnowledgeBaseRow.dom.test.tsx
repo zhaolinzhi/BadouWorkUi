@@ -38,7 +38,11 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-vi.mock('@icon-park/react', () => ({
+// 只把 MoreOne 换成空组件(断言不关心图标本身)。
+// 不能整包 mock —— `@aionui/ui` 的图标映射表也 import 了这个包,
+// 缺哪个导出 Vitest 会直接抛错。
+vi.mock('@icon-park/react', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@icon-park/react')>()),
   MoreOne: () => null,
 }));
 

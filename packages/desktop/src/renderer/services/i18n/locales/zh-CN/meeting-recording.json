@@ -24,6 +24,7 @@
     "saveFailed": "保存录音失败",
     "deleteFailed": "删除录音失败",
     "transcribeFailed": "转写失败",
-    "recordingUnsupported": "当前环境不支持录音"
+    "recordingUnsupported": "当前环境不支持录音",
+    "unknown": "未知错误"
   }
 }

@@ -9,8 +9,9 @@ import { TEAM_MODE_ENABLED } from '@/common/config/constants';
 import PwaPullToRefresh from '@/renderer/components/layout/PwaPullToRefresh';
 import Titlebar from '@/renderer/components/layout/Titlebar';
 import { Layout as ArcoLayout, Tooltip } from '@arco-design/web-react';
+import { BrandWordmark } from '@aionui/ui';
 import classNames from 'classnames';
-import React, { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { setGlobalNavigate } from '@/renderer/utils/navigation';
@@ -36,13 +37,22 @@ import { useNotificationClick } from '@renderer/hooks/system/notification/useNot
 import { useBrowserNotification } from '@renderer/hooks/system/notification/useBrowserNotification';
 import { useDesktopTurnNotification } from '@renderer/hooks/system/notification/useDesktopTurnNotification';
 import { cleanupSiderTooltips } from '@renderer/utils/ui/siderTooltip';
-import { SIDER_ANIMATING_CLASS, SIDER_ANIMATION_WINDOW_MS } from '@renderer/utils/ui/siderAnimation';
+import {
+  SIDER_ANIMATING_CLASS,
+  SIDER_ANIMATION_WINDOW_MS,
+  notifySiderAnimationEnd,
+} from '@renderer/utils/ui/siderAnimation';
 import { useConversationShortcuts } from '@renderer/hooks/ui/useConversationShortcuts';
 import { isElectronDesktop } from '@renderer/utils/platform';
 import { IS_DISCONTINUED_BUILD } from '@/renderer/utils/discontinuedBuild';
 import UpdateMigrationDialog from '@/renderer/components/settings/UpdateMigrationDialog';
 import '@renderer/styles/layout.css';
-import logoImage from '@renderer/assets/logos/brand/app.gif';
+// The static brand mark. The animated variant of this logo (app.gif, 1418x996)
+// was used here before, but a running GIF inside the sider forced the whole
+// sider layer to be re-rastered on every frame of the animation — ~490ms of
+// raster work per second, which starved the collapse/expand transition. At the
+// 22px this is rendered at, the animation was not perceptible anyway.
+import logoImage from '@renderer/assets/logos/brand/app.png';
 
 const SidebarIcon: React.FC<{ size?: number; strokeWidth?: number }> = ({ size = 18, strokeWidth = 4 }) => (
   <svg
@@ -95,8 +105,8 @@ const useDebug = () => {
 
 const UpdateModal = React.lazy(() => import('@/renderer/components/settings/UpdateModal'));
 
-const DEFAULT_SIDER_WIDTH = 260;
-const DESKTOP_COLLAPSED_WIDTH = 64;
+const DEFAULT_SIDER_WIDTH = 248;
+const DESKTOP_COLLAPSED_WIDTH = 72;
 const SIDER_DRAG_SNAP_THRESHOLD = Math.round((DEFAULT_SIDER_WIDTH + DESKTOP_COLLAPSED_WIDTH) / 2);
 const SIDER_DRAG_HYSTERESIS = 6;
 const MOBILE_SIDER_WIDTH_RATIO = 0.67;
@@ -118,6 +128,53 @@ const detectMobileViewportOrTouch = (): boolean => {
   return byWidth || (smallScreen && (byMedia || byTouchPoints));
 };
 
+/**
+ * 路由内容区 —— 抽成 memo 组件，把「路由子树」和「Layout 的重渲染」隔开。
+ *
+ * 为什么必须抽出来
+ * ===============
+ * `<Outlet/>` 直接写在 Layout 里时，Layout 每渲染一次，react-router 就会
+ * 重新创建路由元素，**整个路由页面(消息列表 / markdown / 预览)跟着重渲染一遍**。
+ * 而 Layout 在侧栏折叠时会渲染好几次：
+ *   1. `collapsed` 状态变化；
+ *   2. 宽度过渡结束后 `useContainerWidth` 的 settle 定时器触发；
+ *   3. 随之而来的 explorer / preview 宽度夹取。
+ * 一次折叠因此会连带 7~9 次 commit、上百毫秒的同步渲染 —— 200ms 的宽度动画
+ * 被这些渲染吃光，肉眼看到的就是「折叠/展开十分卡顿」。
+ *
+ * 抽成 memo 之后，props 不变时 React 直接跳过，路由子树完全不受影响；
+ * 路由切换照常生效（react-router 的 `Outlet` 通过 context 拿路由，
+ * context 变化会穿透 memo 边界重新渲染）。
+ */
+const LayoutContent = React.memo(function LayoutContent({
+  isMobile,
+  onMobileTap,
+}: {
+  isMobile: boolean;
+  onMobileTap: () => void;
+}) {
+  return (
+    <ArcoLayout.Content
+      className='bg-1 layout-content flex flex-col min-h-0 flex-1'
+      onClick={onMobileTap}
+      style={isMobile ? { width: '100%' } : undefined}
+    >
+      <Outlet />
+      <PwaPullToRefresh />
+      {/*<Suspense fallback={null}>*/}
+      {/*  <UpdateModal />*/}
+      {/*</Suspense>*/}
+      {IS_DISCONTINUED_BUILD && <UpdateMigrationDialog />}
+    </ArcoLayout.Content>
+  );
+});
+
+/**
+ * 预览面板 —— 同理抽成 memo：侧栏折叠时 Layout 会重渲染几次，
+ * 预览面板（iframe / 图片 / 代码高亮）不该跟着重渲染。
+ */
+const MemoizedPreviewPanel = React.memo(PreviewPanel);
+
 const Layout: React.FC<{
   sider: React.ReactNode;
   onSessionClick?: () => void;
@@ -127,6 +184,17 @@ const Layout: React.FC<{
     typeof window === 'undefined' ? 390 : window.innerWidth
   );
   const { collapsed, setCollapsed } = useSiderCollapsed({ isMobile });
+  // Left inset of the content row — how much of the shell the sider covers.
+  //
+  // The content row is taken out of the flex flow and laid out over the full
+  // shell width with this inset, so the sider can float above it. During the
+  // width transition the inset is pinned to the collapsed width: the content
+  // column then keeps a *stable* width for the whole transition and is simply
+  // revealed from under the shrinking sider, instead of being re-laid out on
+  // every animation frame (see the animation effect below).
+  const [contentInset, setContentInset] = useState<number>(() =>
+    collapsed ? DESKTOP_COLLAPSED_WIDTH : DEFAULT_SIDER_WIDTH
+  );
   const { onClick } = useDebug();
   useDeepLink();
   useNotificationClick();
@@ -280,14 +348,38 @@ const Layout: React.FC<{
   // CollapsibleContent defers its measurements until the width settles.
   // Skipped on mobile (no width transition there) and when `collapsed` did
   // not actually change (e.g. an `isMobile` flip alone).
+  //
+  // The content row takes the *final* geometry right away, before the
+  // transition starts. That costs one re-layout per toggle (the content
+  // column really is a different width in the two states), but it keeps the
+  // transition itself free of any layout work:
+  //
+  //  - expanding: the sider grows from the collapsed width towards the
+  //    content column's left edge, so what it uncovers is empty background,
+  //    never text that would have to be re-flowed;
+  //  - collapsing: the sider shrinks over the content column, which simply
+  //    gets covered.
+  //
+  // Pinning the inset to the collapsed width for the duration (the previous
+  // approach) was cheaper still, but it left the content column at the wrong
+  // width while the transition ran, so the whole column jumped — and had to
+  // re-flow — once the transition ended. That jump is what read as a stutter.
   const prevCollapsedForAnimationRef = useRef(collapsed);
   useLayoutEffect(() => {
     const changed = prevCollapsedForAnimationRef.current !== collapsed;
     prevCollapsedForAnimationRef.current = collapsed;
-    if (!changed || isMobile || typeof document === 'undefined') return undefined;
+    if (!changed || isMobile || typeof document === 'undefined') {
+      setContentInset(collapsed ? DESKTOP_COLLAPSED_WIDTH : DEFAULT_SIDER_WIDTH);
+      return undefined;
+    }
     document.body.classList.add(SIDER_ANIMATING_CLASS);
+    setContentInset(collapsed ? DESKTOP_COLLAPSED_WIDTH : DEFAULT_SIDER_WIDTH);
     const timer = setTimeout(() => {
       document.body.classList.remove(SIDER_ANIMATING_CLASS);
+      // Tell the subscribers that skipped a measurement during the transition
+      // (see useAutoScroll) that they can measure again now. Deferred by one
+      // frame so the layout change above has been committed and painted.
+      requestAnimationFrame(() => notifySiderAnimationEnd());
     }, SIDER_ANIMATION_WINDOW_MS);
     return () => {
       clearTimeout(timer);
@@ -364,6 +456,12 @@ const Layout: React.FC<{
     collapsedRef.current = collapsed;
   }, [collapsed]);
 
+  // 移动端点内容区收起侧栏 —— 用 ref 读 collapsed，保证回调引用稳定，
+  // 这样 memo 化的 LayoutContent 不会因为 collapsed 变化而重渲染整棵路由子树。
+  const handleMobileTap = useCallback(() => {
+    if (isMobile && !collapsedRef.current) setCollapsed(true);
+  }, [isMobile, setCollapsed]);
+
   const beginSiderResizeDrag = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
       if (isMobile) return;
@@ -423,8 +521,38 @@ const Layout: React.FC<{
         pointerEvents: collapsed ? ('none' as const) : ('auto' as const),
       }
     : {
-        position: 'relative' as const,
+        // Desktop: the sider floats above the content row instead of sharing
+        // the flex row with it. That is what lets the content column keep a
+        // stable width while the sider's width transitions — the content is
+        // revealed from under the shrinking sider rather than re-laid out on
+        // every frame.
+        position: 'absolute' as const,
+        left: 0,
+        top: 0,
+        bottom: 0,
+        zIndex: 1,
         overflow: 'visible' as const,
+        // Drive the width ourselves. Arco's `Layout.Sider` keeps the width in
+        // its own state and updates it from an effect, so the new width only
+        // lands one render *after* `collapsed` flips — the transition then
+        // starts a frame late, and the extra render lands in the middle of the
+        // animation. Arco merges our `style` last (`{ width, ...style }`), so
+        // the width below wins.
+        width: collapsed ? DESKTOP_COLLAPSED_WIDTH : siderWidth,
+      };
+
+  // The content row spans the whole shell and is inset on the left by the
+  // sider. On mobile the sider is a fixed overlay, so the row keeps the
+  // in-flow layout it has always had.
+  const mainRowStyle: React.CSSProperties | undefined = isMobile
+    ? undefined
+    : {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        paddingLeft: contentInset,
       };
 
   // Stable `value` shape — without this memo the context value is a fresh
@@ -451,9 +579,9 @@ const Layout: React.FC<{
               <div className='fixed inset-0 bg-black/30 z-90' onClick={() => setCollapsed(true)} aria-hidden='true' />
             )}
 
-            <ArcoLayout className={'size-full layout flex-1 min-h-0'}>
+            <ArcoLayout className={'size-full layout flex-1 min-h-0 relative'}>
               <ArcoLayout.Sider
-                collapsedWidth={isMobile ? 0 : 64}
+                collapsedWidth={isMobile ? 0 : 72}
                 collapsed={collapsed}
                 width={siderWidth}
                 className={classNames('!bg-2 layout-sider', {
@@ -510,7 +638,7 @@ const Layout: React.FC<{
                   {isSettingsRoute ? (
                     <Tooltip content={t('common.back', { defaultValue: 'Back to Chat' })} position='bottom'>
                       <div
-                        className='text-16px text-t-primary collapsed-hidden font-semibold cursor-pointer'
+                        className='collapsed-hidden cursor-pointer'
                         role='button'
                         tabIndex={0}
                         aria-label={t('common.back', { defaultValue: 'Back to Chat' })}
@@ -522,11 +650,13 @@ const Layout: React.FC<{
                           }
                         }}
                       >
-                        BadouWork
+                        <BrandWordmark className='text-[var(--sider-brand-color)]' />
                       </div>
                     </Tooltip>
                   ) : (
-                    <div className='text-16px text-t-primary collapsed-hidden font-semibold'>BadouWork</div>
+                    <div className='collapsed-hidden'>
+                      <BrandWordmark className='text-[var(--sider-brand-color)]' />
+                    </div>
                   )}
                   {isMobile && !collapsed && (
                     <button
@@ -566,27 +696,12 @@ const Layout: React.FC<{
                 explorer clamp (independent of the split → non-circular). The
                 explorer column is a sibling of the route content, above the
                 per-conversation subtree → persists across same-project switches. */}
-              <div ref={mainRowRef} className='flex flex-1 min-h-0 overflow-hidden'>
-                <ArcoLayout.Content
-                  className={'bg-1 layout-content flex flex-col min-h-0 flex-1'}
-                  onClick={() => {
-                    if (isMobile && !collapsed) setCollapsed(true);
-                  }}
-                  style={
-                    isMobile
-                      ? {
-                          width: '100%',
-                        }
-                      : undefined
-                  }
-                >
-                  <Outlet />
-                  <PwaPullToRefresh />
-                  {/*<Suspense fallback={null}>*/}
-                  {/*  <UpdateModal />*/}
-                  {/*</Suspense>*/}
-                  {IS_DISCONTINUED_BUILD && <UpdateMigrationDialog />}
-                </ArcoLayout.Content>
+              <div
+                ref={mainRowRef}
+                className='layout-main-row flex flex-1 min-h-0 overflow-hidden'
+                style={mainRowStyle}
+              >
+                <LayoutContent isMobile={isMobile} onMobileTap={handleMobileTap} />
                 {/* Hoisted preview region (project conversations only). Structurally
                   persistent: lives above the per-conversation subtree, so a
                   same-project conversation switch does not remount it. */}
@@ -617,7 +732,7 @@ const Layout: React.FC<{
                       lineStyle: { width: '2px' },
                     })}
                     <div className='h-full w-full overflow-hidden'>
-                      <PreviewPanel />
+                      <MemoizedPreviewPanel />
                     </div>
                   </div>
                 )}

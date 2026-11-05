@@ -27,6 +27,8 @@ const KbChatPage = React.lazy(() => import('@renderer/pages/kb-chat/KbChatPage')
 const WorkbenchPage = React.lazy(() => import('@renderer/pages/workbench/WorkbenchPage'));
 const TaskCenterPage = React.lazy(() => import('@renderer/pages/task-center'));
 const InAppBrowserDemo = React.lazy(() => import('@renderer/pages/_dev/InAppBrowserDemo'));
+const IconGalleryPage = React.lazy(() => import('@renderer/pages/_dev/IconGalleryPage'));
+const DeveloperSettings = React.lazy(() => import('@renderer/pages/_dev/DeveloperSettings'));
 
 const withRouteFallback = (Component: React.LazyExoticComponent<React.ComponentType>) => (
   <Suspense fallback={<AppLoader />}>
@@ -100,6 +102,8 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
           <Route path='/settings/webui' element={withRouteFallback(WebuiSettings)} />
           <Route path='/settings/pet' element={withRouteFallback(PetSettings)} />
           <Route path='/settings/system' element={withRouteFallback(SystemSettings)} />
+          {/* 开发者设置 —— 只在开发构建里有内容(正式版页面直接渲染空白)。 */}
+          <Route path='/settings/developer' element={withRouteFallback(DeveloperSettings)} />
           <Route path='/settings/about' element={withRouteFallback(SystemSettings)} />
           <Route path='/settings/ext/:tabId' element={withRouteFallback(ExtensionSettingsPage)} />
           <Route path='/settings' element={<Navigate to='/settings/agent' replace />} />
@@ -113,6 +117,7 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
           <Route path='/task-center' element={withRouteFallback(TaskCenterPage)} />
           <Route path='/meeting-recording' element={<MicroAppPlaceholder microAppName='meeting-recording' />} />
           <Route path='/test/browser-demo' element={withRouteFallback(InAppBrowserDemo)} />
+          <Route path='/test/icons' element={withRouteFallback(IconGalleryPage)} />
         </Route>
         <Route path='*' element={<Navigate to={status === 'authenticated' ? '/guid' : '/login'} replace />} />
       </Routes>

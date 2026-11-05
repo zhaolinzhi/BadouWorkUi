@@ -5,6 +5,7 @@
  */
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { AppIcon, AsyncBoundary, EmptyState } from '@aionui/ui';
 import RecordingListItem from './RecordingListItem';
 import type { MeetingRecording } from '@common/types/meetingRecording';
 import styles from './RecordingList.module.css';
@@ -18,16 +19,25 @@ interface RecordingListProps {
 const RecordingList: React.FC<RecordingListProps> = ({ recordings, onDelete, loading }) => {
   const { t } = useTranslation();
 
-  if (!loading && recordings.length === 0) {
-    return <div className={styles.empty}>{t('meeting-recording.empty')}</div>;
-  }
-
   return (
-    <div className={styles.list}>
-      {recordings.map((recording) => (
-        <RecordingListItem key={recording.id} recording={recording} onDelete={onDelete} />
-      ))}
-    </div>
+    <AsyncBoundary
+      loading={loading}
+      isEmpty={recordings.length === 0}
+      emptyContent={
+        <div className={styles.empty}>
+          <EmptyState
+            icon={<AppIcon name='recording' size={40} />}
+            title={t('meeting-recording.empty', { defaultValue: 'No recordings yet' })}
+          />
+        </div>
+      }
+    >
+      <div className={styles.list}>
+        {recordings.map((recording) => (
+          <RecordingListItem key={recording.id} recording={recording} onDelete={onDelete} />
+        ))}
+      </div>
+    </AsyncBoundary>
   );
 };
 

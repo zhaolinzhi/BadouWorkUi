@@ -6,8 +6,8 @@
 
 import type { KnowledgeBaseItem } from '../types';
 import KnowledgeBaseAvatar from './KnowledgeBaseAvatar';
-import { Button, Dropdown, Menu } from '@arco-design/web-react';
-import { MoreOne } from '@icon-park/react';
+import { MoreMenu } from '@aionui/ui';
+import { Button } from '@arco-design/web-react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -53,30 +53,23 @@ const KnowledgeBaseRow: React.FC<KnowledgeBaseRowProps> = ({
   const { t } = useTranslation();
   const canDelete = !readonly && !hideDelete && item.source !== 'builtin';
 
-  const actionMenu = (
-    <Menu
-      onClickMenuItem={(key) => {
-        // The "edit" menu item routes to onOpenEdit (when provided) or
-        // falls back to onOpen. The row click separately calls onOpen, so
-        // the two entry points can land on different destinations — e.g.
-        // personal KBs use onOpen (view URL) for the row and onOpenEdit
-        // (edit URL) for the menu.
-        if (key === 'edit') (onOpenEdit ?? onOpen)(item);
-        if (key === 'delete') onDelete(item);
-      }}
-    >
-      <Menu.Item key='edit'>
-        <span data-testid={`kb-menu-edit-${item.id}`}>{t('common.edit', { defaultValue: 'Edit' })}</span>
-      </Menu.Item>
-      {canDelete ? (
-        <Menu.Item key='delete'>
-          <span data-testid={`kb-menu-delete-${item.id}`} className='text-[rgb(var(--danger-6))]'>
-            {t('common.delete', { defaultValue: 'Delete' })}
-          </span>
-        </Menu.Item>
-      ) : null}
-    </Menu>
-  );
+  const actionMenu = [
+    {
+      key: 'edit',
+      label: t('common.edit', { defaultValue: 'Edit' }),
+      testId: `kb-menu-edit-${item.id}`,
+    },
+    ...(canDelete
+      ? [
+          {
+            key: 'delete',
+            label: t('common.delete', { defaultValue: 'Delete' }),
+            danger: true,
+            testId: `kb-menu-delete-${item.id}`,
+          },
+        ]
+      : []),
+  ];
 
   return (
     <div
@@ -115,16 +108,21 @@ const KnowledgeBaseRow: React.FC<KnowledgeBaseRowProps> = ({
           {t('settings.knowledgeBaseGoChat', { defaultValue: 'Chat' })}
         </Button>
         {readonly || noMenu ? null : (
-          <Dropdown droplist={actionMenu} trigger='click' position='br' getPopupContainer={() => document.body}>
-            <Button
-              type='text'
-              size='small'
-              icon={<MoreOne theme='outline' size='16' fill='currentColor' />}
-              aria-label={t('common.more', { defaultValue: 'More' })}
-              className='!flex !h-30px !w-30px !items-center !justify-center !rounded-8px !p-0 !text-t-tertiary hover:!bg-fill-2 hover:!text-t-primary'
-              data-testid={`btn-kb-more-${item.id}`}
-            />
-          </Dropdown>
+          <MoreMenu
+            items={actionMenu}
+            label={t('common.more', { defaultValue: 'More' })}
+            onSelect={(key) => {
+              // The "edit" menu item routes to onOpenEdit (when provided) or
+              // falls back to onOpen. The row click separately calls onOpen, so
+              // the two entry points can land on different destinations — e.g.
+              // personal KBs use onOpen (view URL) for the row and onOpenEdit
+              // (edit URL) for the menu.
+              if (key === 'edit') (onOpenEdit ?? onOpen)(item);
+              if (key === 'delete') onDelete(item);
+            }}
+            className='!h-30px !w-30px'
+            data-testid={`btn-kb-more-${item.id}`}
+          />
         )}
       </div>
     </div>

@@ -23,7 +23,7 @@ const RecordingListPage: React.FC = () => {
       setRecordings(list);
     } catch (error) {
       console.error('Failed to load recordings', error);
-      Message.error(t('meeting-recording.errors.unknown' as never));
+      Message.error(t('meeting-recording.errors.unknown', { defaultValue: 'Unknown error' }));
     } finally {
       setLoading(false);
     }
@@ -113,7 +113,7 @@ const RecordingListPage: React.FC = () => {
       } catch (error) {
         console.error('Delete failed', error);
         setRecordings(previous);
-        Message.error(t('meeting-recording.errors.deleteFailed' as never));
+        Message.error(t('meeting-recording.errors.deleteFailed', { defaultValue: 'Failed to delete recording' }));
       }
     },
     [recordings, t]
@@ -121,7 +121,7 @@ const RecordingListPage: React.FC = () => {
 
   return (
     <div className={styles.page}>
-      <h1 className={styles.title}>{t('meeting-recording.title')}</h1>
+      <h1 className={styles.title}>{t('meeting-recording.title', { defaultValue: 'Meeting Recording' })}</h1>
       <RecorderPanel onRecorded={handleRecorded} />
       <RecordingList recordings={recordings} onDelete={handleDelete} loading={loading} />
     </div>

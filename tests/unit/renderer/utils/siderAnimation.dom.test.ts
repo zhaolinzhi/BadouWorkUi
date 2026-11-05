@@ -4,9 +4,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { isSiderAnimating, SIDER_ANIMATING_CLASS, SIDER_ANIMATION_WINDOW_MS } from '@/renderer/utils/ui/siderAnimation';
+import {
+  isSiderAnimating,
+  notifySiderAnimationEnd,
+  onSiderAnimationEnd,
+  SIDER_ANIMATING_CLASS,
+  SIDER_ANIMATION_WINDOW_MS,
+} from '@/renderer/utils/ui/siderAnimation';
 
 describe('siderAnimation', () => {
   afterEach(() => {
@@ -27,5 +33,22 @@ describe('siderAnimation', () => {
 
   it('window covers the 0.2s Arco width transition', () => {
     expect(SIDER_ANIMATION_WINDOW_MS).toBeGreaterThanOrEqual(200);
+  });
+
+  it('keeps the subscription alive across transitions', () => {
+    // A subscriber usually registers long before the next transition starts
+    // (e.g. when the message list mounts). A one-shot subscription would be
+    // gone by the time the event fires and the deferred measurement lost.
+    const listener = vi.fn();
+    const unsubscribe = onSiderAnimationEnd(listener);
+
+    notifySiderAnimationEnd();
+    notifySiderAnimationEnd();
+
+    expect(listener).toHaveBeenCalledTimes(2);
+
+    unsubscribe();
+    notifySiderAnimationEnd();
+    expect(listener).toHaveBeenCalledTimes(2);
   });
 });

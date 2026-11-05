@@ -108,7 +108,7 @@ function New-BuildCommandFile([string]$WorktreePath, [string]$Version, [string]$
     '$env:ELECTRON_BUILDER_COMPRESSION_LEVEL = ''1''',
     '$env:AIONUI_BACKEND_LOCAL_BINARY = ''' + ($LocalAioncoreBinary -replace "'", "''") + '''',
     '$env:AIONUI_BACKEND_LOCAL_BUNDLE_DIR = ''' + ($LocalAioncoreBundleDir -replace "'", "''") + '''',
-    '$env:ELECTRON_CACHE = Join-Path $env:LOCALAPPDATA ''electron\Cache''',
+    '$env:ELECTRON_BUILDER_CACHE = Join-Path $env:LOCALAPPDATA ''electron\Cache''',
     '& bun run build-win:x64:fast',
     'exit $LASTEXITCODE'
   )

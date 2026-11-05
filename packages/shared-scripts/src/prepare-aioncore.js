@@ -3,9 +3,11 @@
  *
  * Resolution order:
  *  1. GitHub Actions artifact download when AIONUI_BACKEND_RUN_ID is set
- *  2. GitHub release download (requires version or defaults to "latest")
- *  3. Complete local bundle from AIONUI_BACKEND_LOCAL_BUNDLE_DIR
- *  4. Local binary fallback from AIONUI_BACKEND_LOCAL_BINARY
+ *  2. Complete local bundle from AIONUI_BACKEND_LOCAL_BUNDLE_DIR
+ *  3. Offline bundle already on this machine (repo cache or installed app),
+ *     used only when its version matches the requested one
+ *  4. GitHub release download (requires version or defaults to "latest")
+ *  5. Local binary fallback from AIONUI_BACKEND_LOCAL_BINARY
  *
  * Output: {projectRoot}/resources/bundled-aioncore/{platform}-{arch}/
  *   - aioncore[.exe]
@@ -20,6 +22,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { verifyBundledAioncoreResources } = require('./verify-bundled-aioncore-resources');
+const { resolveOfflineAioncoreBundle } = require('./resolve-offline-aioncore-bundle');
 
 const GITHUB_OWNER = 'zhaolinzhi';
 //const GITHUB_REPO = 'aioncore';
@@ -439,10 +442,11 @@ function downloadAndExtract(platform, arch, tag) {
  * @param {string} options.platform - Target platform (process.platform)
  * @param {string} options.arch - Target architecture (process.arch)
  * @param {string} options.version - Backend version (default: 'latest')
+ * @param {string[]} [options.appRoots] - 已装应用的安装根目录,默认按平台取真实路径;传 `[]` 可关掉自动探测(测试用)。
  * @returns {{ prepared: true; dir: string; sourceType: string }}
  */
 function prepareAioncore(options) {
-  const { projectRoot, platform, arch, version = 'latest' } = options;
+  const { projectRoot, platform, arch, version = 'latest', appRoots } = options;
   const runtimeKey = `${platform}-${arch}`;
   const actionsRunId = (process.env.AIONUI_BACKEND_RUN_ID || '').trim();
 
@@ -509,6 +513,60 @@ function prepareAioncore(options) {
     console.warn(`  Local aioncore bundle is incomplete or missing: ${resolvedLocalBundleDir}`);
   }
 
+  /**
+   * 尝试用本机上现成的**完整**整包(仓库缓存 / 已装应用自带)代替下载。
+   *
+   * 版本必须与请求版本一致才会采用 —— 把旧版后端打进新包比构建失败更糟。
+   * 命中后整包拷入并写 manifest,`prepareManagedResources` 一并跳过 ——
+   * 它会清空 managed-resources/ 再联网重拉 ~100MB 的 Node 运行时。
+   *
+   * @returns {boolean} 是否用上了离线整包。
+   */
+  const useOfflineBundle = () => {
+    const offlineBundle = resolveOfflineAioncoreBundle({
+      projectRoot,
+      platform,
+      arch,
+      version: tag || version,
+      binaryName,
+      appRoots,
+    });
+    if (!offlineBundle) return false;
+
+    // 先验源整包,不验就拷 —— 免得把一个坏整包搬进来,又用它盖掉本来能用的东西。
+    // 整包目录形如 `<resources>/bundled-aioncore/<runtimeKey>`,所以往上两级就是 resources 根。
+    const sourceResourcesRoot = path.dirname(path.dirname(offlineBundle.dir));
+    const sourceCheck = verifyBundledAioncoreResources({
+      resourcesDir: sourceResourcesRoot,
+      electronPlatformName: platform,
+      targetArch: arch,
+    });
+    if (sourceCheck.missing.length > 0 || sourceCheck.failures.length > 0) {
+      const summary =
+        sourceCheck.missing.length > 0 ? sourceCheck.missing.join(', ') : JSON.stringify(sourceCheck.failures);
+      console.warn(`  Offline aioncore bundle failed verification, falling back to download: ${summary}`);
+      return false;
+    }
+
+    // 仓库缓存就是 targetDir 本身,自拷贝要跳过。
+    if (path.resolve(offlineBundle.dir) !== path.resolve(targetDir)) {
+      copyDirectorySafe(offlineBundle.dir, targetDir);
+    }
+    ensureExecutableMode(targetBinaryPath);
+    writeJson(path.join(targetDir, 'manifest.json'), {
+      platform,
+      arch,
+      version: tag || version,
+      generatedAt: new Date().toISOString(),
+      sourceType: 'offline-bundle',
+      source: { path: offlineBundle.dir, kind: offlineBundle.kind },
+      files: [binaryName, 'managed-resources/'],
+    });
+    verifyPreparedAioncoreBundle(projectRoot, platform, arch);
+    console.log(`  Using offline aioncore bundle: ${offlineBundle.dir} [${offlineBundle.kind}]`);
+    return true;
+  };
+
   let sourcePath = null;
   let sourceType = 'none';
   let sourceDetail = {};
@@ -530,7 +588,13 @@ function prepareAioncore(options) {
       console.log(`  Downloaded from GitHub Actions artifact`);
     }
 
-    // 2. Download from GitHub releases.
+    // 2. Use a complete bundle already on this machine (repo cache or the
+    //    installed app) when its version matches — keeps the build offline.
+    if (!sourcePath && useOfflineBundle()) {
+      return { prepared: true, dir: targetDir, sourceType: 'offline-bundle' };
+    }
+
+    // 3. Download from GitHub releases.
     if (!sourcePath && tag) {
       try {
         const result = downloadAndExtract(platform, arch, tag);
@@ -544,7 +608,7 @@ function prepareAioncore(options) {
       }
     }
 
-    // 3. Use an explicitly supplied local cache when network download is unavailable.
+    // 4. Use an explicitly supplied local cache when network download is unavailable.
     if (!sourcePath) {
       const localBinary = (process.env.AIONUI_BACKEND_LOCAL_BINARY || '').trim();
       if (localBinary) {
@@ -560,6 +624,11 @@ function prepareAioncore(options) {
       }
     }
   } else {
+    // 已缓存:如果本机已经有现成的完整整包(仓库缓存自身,或已装应用自带的),
+    // 直接复用 —— 省掉 prepareManagedResources 那次联网重下 ~100MB。
+    if (useOfflineBundle()) {
+      return { prepared: true, dir: targetDir, sourceType: 'offline-bundle' };
+    }
     // 复用已缓存的二进制
     sourcePath = targetBinaryPath;
     sourceType = 'cache';

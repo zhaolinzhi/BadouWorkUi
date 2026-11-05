@@ -6,6 +6,7 @@
 
 import { resolveAgentLogo, useAgentLogos } from '@/renderer/utils/model/agentLogo';
 import { iconColors } from '@/renderer/styles/colors';
+import ThumbnailImage from '@/renderer/components/media/ThumbnailImage';
 import { Robot } from '@icon-park/react';
 import React, { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -39,12 +40,19 @@ export const AgentLogoIcon: React.FC<
         return <span className='text-14px leading-none'>{agentLogo}</span>;
       }
       return (
-        <img src={agentLogo} alt={`${agent_name || 'agent'} logo`} className='block w-16px h-16px object-contain' />
+        <ThumbnailImage
+          src={agentLogo}
+          size={16}
+          alt={`${agent_name || 'agent'} logo`}
+          className='block w-16px h-16px object-contain'
+        />
       );
     }
     const logo = resolveAgentLogo(logos, { backend });
     if (logo) {
-      return <img src={logo} alt={`${backend} logo`} className='block w-16px h-16px object-contain' />;
+      return (
+        <ThumbnailImage src={logo} size={16} alt={`${backend} logo`} className='block w-16px h-16px object-contain' />
+      );
     }
     return <Robot theme='outline' size={16} fill={iconColors.primary} />;
   })();

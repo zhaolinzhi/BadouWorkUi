@@ -36,6 +36,25 @@
   overflow-x: hidden;
   box-shadow: none !important;
   border-right: 1px solid var(--border-base);
+
+  /* Promote the sider to its own compositor layer.
+   *
+   * The sider's width is animated (Arco transitions `width`). Without its own
+   * layer the whole window shares one layer, so every animation frame has to
+   * re-rasterize everything the sider uncovers — the entire page, every frame.
+   * Measured on the reference machine that was ~950ms of raster work per
+   * collapse/expand, with single frames as long as 436ms, which is what made
+   * the animation look like a stutter.
+   *
+   * With its own layer only the sider's tiles are re-rastered (~150ms per
+   * toggle, longest frame 56ms) and the content underneath is merely
+   * re-composited.
+   *
+   * Note: like `transform`, `will-change: transform` makes the sider a
+   * containing block for `position: fixed` descendants. The only fixed
+   * element inside the sider is react-dnd's 1x1 a11y live region, so nothing
+   * is affected by it. */
+  will-change: transform;
 }
 
 .app-img {
@@ -69,7 +88,7 @@
   /* No overflow clip: the children stack intentionally hosts tooltip popups
      and the conversation scroll list. Horizontal scrollbars are already hidden
      in the inner .scrollArea, so removing overflow-x: hidden does not surface
-     a sidebar scrollbar in the 48px collapsed rail. */
+     a sidebar scrollbar in the 56px collapsed rail. */
 }
 
 /* Disable transition during drag for smooth dragging */
@@ -171,7 +190,7 @@ body.sider-animating .settings-sider__item {
   padding-right: 0;
   gap: 0;
 }
-/* Collapsed-rail hover popup (desktop, 64px sider). Pure CSS — no React
+/* Collapsed-rail hover popup (desktop, 72px sider). Pure CSS — no React
    state, so the row can render identically in both states and React.memo
    can skip per-row work on sider toggle. The `data-name` attribute is set
    on the row by ConversationRow. */
@@ -213,7 +232,7 @@ body.sider-animating .settings-sider__item {
 .arco-message-wrapper {
   left: 0 !important;
   width: 100% !important;
-  padding-left: 266px;
+  padding-left: 254px;
   box-sizing: border-box;
   z-index: 10001 !important;
 }

@@ -70,6 +70,18 @@
   --fill-white-to-black: #ffffff; /* 白到黑填充色 */
   --border-special: var(--bg-3); /* 特殊边框色 */
   --color-guid-agent-bar: #eaecf7; /* 首页 Agent 选择条背景 - 亮色 */
+
+  /* 侧栏「新会话」主入口 —— 设计稿的浅蓝描边磁贴 */
+  --sider-nav-accent-border: #b4d7ff; /* 主入口描边色 */
+  --sider-nav-accent-bg: #ffffff; /* 主入口磁贴底色 */
+
+  /* 侧栏底部账号区 —— 设计稿的 `.account-anchor` / `.account-button` */
+  --sider-account-border: #e6ebf3; /* 账号区分隔线 */
+  --sider-account-bg: #f6f7f8; /* 账号按钮底色 */
+  --sider-account-avatar-bg: #2d6afb; /* 用户头像底色(设计稿占位:首字母圆底) */
+
+  /* 侧栏品牌文字标志 —— 设计稿的深海军蓝 */
+  --sider-brand-color: #083575;
 }
 
 /* Dark Mode */
@@ -141,4 +153,16 @@
   --fill-0: rgba(255, 255, 255, 0.08); /* 填充色 0 - 暗色模式下为半透明白色 */
   --fill-white-to-black: #000000; /* 白到黑填充色（暗色模式下为黑色） */
   --border-special: #60677e; /* 特殊边框色 */
+
+  /* 侧栏「新会话」主入口 —— 设计稿的浅蓝描边磁贴（暗色下描边不变，底色加深） */
+  --sider-nav-accent-border: #b4d7ff;
+  --sider-nav-accent-bg: #3b4659;
+
+  /* 侧栏底部账号区（暗色下分隔线加深、按钮底色用设计稿的深灰） */
+  --sider-account-border: #3e4754;
+  --sider-account-bg: #303740;
+  --sider-account-avatar-bg: #2d6afb; /* 头像底色不随主题变 —— 设计稿给的品牌蓝 */
+
+  /* 品牌字标（暗色下用提亮后的品牌蓝，否则深海军蓝在深底上几乎看不见） */
+  --sider-brand-color: #7ea6e0;
 }

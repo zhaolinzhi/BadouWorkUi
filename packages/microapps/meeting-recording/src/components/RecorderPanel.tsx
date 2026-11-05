@@ -5,8 +5,8 @@
  */
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { AppIcon } from '@aionui/ui';
 import { Button, Spin } from '@arco-design/web-react';
-import { Microphone, Record } from '@icon-park/react';
 import { useMeetingRecorder, type MeetingRecorderErrorCode } from '../hooks/useMeetingRecorder';
 import styles from './RecorderPanel.module.css';
 
@@ -33,6 +33,21 @@ const errorKey = (code: MeetingRecorderErrorCode): string => {
     default:
       return 'unknown';
   }
+};
+
+/**
+ * 错误码 → 英文兜底文案。
+ *
+ * 与 shell 的 `en-US/meeting-recording.json` 一致。standalone(没有 shell 的
+ * i18n 实例)时 react-i18next 走 not-ready 分支,只认 `defaultValue` ——
+ * 没有兜底的话页面上就是原始 key。
+ */
+const ERROR_TEXT: Record<MeetingRecorderErrorCode, string> = {
+  'permission-denied': 'Microphone access denied',
+  'no-device': 'No microphone detected',
+  'recording-unsupported': 'Recording is not supported in this environment',
+  'save-failed': 'Failed to save recording',
+  unknown: 'Unknown error',
 };
 
 interface RecorderPanelProps {
@@ -65,15 +80,19 @@ const RecorderPanel: React.FC<RecorderPanelProps> = ({ onRecorded }) => {
         type={isRecording ? 'outline' : 'primary'}
         onClick={handleClick}
         disabled={isFinalizing}
-        aria-label={isRecording ? t('meeting-recording.stopRecording') : t('meeting-recording.startRecording')}
+        aria-label={
+          isRecording
+            ? t('meeting-recording.stopRecording', { defaultValue: 'Stop' })
+            : t('meeting-recording.startRecording', { defaultValue: 'Start recording' })
+        }
       >
         <span className={isRecording ? styles.pulse : undefined}>
           {isFinalizing ? (
             <Spin />
           ) : isRecording ? (
-            <Record theme='outline' size='22' fill='currentColor' />
+            <AppIcon name='record' size={22} />
           ) : (
-            <Microphone theme='outline' size='22' fill='currentColor' />
+            <AppIcon name='microphone' size={22} />
           )}
         </span>
       </Button>
@@ -84,7 +103,7 @@ const RecorderPanel: React.FC<RecorderPanelProps> = ({ onRecorded }) => {
       ) : null}
       {errorCode ? (
         <div className={styles.error} role='alert'>
-          {t(`meeting-recording.errors.${errorKey(errorCode)}` as never)}
+          {t(`meeting-recording.errors.${errorKey(errorCode)}` as never, { defaultValue: ERROR_TEXT[errorCode] })}
         </div>
       ) : null}
     </div>

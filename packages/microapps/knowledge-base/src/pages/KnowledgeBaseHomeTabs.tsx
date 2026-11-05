@@ -8,8 +8,8 @@ import type { KnowledgeBaseItem, KnowledgeBaseTab } from '../types';
 import PersonalKnowledgeBaseList from '../components/PersonalKnowledgeBaseList';
 import SharedKnowledgeBaseGrid from '../components/SharedKnowledgeBaseGrid';
 import { useAppRuntime } from '../AppContext';
+import { AppIcon } from '@aionui/ui';
 import { Button } from '@arco-design/web-react';
-import { Plus } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -116,7 +116,7 @@ const KnowledgeBaseHomeTabs: React.FC<KnowledgeBaseHomeTabsProps> = ({
             <Button
               type='primary'
               size='default'
-              icon={<Plus theme='outline' size={14} fill='currentColor' />}
+              icon={<AppIcon name='plus' size={14} />}
               className='!shrink-0 !rounded-8px'
               onClick={onCreate}
               data-testid='btn-create-knowledge-base'

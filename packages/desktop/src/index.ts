@@ -12,6 +12,11 @@ import { captureBackendStartupFailure, initSentry, scheduleStartupLogReport, set
 
 initSentry();
 
+// Privileged-scheme declaration for app:// — must run before app.ready AND after
+// initSentry(), which registers sentry-ipc and would otherwise overwrite the fetch
+// privilege. See process/resources/microApps/scheme.ts.
+registerMicroAppSchemePrivileges();
+
 import './process/utils/configureConsoleLog';
 import { app, BrowserWindow, ipcMain, nativeImage, powerMonitor } from 'electron';
 import fixPath from 'fix-path';
@@ -25,6 +30,7 @@ import { assertStartupArchitectureCompatible } from './process/startup/architect
 import { classifyBackendStartupFailure } from './process/startup/backendStartupFailure';
 import { installQuitCleanup } from './process/startup/quitCleanup';
 import { shouldRegisterBackendStartup } from './process/startup/singleInstanceGating';
+import { installReactDevToolsInBackground } from './process/startup/devtoolsInstaller';
 import { ProcessConfig } from './process/utils/initStorage';
 import type { BackendStartupFailureInfo } from './common/types/platform/electron';
 import { registerWindowMaximizeListeners } from '@process/bridge';
@@ -39,6 +45,7 @@ import { startWebHost } from '@aionui/web-host';
 import { initializeZoomFactor, setupZoomForWindow } from './process/utils/zoom';
 import { hydrateWindowsProcessPath } from './process/startup/windowsPath';
 import { registerWindowsAppUserModelId } from './process/startup/windowsAppUserModelId';
+import { registerMicroAppAssetProtocol, registerMicroAppSchemePrivileges } from '@process/resources/microApps';
 import {
   MIN_WINDOW_WIDTH,
   MIN_WINDOW_HEIGHT,
@@ -635,21 +642,24 @@ const handleAppReady = async (): Promise<void> => {
   const mark = (label: string) => console.log(`[AionUi:ready] ${label} +${Math.round(performance.now() - t0)}ms`);
   mark('start');
 
-  if (!app.isPackaged) {
-    try {
-      const { default: installExtension, REACT_DEVELOPER_TOOLS } = await import('electron-devtools-installer');
-      await installExtension(REACT_DEVELOPER_TOOLS);
-      console.log('[DevTools] React Developer Tools installed');
-    } catch (e) {
-      console.warn('[DevTools] Failed to install React DevTools:', e);
-    }
-  }
+  // Serve bundled micro apps over app://. Cheap and idempotent, and it must happen before
+  // the window loads so the renderer can fetch app://microapps/<name>/index.html on the
+  // first navigation. No-op in dev: bun run dev uses localhost dev-server entries instead.
+  registerMicroAppAssetProtocol();
 
   // CLI mode: print app version and exit immediately (used by CI smoke tests)
   if (isVersionMode) {
     console.log(app.getVersion());
     app.exit(0);
     return;
+  }
+
+  // React DevTools is a dev-only convenience. Installing it must never gate
+  // startup: the CRX download targets clients2.google.com, which blocks until
+  // the socket timeout on restricted networks and froze `bun run dev` for
+  // minutes with no window on screen. Run it detached instead of awaiting it.
+  if (!app.isPackaged) {
+    installReactDevToolsInBackground();
   }
 
   // Set dock icon in development mode on macOS
