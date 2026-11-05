@@ -442,6 +442,29 @@ function ensureWs(): void {
   });
 }
 
+/**
+ * Drop the current WebSocket so the next `ensureWs()` dials a new port.
+ *
+ * Used after the backend is restarted for an account switch: the socket
+ * points at the old port and would keep failing until the server closed it.
+ */
+export function resetWsForBackendRestart(): void {
+  if (wsReconnectTimer) {
+    clearTimeout(wsReconnectTimer);
+    wsReconnectTimer = null;
+  }
+  const current = ws;
+  ws = null;
+  wsHasOpened = false;
+  if (current && current.readyState <= WebSocket.OPEN) {
+    try {
+      current.close();
+    } catch (e) {
+      console.warn('[ensureWs] failed to close the previous socket:', e);
+    }
+  }
+}
+
 function scheduleWsReconnect(): void {
   if (wsReconnectTimer) return;
   const delay = Math.min(1000 * Math.pow(2, wsReconnectAttempt), 30000);

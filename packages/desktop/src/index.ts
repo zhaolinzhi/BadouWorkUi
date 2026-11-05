@@ -21,6 +21,7 @@ import { initMainAdapterWithWindow } from './common/adapter/main';
 import { ipcBridge } from './common';
 import { initializeProcess } from './process';
 import { startBackendOrExit } from './process/startup/backendStartup';
+import { registerBackendControl } from './process/account/backendControl';
 import { assertStartupArchitectureCompatible } from './process/startup/architectureCompatibility';
 import { classifyBackendStartupFailure } from './process/startup/backendStartupFailure';
 import { installQuitCleanup } from './process/startup/quitCleanup';
@@ -203,7 +204,62 @@ const backendManager = new BackendLifecycleManager(
   },
   resolveBinaryPath
 );
+/** The data directory the running backend was started against. */
+let currentBackendDataDir = '';
 let disposeCronResumeListener: (() => void) | null = null;
+
+/**
+ * Let the account bridge stop and start the backend against a different data
+ * directory.
+ *
+ * Registered here because the lifecycle manager is created in this module and
+ * the bridge registry is imported by it — importing the manager back into the
+ * bridge would create a cycle.
+ */
+registerBackendControl({
+  getCurrentDataDir: () => currentBackendDataDir,
+  start: async (dataDir: string) => {
+    const { getSystemDir } = await import('./process/utils/initStorage');
+    const sysDir = getSystemDir();
+    const port = await backendManager.start(
+      dataDir,
+      sysDir.logDir,
+      {
+        cacheDir: sysDir.cacheDir,
+        workDir: sysDir.workDir,
+        logDir: sysDir.logDir,
+      },
+      {
+        allowPendingOnHealthTimeout: !(isWebUIMode || isResetPasswordMode),
+        onHealthTimeout: async (error) => {
+          markBackendStartupFailed(error);
+          if (backendStartupFailureInfo?.reason === 'backend_startup_pending_slow') {
+            return;
+          }
+          await captureBackendStartupFailure(error);
+        },
+        onPendingExit: async (error) => {
+          markBackendStartupFailed(error);
+          await captureBackendStartupFailure(error);
+        },
+        onReady: (backendPort) => {
+          markBackendReady(backendPort, 'backendManager.accountSwitch');
+        },
+      }
+    );
+    currentBackendDataDir = dataDir;
+    return port;
+  },
+  stop: async () => {
+    try {
+      await backendManager.stop();
+    } catch (error) {
+      console.warn('[Account] Failed to stop the backend:', error);
+    } finally {
+      currentBackendDataDir = '';
+    }
+  },
+});
 
 // Flag tracking whether the backend subprocess started successfully. Read by
 // the deferred runBackendMigrations trigger in createWindow().
@@ -670,6 +726,19 @@ const handleAppReady = async (): Promise<void> => {
 
   setSentryDeviceId();
 
+  // Resolve the account scope BEFORE initStorage() and before the backend
+  // starts: both resolve their directories from the active account scope.
+  try {
+    const { resolveStartupAccountScope } = await import('./process/account/startupScope');
+    const scope = await resolveStartupAccountScope();
+    if (scope) {
+      console.log('[Account] Starting with account %s (%s)', scope.username, scope.key);
+    }
+  } catch (error) {
+    console.error('[Account] Failed to resolve the startup account scope:', error);
+  }
+  mark('resolveStartupAccountScope');
+
   try {
     await initializeProcess();
     rendererInitialLanguage = ProcessConfig.getSync('language') ?? null;
@@ -767,8 +836,10 @@ const handleAppReady = async (): Promise<void> => {
         const { getDataPath } = await import('./process/utils/utils');
         const { getSystemDir } = await import('./process/utils/initStorage');
         const sysDir = getSystemDir();
+        const dataDir = getDataPath();
+        currentBackendDataDir = dataDir;
         return backendManager.start(
-          getDataPath(),
+          dataDir,
           sysDir.logDir,
           {
             cacheDir: sysDir.cacheDir,
