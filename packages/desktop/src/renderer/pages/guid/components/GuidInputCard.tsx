@@ -40,11 +40,7 @@ type GuidInputCardProps = {
   placeholder: string;
 
   // Styling
-  isInputActive: boolean;
   isFileDragging: boolean;
-  activeBorderColor: string;
-  inactiveBorderColor: string;
-  activeShadow: string;
   dragHandlers: React.HTMLAttributes<HTMLDivElement>;
 
   // Files
@@ -75,11 +71,7 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
   onFocus,
   onBlur,
   placeholder,
-  isInputActive,
   isFileDragging,
-  activeBorderColor,
-  inactiveBorderColor,
-  activeShadow,
   dragHandlers,
   files,
   onRemoveFile,
@@ -95,7 +87,11 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
   const isMobile = layout?.isMobile ?? false;
   const { compositionHandlers, isComposing } = useCompositionInput();
   const inputRef = useRef<RefTextAreaType | null>(null);
-  const textareaAutoSize = isMobile ? { minRows: 2, maxRows: 8 } : { minRows: 2, maxRows: 20 };
+  // Desktop: no `minRows` on purpose — Arco writes an inline `min-height`
+  // when `minRows` is set, which would beat the CSS `min-height: 68px`
+  // (the design's textarea height). Leaving it out lets the stylesheet own
+  // the floor while autoSize still grows the field with the content.
+  const textareaAutoSize = isMobile ? { minRows: 2, maxRows: 8 } : { maxRows: 20 };
 
   // KB-only @ mention (Guid does not support file @-mentions).
   const [caretPosition, setCaretPosition] = useState(0);
@@ -176,18 +172,14 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
     onKeyDown(e);
   };
 
-  const borderColor = isFileDragging
-    ? 'rgb(var(--primary-3))'
-    : isInputActive
-      ? activeBorderColor
-      : inactiveBorderColor;
-
   return (
     <div
-      className={`${styles.guidInputCardWrap} guid-input-card-shell relative rd-24px flex flex-col ${slashCommandMenu || isKbMenuOpen ? 'overflow-visible' : 'overflow-hidden'} transition-all duration-200 ${isFileDragging ? 'b b-solid border-dashed guid-input-card-shell--dragging' : ''}`}
+      // No `overflow-hidden` here: the wrap is only a positioning context now
+      // (the white card carries its own radius), and clipping it would cut off
+      // the design's soft shadows around the card and the project tray.
+      className={`${styles.guidInputCardWrap} guid-input-card-shell relative flex flex-col ${isFileDragging ? 'b b-solid border-dashed guid-input-card-shell--dragging' : ''}`}
       style={{
         zIndex: 1,
-        transition: 'box-shadow 0.25s ease',
         width: isMobile ? 'calc(100% + 28px)' : undefined,
         marginLeft: isMobile ? -14 : undefined,
         marginRight: isMobile ? -14 : undefined,
@@ -197,20 +189,16 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
               borderColor: 'rgb(var(--primary-3))',
               borderWidth: '1px',
             }
-          : {
-              boxShadow: isInputActive ? activeShadow : 'none',
-            }),
+          : {}),
       }}
       {...dragHandlers}
     >
+      {/* 项目托盘底色（设计稿 `.project-tray`）—— 白卡压在上面，底部圆角处露出这一层 */}
+      <div className={styles.projectTrayBg} aria-hidden='true' />
       {/* inner white card — narrower than outer wrap */}
       <div
-        className={`${styles.guidInputInner} ${isKbMenuOpen ? 'overflow-visible' : ''} relative p-12px flex flex-col bg-dialog-fill-0`}
-        style={{
-          transition: 'box-shadow 0.25s ease, border-color 0.25s ease',
-          borderColor: isFileDragging ? 'rgb(var(--primary-3))' : borderColor,
-          boxShadow: isInputActive && !isFileDragging ? activeShadow : 'none',
-        }}
+        className={`${styles.guidInputInner} ${isKbMenuOpen ? 'overflow-visible' : ''} relative p-11px flex flex-col`}
+        style={isFileDragging ? { borderColor: 'rgb(var(--primary-3))' } : undefined}
       >
         <Input.TextArea
           ref={inputRef}
@@ -222,7 +210,7 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
           // setup) makes the textarea text fully transparent even when
           // there is no overlay to take over — plain text typed without an
           // @ then disappears visually.
-          className={`${allAtFileQueries.length > 0 ? 'sendbox-highlight-textarea' : ''} lh-[20px] text-14px focus:b-none rounded-xl !bg-transparent !b-none !resize-none !py-0 !pr-0 !pl-7px ${styles.lightPlaceholder}`}
+          className={`${allAtFileQueries.length > 0 ? 'sendbox-highlight-textarea' : ''} ${styles.guidInputTextarea} lh-[22px] text-16px focus:b-none rounded-xl !bg-transparent !b-none !resize-none !px-4px !py-4px ${styles.lightPlaceholder}`}
           value={input}
           onChange={onInputChange}
           onSelect={(event) => {
@@ -248,19 +236,19 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
               wordBreak: 'break-word',
               color: 'transparent',
               // The overlay is positioned against the card's padding box
-              // (the card has `p-12px`), while the textarea sits in the
+              // (the card has `p-11px`), while the textarea sits in the
               // content box. Its padding must therefore reproduce the
               // textarea's own text insets exactly:
-              //   left: 12 (card padding) + 7 (textarea `pl-7px`) = 19px
-              //   top:  12 (card padding) + 0 (textarea `!py-0`)   = 12px
+              //   left: 11 (card padding) + 4 (textarea `!px-4px`) = 15px
+              //   top:  11 (card padding) + 4 (textarea `!py-4px`) = 15px
               // Otherwise the rendered text is offset from the textarea's
               // real caret position — vertically (caret below the text) or
               // horizontally (caret overlapping the last character).
-              // The overlay also mirrors the textarea line-height (20px) so
+              // The overlay also mirrors the textarea line-height (22px) so
               // both layers wrap at the same breaks.
-              lineHeight: '20px',
-              paddingLeft: 19,
-              paddingTop: 12,
+              lineHeight: '22px',
+              paddingLeft: 15,
+              paddingTop: 15,
             }}
           >
             {(() => {
@@ -322,7 +310,8 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
             })()}
           </div>
         )}
-        <div style={{ height: 12, flexShrink: 0 }} aria-hidden='true' />
+        {/* 输入区与工具栏之间的留白（设计稿 150px 高的输入卡里是 24px） */}
+        <div style={{ height: 24, flexShrink: 0 }} aria-hidden='true' />
         {files.length > 0 && (
           <div className='flex flex-wrap items-center gap-8px mt-12px mb-12px'>
             {files.map((path) => (

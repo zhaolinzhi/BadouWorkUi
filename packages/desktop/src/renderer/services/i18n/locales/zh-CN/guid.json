@@ -8,6 +8,7 @@
   "selectAssistantHint": "选择一位助手开始任务",
   "workspace": {
     "workInProject": "在项目中工作",
+    "selectProject": "选择项目",
     "optional": "可选",
     "clearWorkspace": "清除",
     "specifyWorkspace": "选择项目文件夹",

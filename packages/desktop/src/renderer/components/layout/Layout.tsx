@@ -47,12 +47,17 @@ import { isElectronDesktop } from '@renderer/utils/platform';
 import { IS_DISCONTINUED_BUILD } from '@/renderer/utils/discontinuedBuild';
 import UpdateMigrationDialog from '@/renderer/components/settings/UpdateMigrationDialog';
 import '@renderer/styles/layout.css';
-// The static brand mark. The animated variant of this logo (app.gif, 1418x996)
-// was used here before, but a running GIF inside the sider forced the whole
-// sider layer to be re-rastered on every frame of the animation — ~490ms of
-// raster work per second, which starved the collapse/expand transition. At the
-// 22px this is rendered at, the animation was not perceptible anyway.
-import logoImage from '@renderer/assets/logos/brand/app.png';
+// The brand mark (the blue infinity sign) as a static bitmap.
+//
+// Why not the animated `app.gif` (1418x996): a running GIF inside the sider
+// forced the whole sider layer to be re-rastered on every frame of the
+// animation — ~490ms of raster work per second, which starved the
+// collapse/expand transition.
+//
+// `app-mark.png` is the first frame of that GIF, already scaled down to 120x84
+// (3x of the 40x28.1 the design draws it at). A small bitmap costs nothing to
+// raster, so the logo can be shown at the design's real size.
+import logoImage from '@renderer/assets/logos/brand/app-mark.png';
 
 const SidebarIcon: React.FC<{ size?: number; strokeWidth?: number }> = ({ size = 18, strokeWidth = 4 }) => (
   <svg
@@ -599,39 +604,15 @@ const Layout: React.FC<{
                     }
                   )}
                 >
-                  <div
-                    className={classNames('shrink-0 size-32px relative rd-0.5rem', {
-                      '!size-24px': collapsed,
-                    })}
-                    onClick={onClick}
-                  >
-                    {/*<svg*/}
-                    {/*  className={classNames('w-5.5 h-5.5 absolute inset-0 m-auto', {*/}
-                    {/*    'scale-140': !collapsed,*/}
-                    {/*  })}*/}
-                    {/*  viewBox='0 0 80 80'*/}
-                    {/*  fill='none'*/}
-                    {/*>*/}
-                    {/*  <path*/}
-                    {/*    key='logo-path-1'*/}
-                    {/*    d='M40 20 Q38 22 25 40 Q23 42 26 42 L30 42 Q32 40 40 30 Q48 40 50 42 L54 42 Q57 42 55 40 Q42 22 40 20'*/}
-                    {/*    fill='white'*/}
-                    {/*  ></path>*/}
-                    {/*  <circle key='logo-circle' cx='40' cy='46' r='3' fill='white'></circle>*/}
-                    {/*  <path*/}
-                    {/*    key='logo-path-2'*/}
-                    {/*    d='M18 50 Q40 70 62 50'*/}
-                    {/*    stroke='white'*/}
-                    {/*    strokeWidth='3.5'*/}
-                    {/*    fill='none'*/}
-                    {/*    strokeLinecap='round'*/}
-                    {/*  ></path>*/}
-                    {/*</svg>*/}
+                  <div className='shrink-0 flex items-center justify-center' onClick={onClick}>
+                    {/* 设计稿的 logo 尺寸:展开 40x28.096、收起 35.2x24.724
+                        (styles.css `.logo>img` / responsive.css)。 */}
                     <img
                       src={logoImage}
                       alt='logo'
-                      className={classNames('w-5.5 h-5.5 absolute inset-0 m-auto object-contain app-img', {
-                        'scale-140': !collapsed,
+                      className={classNames('object-contain', {
+                        'w-[35.2px] h-[24.72px]': collapsed,
+                        'w-40px h-[28.1px]': !collapsed,
                       })}
                     />
                   </div>

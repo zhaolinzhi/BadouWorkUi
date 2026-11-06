@@ -944,6 +944,7 @@ export type I18nKey =
   | 'guid.workspace.noProject'
   | 'guid.workspace.optional'
   | 'guid.workspace.searchPlaceholder'
+  | 'guid.workspace.selectProject'
   | 'guid.workspace.specifyWorkspace'
   | 'guid.workspace.workInProject'
   | 'kb-chat.actions.retry'

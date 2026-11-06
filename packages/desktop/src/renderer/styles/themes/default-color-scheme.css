@@ -82,6 +82,27 @@
 
   /* 侧栏品牌文字标志 —— 设计稿的深海军蓝 */
   --sider-brand-color: #083575;
+
+  /* 首页对话栏 —— 设计稿 BadouWork-Desktop-Handoff 的输入区 */
+  --guid-composer-bg: #ffffff; /* 输入卡底色 */
+  --guid-composer-border: #e8ebf2; /* 输入卡描边 */
+  --guid-composer-border-focus: #8fb9ff; /* 聚焦态描边 */
+  --guid-composer-shadow: 0 2px 8px rgba(246, 249, 255, 1); /* 输入卡投影 */
+  --guid-composer-shadow-focus: 0 2px 12px rgba(246, 249, 255, 1), 0 0 0 2px rgba(39, 100, 255, 0.04);
+  --guid-tray-bg: #f4f4f4; /* 项目托盘底色 */
+  --guid-tray-shadow: 0 2px 16px rgba(246, 249, 255, 1);
+  --guid-add-btn-bg: #edeff1; /* 加号按钮底色 */
+  --guid-add-btn-hover-bg: #e4e7ea;
+  --guid-selector-hover: #f5f6f8; /* 模型 / 授权选择器悬停底色 */
+  --guid-selector-active: #f0f1f3; /* 模型 / 授权选择器按下底色 */
+  --guid-send-bg: linear-gradient(140deg, #54a1ff, #2764ff); /* 发送按钮渐变 */
+  --guid-hero-text: #0d0d0d; /* 首页标题 / 建议指令标题 */
+  --guid-assistant-bar-bg: #f1f4f8; /* 助手切换条底色 */
+  --guid-assistant-selected-bg: #ffffff; /* 助手切换条选中底色 */
+  --guid-assistant-selected-border: #b4d7ff; /* 助手切换条选中描边 */
+  --guid-placeholder: #b4bece; /* 输入框占位符 */
+  --guid-suggestion-text: rgba(39, 49, 58, 0.7); /* 建议指令文字 */
+  --guid-project-label: #6f7680; /* 项目托盘文案 */
 }
 
 /* Dark Mode */
@@ -165,4 +186,25 @@
 
   /* 品牌字标（暗色下用提亮后的品牌蓝，否则深海军蓝在深底上几乎看不见） */
   --sider-brand-color: #7ea6e0;
+
+  /* 首页对话栏（暗色沿用设计稿 dark.css 的灰阶） */
+  --guid-composer-bg: #2b2b2b;
+  --guid-composer-border: #3d3d3d;
+  --guid-composer-border-focus: #7396d6;
+  --guid-composer-shadow: 0 4px 16px rgba(0, 0, 0, 0.13);
+  --guid-composer-shadow-focus: 0 4px 16px rgba(0, 0, 0, 0.13), 0 0 0 1px rgba(89, 117, 169, 0.25);
+  --guid-tray-bg: #262626;
+  --guid-tray-shadow: 0 6px 20px rgba(0, 0, 0, 0.13);
+  --guid-add-btn-bg: #333333;
+  --guid-add-btn-hover-bg: #3a3a3a;
+  --guid-selector-hover: #333333;
+  --guid-selector-active: #3a3a3a;
+  --guid-send-bg: linear-gradient(140deg, #5b91ff, #4070ed);
+  --guid-hero-text: #f1f1f1;
+  --guid-assistant-bar-bg: #292929;
+  --guid-assistant-selected-bg: #373737;
+  --guid-assistant-selected-border: #536c91;
+  --guid-placeholder: #999999;
+  --guid-suggestion-text: #9e9e9e;
+  --guid-project-label: #a8a8a8;
 }
