@@ -62,6 +62,8 @@ import { IconApps } from '@icon-park/react';
 | `plus`                | `Plus`                  |                                                                                                    |
 | `refresh`             | `Refresh`               |                                                                                                    |
 | `robot`               | `Robot`                 |                                                                                                    |
+| `search`              | `Search`                | 笔记列表面板的搜索框                                                                               |
+| `star`                | `Star`                  | 笔记的「收藏」标记                                                                                 |
 | `tips`                | `Tips`                  |                                                                                                    |
 | `notes`               | `Notes`                 | 笔记（产品语义别名）                                                                               |
 | `knowledge-base`      | `Book`                  | 知识库（产品语义别名）                                                                             |

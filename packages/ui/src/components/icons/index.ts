@@ -41,6 +41,8 @@ import {
   Record,
   Refresh,
   Robot,
+  Search,
+  Star,
   Tips,
 } from '@icon-park/react';
 import type React from 'react';
@@ -80,6 +82,8 @@ export const ICON_PARK_MAP = {
   plus: Plus,
   refresh: Refresh,
   robot: Robot,
+  search: Search,
+  star: Star,
   tips: Tips,
 
   // —— 产品语义别名 ——

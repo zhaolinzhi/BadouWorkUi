@@ -51,6 +51,9 @@ vi.mock('@arco-design/web-react/es/locale/zh-CN', () => ({ default: {} }));
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (k: string) => k, i18n: { language: 'en' } }),
+  // bootstrap 会调用 `adoptShellI18n(setI18n)` 接管 shell 的 i18n 实例,
+  // mock 里没有 shell 实例,拿不到时会静默跳过 —— 但 `setI18n` 本身要存在。
+  setI18n: vi.fn(),
 }));
 
 // Vditor 直接 import 了 vditor 包及其 CSS,jsdom 没 lute,需要替换为简单 div

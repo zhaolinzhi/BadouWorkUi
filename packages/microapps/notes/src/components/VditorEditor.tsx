@@ -7,6 +7,7 @@
 import Vditor from 'vditor';
 import 'vditor/dist/index.css';
 import React, { useEffect, useId, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../AppContext';
 
 type VditorTheme = 'light' | 'dark';
@@ -20,39 +21,63 @@ interface VditorEditorProps {
   placeholder?: string;
 }
 
+/**
+ * 「更多」按钮的图标。
+ *
+ * Vditor 的自定义工具栏项把 `icon` 原样塞进 innerHTML,而工具栏按钮默认
+ * `font-size: 0`(图标靠 svg 撑开),纯文本的「···」会看不见 —— 所以这里塞一段
+ * `currentColor` 的 SVG,颜色跟着主题走。
+ */
+const MORE_ICON =
+  '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">' +
+  '<circle cx="3.5" cy="8" r="1.5" /><circle cx="8" cy="8" r="1.5" /><circle cx="12.5" cy="8" r="1.5" /></svg>';
+
+/**
+ * 工具栏的功能项 —— 顺序对齐设计稿笔记页的 `.notes-formatting`:
+ * 撤销/重做 → 插入 → 粗体/斜体/删除线/高亮 → 正文 → 列表/待办/缩进 →
+ * 链接等 → 全屏/编辑模式/更多。
+ *
+ * 这里只调整**顺序**,功能项仍然是 Vditor 自带的(外观由 CSS 改成设计稿样式)。
+ */
 const TOOLBAR: Array<string | IMenuItem> = [
-  'emoji',
-  'headings',
+  'undo',
+  'redo',
+  '|',
+  'insert-after',
+  'insert-before',
+  '|',
   'bold',
   'italic',
   'strike',
+  'inline-code',
   '|',
-  'line',
-  'quote',
+  'headings',
+  '|',
   'list',
   'ordered-list',
   'check',
   'indent',
   'outdent',
   '|',
-  'code',
-  'inline-code',
-  'insert-after',
-  'insert-before',
-  '|',
   'link',
   'upload',
   'table',
-  '|',
-  'undo',
-  'redo',
+  'code',
+  'quote',
+  'line',
+  'emoji',
   '|',
   'fullscreen',
   'edit-mode',
+];
+
+/** 组装完整工具栏 —— 末尾追加「更多」分组(它的提示文案要走 i18n)。 */
+const buildToolbar = (moreTip: string): Array<string | IMenuItem> => [
+  ...TOOLBAR,
   {
     name: 'more',
-    icon: '···',
-    tip: '更多',
+    icon: MORE_ICON,
+    tip: moreTip,
     toolbar: ['both', 'code-theme', 'content-theme', 'export', 'outline', 'preview', 'devtools', 'help'],
   },
 ];
@@ -66,6 +91,7 @@ const VditorEditor: React.FC<VditorEditorProps> = ({
   placeholder,
 }) => {
   const ctx = useAppContext();
+  const { t } = useTranslation();
   const baseApi = ctx.baseApi;
   const token = ctx.token;
   const rawId = useId();
@@ -89,6 +115,9 @@ const VditorEditor: React.FC<VditorEditorProps> = ({
   // sync whatever the prop has become by the time lute finishes loading.
   const valueRef = useRef(value);
   valueRef.current = value;
+  // Vditor 实例只创建一次,语言切换后不重建 —— 提示文案用 ref 带进去。
+  const moreTipRef = useRef(t('settings.notesMore', { defaultValue: '更多' }));
+  moreTipRef.current = t('settings.notesMore', { defaultValue: '更多' });
 
   useEffect(() => {
     const vditor = new Vditor(containerId, {
@@ -98,7 +127,7 @@ const VditorEditor: React.FC<VditorEditorProps> = ({
       theme: theme === 'dark' ? 'dark' : 'classic',
       placeholder: placeholder ?? '',
       height: '100%',
-      toolbar: TOOLBAR,
+      toolbar: buildToolbar(moreTipRef.current),
       cache: { enable: false },
       cdn: './vditor',
       // Vditor calls `options.customWysiwygToolbar(type, popover)` whenever

@@ -1,13 +1,136 @@
 /**
  * Notes editor area overrides for Vditor.
- * Adapts Vditor's defaults to the app theme — applied within NotesPage
- * so the sidebar / toolbar stay on UnoCSS layout primitives.
+ *
+ * Vditor 自带一套样式(工具栏 38px、图标 15px、内容区 16px 字号),和设计稿
+ * BadouWork-Desktop-Handoff 的笔记页对不上。这里只改**外观**,不动 Vditor 的
+ * 功能项 —— 工具栏仍然是 Vditor 自己渲染的,只是换成设计稿的几何:
+ *
+ *   .notes-toolbar     48px 高、8px 12px 内边距、底部 1px 分隔线
+ *   .notes-tool        32px 方形图标按钮、4px 圆角
+ *   .notes-tool-separator  1px × 20px 的浅灰竖线
+ *
+ * 文档区同理:设计稿的 `.note-scroll` 是 32px 48px 内边距、1280px 最大宽度,
+ * 标题 24px/500,正文 14px。
+ *
+ * 选择器用 `:global()` 写 Vditor 自己的类名 —— CSS Modules 只对本地类名做哈希。
  */
 
 .editorContainer {
   flex: 1;
   min-height: 0;
-  overflow: auto;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
+  background-color: var(--notes-panel-bg);
+}
+
+.editorContainer :global(.vditor) {
+  background-color: var(--notes-panel-bg);
+  color: var(--text-primary);
+}
+
+/* 工具栏:48px 高的一行,图标按钮 32px */
+.editorContainer :global(.vditor-toolbar) {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 48px;
+  /*
+   * `!important` 是必须的:Vditor 在运行时给工具栏写 inline `padding-left`
+   * (用来做工具栏横向滚动的偏移),inline 样式会盖掉同优先级的类声明。
+   */
+  padding: 8px 12px !important;
+  background-color: var(--notes-panel-bg);
+  border-bottom: 1px solid var(--notes-panel-border);
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.editorContainer :global(.vditor-toolbar__item) {
+  float: none;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.editorContainer :global(.vditor-toolbar__item .vditor-tooltipped) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background-color: transparent;
+  color: var(--text-secondary);
+}
+
+.editorContainer :global(.vditor-toolbar__item .vditor-tooltipped:hover) {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.editorContainer :global(.vditor-toolbar__item svg) {
+  width: 16px;
+  height: 16px;
+}
+
+/* 分隔线:1px × 20px 的浅灰竖线 */
+.editorContainer :global(.vditor-toolbar__divider) {
+  float: none;
+  height: 20px;
+  margin: 0 8px;
+  border-left: 1px solid var(--notes-panel-border);
+}
+
+/* 保持工具栏单行:Vditor 用 <br> 强制换行,这里不需要 */
+.editorContainer :global(.vditor-toolbar__br) {
+  display: none;
+}
+
+/* 末尾一组(全屏 / 编辑模式 / 更多)靠右对齐 */
+.editorContainer :global(.vditor-toolbar__item:last-of-type) {
+  margin-left: auto;
+}
+
+/* 文档区:32px 48px 内边距、1280px 最大宽度 */
+.editorContainer :global(.vditor-content) {
+  background-color: var(--notes-panel-bg);
+}
+
+.editorContainer :global(.vditor-reset) {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  /* 同工具栏:Vditor 用 inline `padding-left` 顶掉这里的内边距,必须 !important */
+  padding: 32px 48px !important;
+  background-color: transparent;
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+/* 隐掉 Vditor 加在标题前的「H1/H2」角标 —— 设计稿里标题就是纯标题 */
+.editorContainer :global(.vditor-reset > h1::before),
+.editorContainer :global(.vditor-reset > h2::before),
+.editorContainer :global(.vditor-reset > h3::before),
+.editorContainer :global(.vditor-reset > h4::before),
+.editorContainer :global(.vditor-reset > h5::before),
+.editorContainer :global(.vditor-reset > h6::before) {
+  display: none;
+}
+
+.editorContainer :global(.vditor-reset h1) {
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 34px;
+  margin: 0 0 24px;
+}
+
+.editorContainer :global(.vditor-reset h2) {
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 28px;
 }
