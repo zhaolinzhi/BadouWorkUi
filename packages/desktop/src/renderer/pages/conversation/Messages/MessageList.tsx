@@ -6,6 +6,7 @@
 
 import type { IConversationArtifact } from '@/common/adapter/ipcBridge';
 import type { IMessageAcpToolCall, IMessageToolCall, IMessageToolGroup, TMessage } from '@/common/chat/chatLib';
+import { isAskUserToolName } from '@/common/chat/askUserTool';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { useConversationRuntimeView } from '@/renderer/pages/conversation/runtime/useConversationRuntimeView';
 import { getChatSurfaceWidthClass } from '@/renderer/pages/conversation/utils/chatSurfaceWidth';
@@ -229,6 +230,7 @@ const MessageItem: React.FC<{
   isLastMessage?: boolean;
   hasForkAnchor?: boolean;
   turnTexts?: string[];
+  askUserAnswered?: boolean;
 }> = React.memo(
   HOC((props) => {
     const { message, highlighted, rowWidthClass } = props as {
@@ -263,6 +265,7 @@ const MessageItem: React.FC<{
       isLastMessage,
       hasForkAnchor,
       turnTexts,
+      askUserAnswered,
     }: {
       message: TMessage;
       highlighted?: boolean;
@@ -271,6 +274,7 @@ const MessageItem: React.FC<{
       isLastMessage?: boolean;
       hasForkAnchor?: boolean;
       turnTexts?: string[];
+      askUserAnswered?: boolean;
     }) => {
       const { t } = useTranslation();
       switch (message.type) {
@@ -287,7 +291,7 @@ const MessageItem: React.FC<{
         case 'tips':
           return <MessageTips message={message}></MessageTips>;
         case 'tool_call':
-          return <MessageToolCall message={message}></MessageToolCall>;
+          return <MessageToolCall message={message} answered={askUserAnswered}></MessageToolCall>;
         case 'tool_group':
           return <MessageToolGroup message={message}></MessageToolGroup>;
         case 'agent_status':
@@ -323,6 +327,7 @@ const MessageItem: React.FC<{
     prev.showCopyRow === next.showCopyRow &&
     prev.isLastMessage === next.isLastMessage &&
     prev.hasForkAnchor === next.hasForkAnchor &&
+    prev.askUserAnswered === next.askUserAnswered &&
     // Compare by content: the map is rebuilt per render, so reference equality
     // would defeat the memo for the one row that carries the copy button.
     (prev.turnTexts === next.turnTexts ||
@@ -333,6 +338,30 @@ const MessageItem: React.FC<{
 const MessageListInner: React.FC<{ className?: string; emptySlot?: React.ReactNode }> = ({ emptySlot }) => {
   const list = useMessageList();
   const isMessageListLoading = useMessageListLoading();
+  /**
+   * Ask-user tool calls that have already been answered.
+   *
+   * The answer is delivered as the next user message, so "a user message
+   * exists after this tool call" is the durable signal that the question is
+   * settled. Without it, reloading the conversation would show an unanswered
+   * card for a question the user already responded to.
+   */
+  const answeredAskUserCallIds = useMemo(() => {
+    const answered = new Set<string>();
+    let sawUserMessage = false;
+    for (let i = list.length - 1; i >= 0; i--) {
+      const message = list[i];
+      if (message.position === 'right') {
+        sawUserMessage = true;
+        continue;
+      }
+      if (!sawUserMessage) continue;
+      if (message.type === 'tool_call' && isAskUserToolName(message.content?.name)) {
+        answered.add(message.id);
+      }
+    }
+    return answered;
+  }, [list]);
   const pagination = useMessagePaginationState();
   const artifacts = useConversationArtifacts();
   const conversationContext = useConversationContextSafe();
@@ -432,6 +461,14 @@ const MessageListInner: React.FC<{ className?: string; emptySlot?: React.ReactNo
         continue;
       }
       if (message.type === 'tool_call') {
+        // The ask-user tool call carries an interactive question card. It must
+        // stay visible instead of being folded into the collapsible "View
+        // Steps" summary — a question the user cannot see is a question the
+        // user cannot answer.
+        if (isAskUserToolName(message.content?.name)) {
+          pushStandaloneMessage(message);
+          continue;
+        }
         pushToolList(message);
         continue;
       }
@@ -717,6 +754,7 @@ const MessageListInner: React.FC<{ className?: string; emptySlot?: React.ReactNo
         isLastMessage={message.id === lastMessageId}
         hasForkAnchor={forkAnchoredIds.has(message.id)}
         turnTexts={aiTurnTextsById.get(message.id)}
+        askUserAnswered={answeredAskUserCallIds.has(message.id)}
       ></MessageItem>
     );
   };

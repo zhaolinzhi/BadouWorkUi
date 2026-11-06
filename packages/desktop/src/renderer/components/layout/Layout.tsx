@@ -11,7 +11,7 @@ import Titlebar from '@/renderer/components/layout/Titlebar';
 import { Layout as ArcoLayout, Tooltip } from '@arco-design/web-react';
 import { BrandWordmark } from '@aionui/ui';
 import classNames from 'classnames';
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { setGlobalNavigate } from '@/renderer/utils/navigation';
@@ -166,9 +166,9 @@ const LayoutContent = React.memo(function LayoutContent({
     >
       <Outlet />
       <PwaPullToRefresh />
-      {/*<Suspense fallback={null}>*/}
-      {/*  <UpdateModal />*/}
-      {/*</Suspense>*/}
+      <Suspense fallback={null}>
+        <UpdateModal />
+      </Suspense>
       {IS_DISCONTINUED_BUILD && <UpdateMigrationDialog />}
     </ArcoLayout.Content>
   );
@@ -437,17 +437,24 @@ const Layout: React.FC<{
       }
     };
 
+    // Handle check update request from tray / 托盘请求检查更新
+    const handleCheckUpdate = () => {
+      window.dispatchEvent(new CustomEvent('aionui-open-update-modal', { detail: { source: 'tray' } }));
+    };
+
     // Listen for tray events / 监听托盘事件
     window.addEventListener('tray:navigate-to-guid', handleNavigateToGuid as EventListener);
     window.addEventListener('tray:navigate-to-conversation', handleNavigateToConversation as EventListener);
     window.addEventListener('tray:open-about', handleOpenAbout as EventListener);
     window.addEventListener('tray:pause-all-tasks', handlePauseAllTasks as EventListener);
+    window.addEventListener('tray:check-update', handleCheckUpdate as EventListener);
 
     return () => {
       window.removeEventListener('tray:navigate-to-guid', handleNavigateToGuid as EventListener);
       window.removeEventListener('tray:navigate-to-conversation', handleNavigateToConversation as EventListener);
       window.removeEventListener('tray:open-about', handleOpenAbout as EventListener);
       window.removeEventListener('tray:pause-all-tasks', handlePauseAllTasks as EventListener);
+      window.removeEventListener('tray:check-update', handleCheckUpdate as EventListener);
     };
   }, [navigate]);
 

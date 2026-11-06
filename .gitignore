@@ -244,3 +244,6 @@ graphify-out/
 .analysis/
 temp/
 .playwright-mcp/
+
+# Generated at build time by scripts/generate-release-notes.js
+release-notes.md

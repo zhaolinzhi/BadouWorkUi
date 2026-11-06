@@ -97,6 +97,16 @@ path: AionUi-2.1.45-mac-arm64.zip
 releaseDate: '2026-07-31T14:45:19.381Z'
 `;
 
+const CDN_YML_WITH_NOTES = `version: 2.1.45
+releaseNotes: |
+  ## 更新内容
+
+  - 修复 A
+files:
+  - url: AionUi-2.1.45-mac-arm64.dmg
+    size: 200
+`;
+
 const GITHUB_RELEASES = [
   {
     tag_name: 'v2.1.45',
@@ -128,7 +138,7 @@ type FetchScenario = {
 const stubFetch = (scenario: FetchScenario) => {
   const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
     const url = String(input);
-    if (url.startsWith('https://static.aionui.com/releases/latest')) {
+    if (url.startsWith('https://qw.badousoft.com/badouwork/statics/releases/latest')) {
       if (!scenario.cdn) throw new Error('unexpected CDN request');
       return scenario.cdn();
     }
@@ -164,7 +174,7 @@ describe('update.check CDN-first', () => {
     expect(res.data?.latest?.body).toBe('changelog body');
     expect(res.data?.latest?.htmlUrl).toBe('https://github.com/iOfficeAI/AionUi/releases/tag/v2.1.45');
     expect(res.data?.latest?.recommendedAsset?.url).toBe(
-      'https://static.aionui.com/releases/2.1.45/AionUi-2.1.45-mac-arm64.dmg'
+      'https://qw.badousoft.com/badouwork/statics/releases/2.1.45/AionUi-2.1.45-mac-arm64.dmg'
     );
   });
 
@@ -177,6 +187,14 @@ describe('update.check CDN-first', () => {
     expect(res.data?.latest?.body).toBeUndefined();
     expect(res.data?.latest?.htmlUrl).toBe('');
     expect(res.data?.latest?.assets.length).toBeGreaterThan(0);
+  });
+
+  it('keeps manifest-embedded release notes when GitHub is unreachable', async () => {
+    stubFetch({ cdn: () => ymlResponse(CDN_YML_WITH_NOTES) });
+    const handler = await getCheckHandler();
+    const res = await handler({});
+    expect(res.success).toBe(true);
+    expect(res.data?.latest?.body).toContain('修复 A');
   });
 
   it('ignores GitHub releases that do not match the CDN version', async () => {

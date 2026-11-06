@@ -7,6 +7,7 @@
 import { ipcBridge } from '@/common';
 import { uuid } from '@/common/utils/utils';
 import { type ChatFileRef, chatFileRefPath } from '@/common/types/chatFile';
+import { resolveAskUserServerToAttach } from '@/common/chat/askUserTool';
 import { getCleanFileNames } from '@/renderer/services/FileService';
 import type { IMcpServer, TProviderWithModel } from '@/common/config/storage';
 import { toSessionMcpServer } from '@/renderer/hooks/mcp/catalog';
@@ -190,7 +191,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     const selectedAllSessionMcpServers = availableMcpServers
       .filter((server) => selectedMcpServerIdSet.has(server.id))
       .map((server) => toSessionMcpServer(server));
-    const selectedSessionMcpServers = availableMcpServers
+    const selectedBuiltinSessionMcpServers = availableMcpServers
       .filter((server) => selectedMcpServerIdSet.has(server.id) && server.builtin === true)
       .map((server) => toSessionMcpServer(server));
     const defaultSelectedMcpServerIds = assistantDefaultMcpIds;
@@ -198,15 +199,55 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       .filter((server) => (defaultSelectedMcpServerIds ?? []).includes(server.id) && server.builtin !== true)
       .map((server) => server.id);
     const assistantOverrideMcpIds =
-      selectedMcpServerIds !== undefined ? selectedAllMcpServerIds : defaultSelectedMcpServerIds;
+      selectedMcpServerIds !== undefined ? [...selectedAllMcpServerIds] : [...(defaultSelectedMcpServerIds ?? [])];
     const selectedUserMcpServerIdsToSend =
       selectedMcpServerIds !== undefined ? selectedUserMcpServerIds : defaultSelectedUserMcpServerIds;
+    // The aionrs session snapshot carries every selected server; the ACP one
+    // carries only the builtin ones (the ACP path resolves the rest from the
+    // repo and would otherwise attach them twice).
     const selectedSessionMcpServersToSend =
       selectedMcpServerIds !== undefined
         ? selectedAllSessionMcpServers
         : availableMcpServers
             .filter((server) => (defaultSelectedMcpServerIds ?? []).includes(server.id))
             .map((server) => toSessionMcpServer(server));
+    const selectedBuiltinSessionMcpServersToSend =
+      selectedMcpServerIds !== undefined
+        ? selectedBuiltinSessionMcpServers
+        : availableMcpServers
+            .filter((server) => (defaultSelectedMcpServerIds ?? []).includes(server.id))
+            .map((server) => toSessionMcpServer(server));
+
+    /**
+     * Force-attach the built-in ask-user server.
+     *
+     * The backend loads ONLY the MCP servers a conversation explicitly selects
+     * — it never pulls in every enabled server — and it hard-excludes builtin
+     * rows from the repo-backed resolver (`mcp_resolve.rs`:
+     * `if !selected || row.builtin { continue; }`). A builtin server can
+     * therefore only reach the agent through the inline session snapshot built
+     * here.
+     *
+     * Without this, an assistant pinned to a fixed MCP set that predates the
+     * ask-user server would never expose the tool, and the agent could not ask
+     * the user anything. Attaching it here is what makes the feature work for
+     * every assistant, without asking each user to re-pick their MCP servers.
+     */
+    const askUserServer = resolveAskUserServerToAttach(
+      availableMcpServers,
+      selectedSessionMcpServersToSend.map((server) => server.id)
+    );
+    if (askUserServer) {
+      const askUserSessionServer = toSessionMcpServer(askUserServer);
+      selectedSessionMcpServersToSend.push(askUserSessionServer);
+      if (!selectedBuiltinSessionMcpServersToSend.some((server) => server.id === askUserServer.id)) {
+        selectedBuiltinSessionMcpServersToSend.push(askUserSessionServer);
+      }
+      // The id also travels in `mcp_ids` so the backend's snapshot records it.
+      if (!assistantOverrideMcpIds.includes(askUserServer.id)) {
+        assistantOverrideMcpIds.push(askUserServer.id);
+      }
+    }
 
     // `current_model` is the aionrs provider selection and means nothing to a
     // CLI agent, which owns its own model list. Used as a blanket fallback it
@@ -302,8 +343,10 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
           custom_workspace: isCustomWorkspace,
           default_files: files.map(chatFileRefPath),
           selected_mcp_server_ids: selectedUserMcpServerIdsToSend,
-          selected_session_mcp_servers:
-            selectedMcpServerIds !== undefined ? selectedSessionMcpServers : selectedSessionMcpServersToSend,
+          // The ACP path resolves non-builtin servers from the repo itself and
+          // would attach them twice if they rode the snapshot; only the
+          // builtin ones (including the force-attached ask-user server) do.
+          selected_session_mcp_servers: selectedBuiltinSessionMcpServersToSend,
         },
       });
       if (!conversation || !conversation.id) {

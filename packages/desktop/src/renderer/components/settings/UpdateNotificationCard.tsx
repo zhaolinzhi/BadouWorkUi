@@ -329,7 +329,9 @@ const UpdateNotificationCard: React.FC = () => {
               )}
             </div>
           ) : releaseNotes ? (
-            <MarkdownView allowHtml>{releaseNotes}</MarkdownView>
+            <div style={{ '--chat-font-size': '13px' } as React.CSSProperties}>
+              <MarkdownView allowHtml>{releaseNotes}</MarkdownView>
+            </div>
           ) : (
             <span>{t('update.releaseNotesLoading')}</span>
           )}

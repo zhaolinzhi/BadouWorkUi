@@ -183,12 +183,12 @@ module.exports = async function afterPack(context) {
 
     console.log(`   ✓ Found ${moduleName}, rebuilding for ${targetArch}...`);
 
-    // For Windows, prefer prebuild-install first (faster and more reliable in CI)
-    // electron-rebuild can hang on "Searching dependency tree" in some CI environments
-    // prebuild-install will fall back to electron-rebuild internally if no prebuilt binary exists
+    // For Windows, prefer prebuild-install first (faster and more reliable in CI).
+    // If no prebuilt binary exists, rebuildSingleModule falls back to the
+    // @electron/rebuild programmatic API.
     const forceRebuildFromSource = false; // Always try prebuild-install first
 
-    const success = rebuildSingleModule({
+    const success = await rebuildSingleModule({
       moduleName,
       moduleRoot,
       platform: electronPlatformName,

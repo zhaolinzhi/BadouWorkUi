@@ -1,3 +1,4 @@
+export { ensureKnowledgeServerMcp } from './ensureDefaultMcpServers';
 export { useMcpConnection } from './useMcpConnection';
 export { useMcpModal } from './useMcpModal';
 export { useMcpServerCRUD } from './useMcpServerCRUD';
