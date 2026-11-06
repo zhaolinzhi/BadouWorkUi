@@ -114,6 +114,18 @@
   --notes-focus-ring: #8fb9ff; /* 搜索框聚焦描边 */
   --notes-muted: #6b7280; /* 次要文字(摘要、元信息、状态) */
   --notes-heading: #0d0d0d; /* 面板标题 */
+
+  /* 录音模块 —— 设计稿 BadouWork-Desktop-Handoff 的录音列表页 */
+  --rec-app-bg: #f5f7fa; /* 页面底色 / 表头与搜索框底色 */
+  --rec-surface: #ffffff; /* 卡片、按钮底色 */
+  --rec-border: #e8ebf2; /* 表格分隔线 / 描边 */
+  --rec-brand: #2764ff; /* 品牌蓝(主按钮、选中态文字) */
+  --rec-brand-hover: #2058ed; /* 主按钮悬停 */
+  --rec-brand-soft: #ecf3ff; /* 浅蓝底(播放方块、状态胶囊) */
+  --rec-brand-border: #b4d7ff; /* 浅蓝描边 */
+  --rec-muted: #6b7280; /* 次要文字(表头、副标题、状态) */
+  --rec-placeholder: #b4bece; /* 占位符文字 */
+  --rec-heading: #0d0d0d; /* 页面标题 */
 }
 
 /* Dark Mode */
@@ -229,4 +241,16 @@
   --notes-focus-ring: #7396d6;
   --notes-muted: #a8a8a8;
   --notes-heading: #f1f1f1;
+
+  /* 录音模块（暗色沿用设计稿 dark.css 的深蓝灰浅蓝底） */
+  --rec-app-bg: #1a1a1a;
+  --rec-surface: #0e0e0e;
+  --rec-border: #333333;
+  --rec-brand: #7ea6e0;
+  --rec-brand-hover: #527ff0;
+  --rec-brand-soft: #293953;
+  --rec-brand-border: #536c91;
+  --rec-muted: #a8a8a8;
+  --rec-placeholder: #6b7280;
+  --rec-heading: #f1f1f1;
 }

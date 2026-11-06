@@ -1,5 +1,6 @@
 {
   "title": "Meeting Recording",
+  "subtitle": "Aufnehmen, transkribieren und zusammenfassen — Zeile anklicken zum Ansehen",
   "startRecording": "Start recording",
   "stopRecording": "Stop",
   "recording": "Recording",
@@ -9,6 +10,26 @@
   "transcriptionFailed": "Transcription failed",
   "chunkLabel": "Chunk {{index}}",
   "deleteConfirm": "Delete this recording? This cannot be undone.",
+  "deleteConfirmTitle": "Diese Aufnahme löschen?",
+  "tabAll": "Alle Aufnahmen {{count}}",
+  "searchPlaceholder": "Aufnahmen oder Transkripte suchen",
+  "columnName": "Name",
+  "columnDuration": "Dauer",
+  "columnCreatedAt": "Aufgenommen am",
+  "columnStatus": "Status",
+  "columnActions": "Aktionen",
+  "duration": "{{minutes}} Min. {{seconds}} Sek.",
+  "today": "Heute",
+  "yesterday": "Gestern",
+  "sourceSubtitle": "Mikrofon und Systemton",
+  "statusSummaryReady": "Zusammenfassung bereit",
+  "statusPending": "Warten auf Transkript",
+  "statusFailed": "Transkription fehlgeschlagen",
+  "viewAction": "Ansehen",
+  "moreActions": "Weitere Aktionen",
+  "deleteAction": "Löschen",
+  "toggleChunks": "Abschnitte ein-/ausblenden",
+  "footerStatus": "{{count}} Aufnahmen · Synchronisiert",
   "transcriptModal": {
     "viewButtonAriaLabel": "View transcript summary",
     "disabledHint": "No transcriptions available yet",
@@ -16,7 +37,8 @@
     "retryTranscribeDisabledHint": "All chunks have been transcribed; nothing to retry",
     "cancelTranscribeConfirmTitle": "Stop transcription?",
     "cancelTranscribeConfirmOk": "Stop",
-    "cancelTranscribeConfirmCancel": "Keep going"
+    "cancelTranscribeConfirmCancel": "Keep going",
+    "cancelTranscribeConfirmDescription": "Nach dem Stopp werden unvollständige Abschnitte nicht transkribiert."
   },
   "errors": {
     "permissionDenied": "Microphone access denied",
@@ -26,5 +48,6 @@
     "transcribeFailed": "Transcription failed",
     "recordingUnsupported": "Recording is not supported in this environment",
     "unknown": "Unknown error"
-  }
+  },
+  "cancelTranscribeConfirmDescription": "Nach dem Stopp werden unvollständige Abschnitte nicht transkribiert."
 }

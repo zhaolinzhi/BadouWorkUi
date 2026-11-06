@@ -48,6 +48,8 @@ vi.mock('@arco-design/web-react/es/locale/zh-CN', () => ({ default: {} }));
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (k: string) => k, i18n: { language: 'en' } }),
+  // `bootstrap()` 会用 `setI18n` 接管 shell 的 i18n 实例,没有这个导出 mock 会直接抛错。
+  setI18n: vi.fn(),
 }));
 
 vi.mock('react-dom/client', () => ({

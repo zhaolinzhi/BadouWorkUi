@@ -1,5 +1,6 @@
 {
   "title": "Meeting Recording",
+  "subtitle": "録音・文字起こし・要約をまとめて管理。行をクリックすると確認できます",
   "startRecording": "Start recording",
   "stopRecording": "Stop",
   "recording": "Recording",
@@ -9,6 +10,26 @@
   "transcriptionFailed": "Transcription failed",
   "chunkLabel": "Chunk {{index}}",
   "deleteConfirm": "Delete this recording? This cannot be undone.",
+  "deleteConfirmTitle": "この録音を削除しますか？",
+  "tabAll": "すべての録音 {{count}}",
+  "searchPlaceholder": "録音タイトルや文字起こしを検索",
+  "columnName": "録音名",
+  "columnDuration": "長さ",
+  "columnCreatedAt": "録音日時",
+  "columnStatus": "状態",
+  "columnActions": "操作",
+  "duration": "{{minutes}}分{{seconds}}秒",
+  "today": "今日",
+  "yesterday": "昨日",
+  "sourceSubtitle": "マイクとシステム音声",
+  "statusSummaryReady": "要約を生成済み",
+  "statusPending": "文字起こし待ち",
+  "statusFailed": "文字起こし失敗",
+  "viewAction": "表示",
+  "moreActions": "その他の操作",
+  "deleteAction": "削除",
+  "toggleChunks": "チャンクを切り替え",
+  "footerStatus": "録音 {{count}} 件 · 同期済み",
   "transcriptModal": {
     "viewButtonAriaLabel": "View transcript summary",
     "disabledHint": "No transcriptions available yet",
@@ -16,7 +37,8 @@
     "retryTranscribeDisabledHint": "All chunks have been transcribed; nothing to retry",
     "cancelTranscribeConfirmTitle": "Stop transcription?",
     "cancelTranscribeConfirmOk": "Stop",
-    "cancelTranscribeConfirmCancel": "Keep going"
+    "cancelTranscribeConfirmCancel": "Keep going",
+    "cancelTranscribeConfirmDescription": "停止すると未完了のチャンクは文字起こしされません。"
   },
   "errors": {
     "permissionDenied": "Microphone access denied",
@@ -26,5 +48,6 @@
     "transcribeFailed": "Transcription failed",
     "recordingUnsupported": "Recording is not supported in this environment",
     "unknown": "Unknown error"
-  }
+  },
+  "cancelTranscribeConfirmDescription": "停止すると未完了のチャンクは文字起こしされません。"
 }

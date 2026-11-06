@@ -54,6 +54,10 @@ interface RecorderPanelProps {
   onRecorded?: (recordingId: string) => void;
 }
 
+/**
+ * 录音开关 —— 设计稿里是页头右上角的「开始录音」主按钮(36px 高、蓝底白字),
+ * 录音中切成浅蓝底的「停止」,旁边跟一个计时。
+ */
 const RecorderPanel: React.FC<RecorderPanelProps> = ({ onRecorded }) => {
   const { t } = useTranslation();
   const { status, durationMs, errorCode, start, stop } = useMeetingRecorder();
@@ -70,41 +74,36 @@ const RecorderPanel: React.FC<RecorderPanelProps> = ({ onRecorded }) => {
   };
 
   const isRecording = status === 'recording';
-  const isFinalizing = status === 'finalizing';
+  const isBusy = status === 'requesting' || status === 'finalizing';
+  const stopLabel = t('meeting-recording.stopRecording', { defaultValue: '停止' });
+  const startLabel = t('meeting-recording.startRecording', { defaultValue: '开始录音' });
 
   return (
     <div className={styles.panel}>
       <Button
-        shape='circle'
-        size='large'
-        type={isRecording ? 'outline' : 'primary'}
+        className={isRecording ? styles.stopButton : styles.startButton}
         onClick={handleClick}
-        disabled={isFinalizing}
-        aria-label={
-          isRecording
-            ? t('meeting-recording.stopRecording', { defaultValue: 'Stop' })
-            : t('meeting-recording.startRecording', { defaultValue: 'Start recording' })
-        }
+        disabled={isBusy}
+        aria-label={isRecording ? stopLabel : startLabel}
       >
-        <span className={isRecording ? styles.pulse : undefined}>
-          {isFinalizing ? (
-            <Spin />
-          ) : isRecording ? (
-            <AppIcon name='record' size={22} />
-          ) : (
-            <AppIcon name='microphone' size={22} />
-          )}
-        </span>
+        {isBusy ? (
+          <Spin size={16} />
+        ) : (
+          <>
+            <AppIcon name={isRecording ? 'record' : 'microphone'} size={16} />
+            {isRecording ? stopLabel : startLabel}
+          </>
+        )}
       </Button>
-      {status === 'recording' || status === 'finalizing' ? (
-        <div className={styles.timer} aria-live='polite'>
+      {isRecording || status === 'finalizing' ? (
+        <span className={styles.timer} aria-live='polite'>
           {formatMs(durationMs)}
-        </div>
+        </span>
       ) : null}
       {errorCode ? (
-        <div className={styles.error} role='alert'>
+        <span className={styles.error} role='alert'>
           {t(`meeting-recording.errors.${errorKey(errorCode)}` as never, { defaultValue: ERROR_TEXT[errorCode] })}
-        </div>
+        </span>
       ) : null}
     </div>
   );

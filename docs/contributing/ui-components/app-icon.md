@@ -52,6 +52,7 @@ import { IconApps } from '@icon-park/react';
 | `arrow-left`          | `ArrowLeft`             |                                                                                                    |
 | `book`                | `Book`                  |                                                                                                    |
 | `book-one`            | `BookOne`               |                                                                                                    |
+| `check`               | `Check`                 | 录音列表底部的「已同步」标记                                                                       |
 | `delete`              | `Delete`                |                                                                                                    |
 | `download`            | `Download`              |                                                                                                    |
 | `down`                | `Down`                  |                                                                                                    |
@@ -59,6 +60,7 @@ import { IconApps } from '@icon-park/react';
 | `folder-open`         | `FolderOpen`            |                                                                                                    |
 | `info`                | `Info`                  |                                                                                                    |
 | `more-one`            | `MoreOne`               | 「更多」菜单                                                                                       |
+| `play`                | `Play`                  | 录音列表行左侧的播放方块                                                                           |
 | `plus`                | `Plus`                  |                                                                                                    |
 | `refresh`             | `Refresh`               |                                                                                                    |
 | `robot`               | `Robot`                 |                                                                                                    |

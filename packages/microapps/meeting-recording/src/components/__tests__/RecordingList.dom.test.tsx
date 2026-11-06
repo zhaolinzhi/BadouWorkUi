@@ -51,7 +51,7 @@ describe('RecordingList 接入 AsyncBoundary', () => {
     render(<RecordingList recordings={[]} loading={false} onDelete={vi.fn()} />);
 
     expect(screen.getByTestId('empty-state')).toBeTruthy();
-    expect(screen.getByTestId('empty-state-title').textContent).toBe('No recordings yet');
+    expect(screen.getByTestId('empty-state-title').textContent).toBe('暂无录音');
   });
 
   it('有录音时渲染列表,不渲染空态', () => {
@@ -59,5 +59,15 @@ describe('RecordingList 接入 AsyncBoundary', () => {
 
     expect(screen.getByTestId('recording-rec-1')).toBeTruthy();
     expect(screen.queryByTestId('empty-state')).toBeNull();
+  });
+
+  it('渲染设计稿要求的五列表头', () => {
+    render(<RecordingList recordings={[recording]} loading={false} onDelete={vi.fn()} />);
+
+    expect(screen.getByText('录音名称')).toBeTruthy();
+    expect(screen.getByText('时长')).toBeTruthy();
+    expect(screen.getByText('录制时间')).toBeTruthy();
+    expect(screen.getByText('状态')).toBeTruthy();
+    expect(screen.getByText('操作')).toBeTruthy();
   });
 });

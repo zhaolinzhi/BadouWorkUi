@@ -1,5 +1,6 @@
 {
   "title": "Meeting Recording",
+  "subtitle": "Запис, розшифрування та підсумки в одному місці — натисніть рядок, щоб переглянути",
   "startRecording": "Start recording",
   "stopRecording": "Stop",
   "recording": "Recording",
@@ -9,6 +10,26 @@
   "transcriptionFailed": "Transcription failed",
   "chunkLabel": "Chunk {{index}}",
   "deleteConfirm": "Delete this recording? This cannot be undone.",
+  "deleteConfirmTitle": "Видалити цей запис?",
+  "tabAll": "Усі записи {{count}}",
+  "searchPlaceholder": "Пошук за записами та розшифруваннями",
+  "columnName": "Назва",
+  "columnDuration": "Тривалість",
+  "columnCreatedAt": "Час запису",
+  "columnStatus": "Статус",
+  "columnActions": "Дії",
+  "duration": "{{minutes}} хв {{seconds}} с",
+  "today": "Сьогодні",
+  "yesterday": "Вчора",
+  "sourceSubtitle": "Мікрофон і системний звук",
+  "statusSummaryReady": "Підсумок готовий",
+  "statusPending": "Очікує розшифрування",
+  "statusFailed": "Помилка розшифрування",
+  "viewAction": "Переглянути",
+  "moreActions": "Інші дії",
+  "deleteAction": "Видалити",
+  "toggleChunks": "Показати фрагменти",
+  "footerStatus": "Записів: {{count}} · Синхронізовано",
   "transcriptModal": {
     "viewButtonAriaLabel": "View transcript summary",
     "disabledHint": "No transcriptions available yet",
@@ -16,7 +37,8 @@
     "retryTranscribeDisabledHint": "All chunks have been transcribed; nothing to retry",
     "cancelTranscribeConfirmTitle": "Stop transcription?",
     "cancelTranscribeConfirmOk": "Stop",
-    "cancelTranscribeConfirmCancel": "Keep going"
+    "cancelTranscribeConfirmCancel": "Keep going",
+    "cancelTranscribeConfirmDescription": "Після зупинки незавершені фрагменти не буде розшифровано."
   },
   "errors": {
     "permissionDenied": "Microphone access denied",
@@ -26,5 +48,6 @@
     "transcribeFailed": "Transcription failed",
     "recordingUnsupported": "Recording is not supported in this environment",
     "unknown": "Unknown error"
-  }
+  },
+  "cancelTranscribeConfirmDescription": "Після зупинки незавершені фрагменти не буде розшифровано."
 }

@@ -1,6 +1,8 @@
 import React from 'react';
+import { setI18n } from 'react-i18next';
 import { App } from './App';
 import {
+  adoptShellI18n,
   applyStandaloneTheme,
   clearAppLocalStorage,
   clearActiveProps,
@@ -38,7 +40,13 @@ const renderer = createMicroAppRenderer({
 });
 
 export async function bootstrap() {
-  // 一次性初始化（preload、注册全局事件等）
+  // 接管 shell 的 i18next 实例。
+  //
+  // 子应用自带一份 react-i18next,默认拿不到 shell 初始化好的 i18n 实例 ——
+  // `t(key, { defaultValue })` 会一直吐兜底文案(而且**不插值**,`{{count}}`
+  // 会原样露在界面上)。`adoptShellI18n` 把 shell 的实例接过来,界面上的
+  // 文案与插值才跟 shell 一致。
+  adoptShellI18n(setI18n);
 }
 
 export async function mount(props: RenderProps) {
