@@ -12,6 +12,10 @@ import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render } from '@testing-library/react';
 
+// 每个用例都要动态 import 组件(渲染真 Arco 组件树),单跑也要好几秒;
+// 与其它重型 dom 测试并跑时会撞上默认的 10s 预算。放宽本文件的预算。
+vi.setConfig({ testTimeout: 30000 });
+
 // Stubs for the heavy hooks in the component tree so we don't have to wire
 // AuthProvider/LayoutContext/SWR for what is essentially a render-text test.
 vi.mock('@/common', () => ({
@@ -77,11 +81,7 @@ const baseProps = {
   onFocus: noop,
   onBlur: noop,
   placeholder: 'placeholder',
-  isInputActive: false,
   isFileDragging: false,
-  activeBorderColor: 'transparent',
-  inactiveBorderColor: 'transparent',
-  activeShadow: 'none',
   dragHandlers: {},
   files: [],
   onRemoveFile: noop,
@@ -196,17 +196,18 @@ describe('GuidInputCard — KB highlight badge', () => {
 
   // Geometry of the highlight layer. The layer is positioned against the
   // card's padding box, while the textarea sits in the content box, so the
-  // overlay padding must reproduce the textarea's text insets: 12px card
-  // padding + 7px textarea `pl-7px` on the left, and 12px card padding on
-  // top. Any mismatch shows up as the caret drifting away from the visible
-  // text (below it, or overlapping the last character).
+  // overlay padding must reproduce the textarea's text insets: 11px card
+  // padding + 4px textarea `!px-4px` on the left, and 11px card padding +
+  // 4px textarea `!py-4px` on top. Any mismatch shows up as the caret
+  // drifting away from the visible text (below it, or overlapping the last
+  // character).
   it('aligns the highlight layer with the textarea text insets', async () => {
     const { default: GuidInputCard } = await import('@/renderer/pages/guid/components/GuidInputCard');
     const { container } = render(<GuidInputCard {...baseProps} input='@kb:研发文档' />);
     const layer = container.querySelector('.sendbox-highlight-layer');
     expect(layer).not.toBeNull();
-    expect((layer as HTMLElement | null)?.style.paddingLeft).toBe('19px');
-    expect((layer as HTMLElement | null)?.style.paddingTop).toBe('12px');
+    expect((layer as HTMLElement | null)?.style.paddingLeft).toBe('15px');
+    expect((layer as HTMLElement | null)?.style.paddingTop).toBe('15px');
     expect((layer as HTMLElement | null)?.style.paddingBottom).toBe('');
   });
 
