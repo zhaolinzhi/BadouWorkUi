@@ -456,13 +456,17 @@ describe('useGuidSend', () => {
     expect(selected).toEqual(['mcp-user']);
   });
 
-  // Hidden chatWithStream hint is APPENDED to the user message body
-  // (not to a system-prompt slot) because the backend agent framework
-  // does not yet read `conversation_overrides.system_prompt`. The hint
-  // reaches the LLM via the user-message channel. The user does NOT
-  // see it in the textarea — only the LLM does.
+  // Hidden KB hint is APPENDED to the user message body (not to a
+  // system-prompt slot) because the backend agent framework does not yet
+  // read `conversation_overrides.system_prompt`. The hint reaches the LLM
+  // via the user-message channel. The user does NOT see it in the textarea
+  // — only the LLM does.
+  //
+  // The knowledge-server MCP exposes a `chat` tool (one knowledgeBaseId per
+  // call), not the old `chatWithStream` — the hint must name the tool that
+  // actually exists or the model calls a tool that is not there.
 
-  it('appends a chatWithStream hint to the user message when input cites @kb:<name>', async () => {
+  it('appends a knowledge-server chat hint to the user message when input cites @kb:<name>', async () => {
     const deps = createDeps();
     deps.input = '请总结 @kb:Docs 关于缓存的设计';
     deps.resolveKbId = (name: string, _isShared: boolean) => (name === 'Docs' ? 'uuid-1' : undefined);
@@ -475,7 +479,7 @@ describe('useGuidSend', () => {
     const sentInput = readLastSessionInput();
     expect(sentInput).toContain('@kb:Docs');
     expect(sentInput).toContain('请使用 knowledge-server');
-    expect(sentInput).toContain('chatWithStream');
+    expect(sentInput).toContain('chat 工具');
     expect(sentInput).toContain('`uuid-1`');
     // Original user text stays at the head, hint is at the tail.
     expect(sentInput?.startsWith('请总结 @kb:Docs 关于缓存的设计')).toBe(true);
