@@ -1,5 +1,6 @@
 {
   "title": "Meeting Recording",
+  "subtitle": "Запись, расшифровка и итоги в одном месте — нажмите на строку, чтобы посмотреть",
   "startRecording": "Start recording",
   "stopRecording": "Stop",
   "recording": "Recording",
@@ -9,6 +10,26 @@
   "transcriptionFailed": "Transcription failed",
   "chunkLabel": "Chunk {{index}}",
   "deleteConfirm": "Delete this recording? This cannot be undone.",
+  "deleteConfirmTitle": "Удалить эту запись?",
+  "tabAll": "Все записи {{count}}",
+  "searchPlaceholder": "Поиск по записям и расшифровкам",
+  "columnName": "Название",
+  "columnDuration": "Длительность",
+  "columnCreatedAt": "Время записи",
+  "columnStatus": "Статус",
+  "columnActions": "Действия",
+  "duration": "{{minutes}} мин {{seconds}} с",
+  "today": "Сегодня",
+  "yesterday": "Вчера",
+  "sourceSubtitle": "Микрофон и системный звук",
+  "statusSummaryReady": "Итог готов",
+  "statusPending": "Ожидает расшифровки",
+  "statusFailed": "Ошибка расшифровки",
+  "viewAction": "Открыть",
+  "moreActions": "Другие действия",
+  "deleteAction": "Удалить",
+  "toggleChunks": "Показать фрагменты",
+  "footerStatus": "Записей: {{count}} · Синхронизировано",
   "transcriptModal": {
     "viewButtonAriaLabel": "View transcript summary",
     "disabledHint": "No transcriptions available yet",
@@ -16,7 +37,8 @@
     "retryTranscribeDisabledHint": "All chunks have been transcribed; nothing to retry",
     "cancelTranscribeConfirmTitle": "Stop transcription?",
     "cancelTranscribeConfirmOk": "Stop",
-    "cancelTranscribeConfirmCancel": "Keep going"
+    "cancelTranscribeConfirmCancel": "Keep going",
+    "cancelTranscribeConfirmDescription": "После остановки незавершённые фрагменты не будут расшифрованы."
   },
   "errors": {
     "permissionDenied": "Microphone access denied",
@@ -26,5 +48,6 @@
     "transcribeFailed": "Transcription failed",
     "recordingUnsupported": "Recording is not supported in this environment",
     "unknown": "Unknown error"
-  }
+  },
+  "cancelTranscribeConfirmDescription": "После остановки незавершённые фрагменты не будут расшифрованы."
 }

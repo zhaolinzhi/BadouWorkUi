@@ -3,19 +3,28 @@
  * Copyright 2026 AionUi (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Message } from '@arco-design/web-react';
+import { Button, Input, Message } from '@arco-design/web-react';
+import { AppIcon } from '@aionui/ui';
 import { ipcBridge } from '../__qiankun__/ipc';
 import type { MeetingRecording } from '../__qiankun__/ipc';
 import RecorderPanel from '../components/RecorderPanel';
 import RecordingList from '../components/RecordingList';
 import styles from './RecordingListPage.module.css';
 
+/**
+ * i18next 的插值只在接管了 shell 的 i18n 实例时生效;独立运行时 `t()` 只会
+ * 原样返回 defaultValue,`{{count}}` 会裸露在界面上。这里兜底替换一次 ——
+ * 已经插值好的文案不含占位符,替换是空操作。
+ */
+const withCount = (text: string, count: number): string => text.replace(/\{\{count\}\}/g, String(count));
+
 const RecordingListPage: React.FC = () => {
   const { t } = useTranslation();
   const [recordings, setRecordings] = useState<MeetingRecording[]>([]);
   const [loading, setLoading] = useState(true);
+  const [keyword, setKeyword] = useState('');
 
   const refresh = useCallback(async () => {
     try {
@@ -119,11 +128,64 @@ const RecordingListPage: React.FC = () => {
     [recordings, t]
   );
 
+  /** 搜索在客户端做 —— 录音列表接口没有 `q` 参数。 */
+  const filtered = useMemo(() => {
+    const query = keyword.trim().toLowerCase();
+    if (!query) return recordings;
+    return recordings.filter((recording) =>
+      [recording.name, ...recording.chunks.map((chunk) => chunk.transcription ?? '')].some((field) =>
+        field.toLowerCase().includes(query)
+      )
+    );
+  }, [recordings, keyword]);
+
   return (
     <div className={styles.page}>
-      <h1 className={styles.title}>{t('meeting-recording.title', { defaultValue: 'Meeting Recording' })}</h1>
-      <RecorderPanel onRecorded={handleRecorded} />
-      <RecordingList recordings={recordings} onDelete={handleDelete} loading={loading} />
+      <header className={styles.heading}>
+        <div className={styles.headingCopy}>
+          <h1 className={styles.title}>{t('meeting-recording.title', { defaultValue: '录音' })}</h1>
+          <p className={styles.subtitle}>
+            {t('meeting-recording.subtitle', { defaultValue: '录音、转写与纪要集中管理，点击记录即可查看' })}
+          </p>
+        </div>
+        <div className={styles.headingActions}>
+          <RecorderPanel onRecorded={handleRecorded} />
+        </div>
+      </header>
+
+      <div className={styles.content}>
+        <div className={styles.tools}>
+          <div className={styles.tabs}>
+            <Button type='text' className={styles.tab} aria-selected='true'>
+              {withCount(
+                t('meeting-recording.tabAll', { count: recordings.length, defaultValue: '全部录音 {{count}}' }),
+                recordings.length
+              )}
+            </Button>
+          </div>
+          <div className={styles.search}>
+            <AppIcon name='search' size={14} className={styles.searchIcon} />
+            <Input
+              value={keyword}
+              onChange={setKeyword}
+              placeholder={t('meeting-recording.searchPlaceholder', {
+                defaultValue: '搜索录音标题或转写内容',
+              })}
+              allowClear
+              data-testid='recording-search'
+            />
+          </div>
+        </div>
+        <RecordingList recordings={filtered} onDelete={handleDelete} loading={loading} />
+      </div>
+
+      <footer className={styles.footer}>
+        <AppIcon name='check' size={12} className={styles.footerIcon} />
+        {withCount(
+          t('meeting-recording.footerStatus', { count: recordings.length, defaultValue: '{{count}} 条录音 · 已同步' }),
+          recordings.length
+        )}
+      </footer>
     </div>
   );
 };

@@ -1,5 +1,6 @@
 {
   "title": "Meeting Recording",
+  "subtitle": "Graba, transcribe y resume en un solo lugar: haz clic en la fila para verlo",
   "startRecording": "Start recording",
   "stopRecording": "Stop",
   "recording": "Recording",
@@ -9,6 +10,26 @@
   "transcriptionFailed": "Transcription failed",
   "chunkLabel": "Chunk {{index}}",
   "deleteConfirm": "Delete this recording? This cannot be undone.",
+  "deleteConfirmTitle": "¿Eliminar esta grabación?",
+  "tabAll": "Todas las grabaciones {{count}}",
+  "searchPlaceholder": "Buscar grabaciones o transcripciones",
+  "columnName": "Nombre",
+  "columnDuration": "Duración",
+  "columnCreatedAt": "Grabado el",
+  "columnStatus": "Estado",
+  "columnActions": "Acciones",
+  "duration": "{{minutes}} min {{seconds}} s",
+  "today": "Hoy",
+  "yesterday": "Ayer",
+  "sourceSubtitle": "Micrófono y audio del sistema",
+  "statusSummaryReady": "Resumen listo",
+  "statusPending": "Esperando transcripción",
+  "statusFailed": "Error de transcripción",
+  "viewAction": "Ver",
+  "moreActions": "Más acciones",
+  "deleteAction": "Eliminar",
+  "toggleChunks": "Mostrar fragmentos",
+  "footerStatus": "{{count}} grabaciones · Sincronizado",
   "transcriptModal": {
     "viewButtonAriaLabel": "View transcript summary",
     "disabledHint": "No transcriptions available yet",
@@ -16,7 +37,8 @@
     "retryTranscribeDisabledHint": "All chunks have been transcribed; nothing to retry",
     "cancelTranscribeConfirmTitle": "Stop transcription?",
     "cancelTranscribeConfirmOk": "Stop",
-    "cancelTranscribeConfirmCancel": "Keep going"
+    "cancelTranscribeConfirmCancel": "Keep going",
+    "cancelTranscribeConfirmDescription": "Al detener, los fragmentos incompletos no se transcribirán."
   },
   "errors": {
     "permissionDenied": "Microphone access denied",
@@ -26,5 +48,6 @@
     "transcribeFailed": "Transcription failed",
     "recordingUnsupported": "Recording is not supported in this environment",
     "unknown": "Unknown error"
-  }
+  },
+  "cancelTranscribeConfirmDescription": "Al detener, los fragmentos incompletos no se transcribirán."
 }

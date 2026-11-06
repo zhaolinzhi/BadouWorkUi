@@ -5,7 +5,7 @@
  */
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 
 const mocks = vi.hoisted(() => ({
   transcribeMock: vi.fn(async () => ({ id: 'rec-1' })),
@@ -53,8 +53,22 @@ const makeRecording = (chunks: RecordingChunk[]): MeetingRecording => ({
   chunks,
 });
 
-describe('RecordingListItem retry-transcribe button', () => {
-  it('disables the retry button when every chunk is transcribed', () => {
+/** 打开「更多操作」菜单。 */
+const openMoreMenu = () => {
+  fireEvent.click(screen.getByLabelText('更多操作'));
+};
+
+/**
+ * 菜单项的禁用态落在 Arco 的菜单项容器(`role="menuitem"`)上。
+ *
+ * 独立渲染的 Menu 用 `arco-menu-disabled`,Dropdown 里的菜单用
+ * `arco-dropdown-menu-disabled` —— 只看后缀 `-menu-disabled`。
+ */
+const isMenuItemDisabled = (testId: string): boolean =>
+  (screen.getByTestId(testId).closest('[role="menuitem"]')?.className ?? '').includes('menu-disabled');
+
+describe('RecordingListItem retry-transcribe menu item', () => {
+  it('disables the retry item when every chunk is transcribed', () => {
     render(
       <RecordingListItem
         recording={makeRecording([
@@ -64,11 +78,11 @@ describe('RecordingListItem retry-transcribe button', () => {
         onDelete={() => {}}
       />
     );
-    const btn = screen.getByTestId('retry-transcribe-button');
-    expect(btn.hasAttribute('disabled')).toBe(true);
+    openMoreMenu();
+    expect(isMenuItemDisabled('retry-transcribe-button')).toBe(true);
   });
 
-  it('enables the retry button when any chunk is pending', () => {
+  it('enables the retry item when any chunk is pending', () => {
     render(
       <RecordingListItem
         recording={makeRecording([
@@ -78,11 +92,11 @@ describe('RecordingListItem retry-transcribe button', () => {
         onDelete={() => {}}
       />
     );
-    const btn = screen.getByTestId('retry-transcribe-button');
-    expect(btn.hasAttribute('disabled')).toBe(false);
+    openMoreMenu();
+    expect(isMenuItemDisabled('retry-transcribe-button')).toBe(false);
   });
 
-  it('enables the retry button when any chunk is failed', () => {
+  it('enables the retry item when any chunk is failed', () => {
     render(
       <RecordingListItem
         recording={makeRecording([
@@ -92,13 +106,11 @@ describe('RecordingListItem retry-transcribe button', () => {
         onDelete={() => {}}
       />
     );
-    const btn = screen.getByTestId('retry-transcribe-button');
-    expect(btn.hasAttribute('disabled')).toBe(false);
+    openMoreMenu();
+    expect(isMenuItemDisabled('retry-transcribe-button')).toBe(false);
   });
 
   it('invokes ipcBridge.meetingRecording.transcribe with the recording id on click', async () => {
-    const { default: user } = await import('@testing-library/user-event');
-    const user_ = user.setup();
     mocks.transcribeMock.mockClear();
     render(
       <RecordingListItem
@@ -109,62 +121,55 @@ describe('RecordingListItem retry-transcribe button', () => {
         onDelete={() => {}}
       />
     );
-    await user_.click(screen.getByTestId('retry-transcribe-button'));
+    openMoreMenu();
+    fireEvent.click(screen.getByTestId('retry-transcribe-button'));
     expect(mocks.transcribeMock).toHaveBeenCalledTimes(1);
     expect(mocks.transcribeMock).toHaveBeenCalledWith({ id: 'rec-1' });
   });
 
-  it('opens a Popconfirm when clicked while retrying, and cancels transcribe on confirm', async () => {
-    const { fireEvent } = await import('@testing-library/react');
+  it('offers a 停止转写 item while the retry is running, and cancels on confirm', async () => {
     mocks.transcribeMock.mockClear();
     mocks.cancelTranscribeMock.mockClear();
-    const recording = makeRecording([
-      chunk({ index: 0, transcription: 'a', status: 'transcribed' }),
-      chunk({ index: 1, status: 'failed' }),
-    ]);
-    const { rerender } = render(<RecordingListItem recording={recording} onDelete={() => {}} />);
-    // First click: kicks off retry (no Popconfirm — we're starting, not stopping).
+    render(
+      <RecordingListItem
+        recording={makeRecording([
+          chunk({ index: 0, transcription: 'a', status: 'transcribed' }),
+          chunk({ index: 1, status: 'failed' }),
+        ])}
+        onDelete={() => {}}
+      />
+    );
+    openMoreMenu();
     fireEvent.click(screen.getByTestId('retry-transcribe-button'));
     expect(mocks.transcribeMock).toHaveBeenCalledTimes(1);
     expect(mocks.cancelTranscribeMock).not.toHaveBeenCalled();
-    // Rerender with the same recording still has the failed chunk, so the
-    // spinner stays on and the button is "armed" for a cancel click.
-    rerender(<RecordingListItem recording={recording} onDelete={() => {}} />);
-    // Second click: should open a Popconfirm instead of immediately firing
-    // transcribe again.
-    mocks.transcribeMock.mockClear();
-    fireEvent.click(screen.getByTestId('retry-transcribe-button'));
-    expect(mocks.transcribeMock).not.toHaveBeenCalled();
-    // Find the confirm button (Arco Popconfirm renders an OK button with the
-    // localized "Stop" text — the i18n stub falls back to the defaultValue).
-    const okBtn = await screen.findByRole('button', {
-      name: 'Stop',
-    });
-    fireEvent.click(okBtn);
+
+    // 重试进行中:菜单里多一项「停止转写」
+    openMoreMenu();
+    fireEvent.click(screen.getByTestId('cancel-transcribe-button'));
+    // 确认弹窗的「停止」按钮
+    const okButton = await screen.findByRole('button', { name: '停止' });
+    fireEvent.click(okButton);
     expect(mocks.cancelTranscribeMock).toHaveBeenCalledWith({ id: 'rec-1' });
   });
 
   it('spins the Refresh icon while any chunk is pending or failed after a click', async () => {
-    const { default: user } = await import('@testing-library/user-event');
-    const user_ = user.setup();
     const recording = makeRecording([
       chunk({ index: 0, transcription: 'a', status: 'transcribed' }),
       chunk({ index: 1, status: 'failed' }),
     ]);
     const { rerender } = render(<RecordingListItem recording={recording} onDelete={() => {}} />);
+    // 菜单没打开时图标节点不在 DOM 里 —— 先打开菜单再断言。
+    openMoreMenu();
     // Sanity: before the click the icon has no spin class.
     expect(screen.getByTestId('retry-transcribe-spin').className).not.toMatch(/spin/);
-    await user_.click(screen.getByTestId('retry-transcribe-button'));
+    fireEvent.click(screen.getByTestId('retry-transcribe-button'));
     // Right after the click the icon should be spinning.
     expect(screen.getByTestId('retry-transcribe-spin').className).toMatch(/spin/);
     // NOTE on the visual-shift fix: the CSS module is not loaded into the
     // jsdom test environment, so `getComputedStyle().display` here always
     // returns 'inline'. The actual layout fix lives in
-    // `RecordingList.module.css`'s `.spin` rule — it switched from
-    // `display: inline-flex` (which pulled the wrapper to the top of the
-    // line box) to `display: inline-block`, which keeps the wrapper on
-    // the surrounding button's baseline. Verified manually in the running
-    // app; not regression-testable here without CSS injection.
+    // `RecordingListItem.module.css`'s `.spin` rule.
     // Simulate the main process emitting a chunkTranscribed event by
     // handing the row an updated recording where the failed chunk is now
     // still failed (e.g. upstream still down) — the spin must persist.

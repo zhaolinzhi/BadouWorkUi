@@ -1,5 +1,6 @@
 {
   "title": "Meeting Recording",
+  "subtitle": "錄音、轉寫與紀要集中管理，點擊記錄即可查看",
   "startRecording": "Start recording",
   "stopRecording": "Stop",
   "recording": "Recording",
@@ -9,6 +10,26 @@
   "transcriptionFailed": "Transcription failed",
   "chunkLabel": "Chunk {{index}}",
   "deleteConfirm": "Delete this recording? This cannot be undone.",
+  "deleteConfirmTitle": "刪除這條錄音？",
+  "tabAll": "錄音 {{count}} 則",
+  "searchPlaceholder": "搜尋錄音標題或轉寫內容",
+  "columnName": "錄音名稱",
+  "columnDuration": "時長",
+  "columnCreatedAt": "錄製時間",
+  "columnStatus": "狀態",
+  "columnActions": "操作",
+  "duration": "{{minutes}}分{{seconds}}秒",
+  "today": "今天",
+  "yesterday": "昨天",
+  "sourceSubtitle": "麥克風與系統聲音",
+  "statusSummaryReady": "已生成紀要",
+  "statusPending": "等待轉寫",
+  "statusFailed": "轉寫失敗",
+  "viewAction": "檢視",
+  "moreActions": "更多操作",
+  "deleteAction": "刪除",
+  "toggleChunks": "展開分片",
+  "footerStatus": "{{count}} 條錄音 · 已同步",
   "transcriptModal": {
     "viewButtonAriaLabel": "View transcript summary",
     "disabledHint": "No transcriptions available yet",
@@ -16,7 +37,8 @@
     "retryTranscribeDisabledHint": "All chunks have been transcribed; nothing to retry",
     "cancelTranscribeConfirmTitle": "Stop transcription?",
     "cancelTranscribeConfirmOk": "Stop",
-    "cancelTranscribeConfirmCancel": "Keep going"
+    "cancelTranscribeConfirmCancel": "Keep going",
+    "cancelTranscribeConfirmDescription": "停止後，尚未完成的片段將不再轉寫。"
   },
   "errors": {
     "permissionDenied": "Microphone access denied",
@@ -26,5 +48,6 @@
     "transcribeFailed": "Transcription failed",
     "recordingUnsupported": "Recording is not supported in this environment",
     "unknown": "Unknown error"
-  }
+  },
+  "cancelTranscribeConfirmDescription": "停止後，尚未完成的片段將不再轉寫。"
 }

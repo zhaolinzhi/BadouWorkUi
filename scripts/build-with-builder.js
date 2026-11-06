@@ -752,6 +752,17 @@ try {
 
   restorePackageVersionOverride = applyDebugAutoUpdateVersionOverride(packageJsonPath);
 
+  // Generate release-notes.md for electron-builder's releaseInfo.releaseNotesFile.
+  // Non-fatal: packaging can continue without notes.
+  try {
+    execSync(`node "${path.join(__dirname, 'generate-release-notes.js')}"`, { stdio: 'inherit' });
+  } catch (error) {
+    console.warn(`Failed to generate release notes: ${error instanceof Error ? error.message : String(error)}`);
+    // electron-builder treats releaseInfo.releaseNotesFile as required and aborts
+    // packaging when it is missing, so keep the build alive with a placeholder.
+    fs.writeFileSync(path.resolve(__dirname, '../release-notes.md'), '- 常规维护与优化\n', 'utf8');
+  }
+
   // 1. Ensure package.json main entry is correct for electron-vite
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
   if (packageJson.main !== './out/main/index.js') {

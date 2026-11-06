@@ -16,6 +16,7 @@
   "switchedToAgent": "Zu {{agent}} gewechselt",
   "workspace": {
     "workInProject": "In einem Projekt arbeiten",
+    "selectProject": "Projekt auswählen",
     "optional": "Optional",
     "clearWorkspace": "Löschen",
     "specifyWorkspace": "Projektordner wählen",

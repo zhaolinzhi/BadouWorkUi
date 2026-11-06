@@ -21,6 +21,10 @@
 
 set -euo pipefail
 
+# GitHub repository that hosts BadouWork desktop releases. Override when the
+# release repository differs from the default checkout remote.
+RELEASE_REPO="${BADOUWORK_RELEASE_REPO:-zhaolinzhi/BadouWorkUi}"
+
 # ─── 顏色定義 ───────────────────────────────────────────────────────────────
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -73,9 +77,11 @@ detect_arch() {
     case "$machine" in
         x86_64|amd64)
             DEB_ARCH="amd64"
+            ARTIFACT_ARCH="x64"
             ;;
         aarch64|arm64)
             DEB_ARCH="arm64"
+            ARTIFACT_ARCH="arm64"
             ;;
         *)
             die "不支援的架構: $machine（僅支援 x86_64 / aarch64）"
@@ -93,10 +99,10 @@ resolve_version() {
         info "正在查詢最新版本..."
         # 透過 GitHub API 取得 latest release tag
         if command -v curl &>/dev/null; then
-            VERSION=$(curl -fsSL "https://api.github.com/repos/iOfficeAI/AionUi/releases/latest" \
+            VERSION=$(curl -fsSL "https://api.github.com/repos/${RELEASE_REPO}/releases/latest" \
                 | grep '"tag_name"' | head -1 | sed 's/.*"v\([^"]*\)".*/\1/')
         elif command -v wget &>/dev/null; then
-            VERSION=$(wget -qO- "https://api.github.com/repos/iOfficeAI/AionUi/releases/latest" \
+            VERSION=$(wget -qO- "https://api.github.com/repos/${RELEASE_REPO}/releases/latest" \
                 | grep '"tag_name"' | head -1 | sed 's/.*"v\([^"]*\)".*/\1/')
         else
             die "需要 curl 或 wget 來下載，請先安裝: sudo apt-get install -y curl"
@@ -108,8 +114,8 @@ resolve_version() {
         info "最新版本: ${BOLD}v$VERSION${NC}"
     fi
 
-    DEB_FILENAME="AionUi-${VERSION}-linux-${DEB_ARCH}.deb"
-    DOWNLOAD_URL="https://github.com/iOfficeAI/AionUi/releases/download/v${VERSION}/${DEB_FILENAME}"
+    DEB_FILENAME="BadouWork-${VERSION}-linux-${ARTIFACT_ARCH}.deb"
+    DOWNLOAD_URL="https://github.com/${RELEASE_REPO}/releases/download/v${VERSION}/${DEB_FILENAME}"
 }
 
 # ─── 下載 .deb 套件 ──────────────────────────────────────────────────────────

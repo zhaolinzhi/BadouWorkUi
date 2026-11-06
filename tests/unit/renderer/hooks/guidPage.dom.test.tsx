@@ -137,6 +137,12 @@ vi.mock('react-router-dom', () => ({
   useLocation: () => locationMock,
 }));
 
+// GuidPage reads the signed-in user for the welcome line. Without an
+// AuthProvider the real useAuth() throws, so the page cannot render at all.
+vi.mock('@/renderer/hooks/context/AuthContext', () => ({
+  useAuth: () => ({ user: { id: 'user-1', username: 'Tester' }, notifyTokenExpired: vi.fn() }),
+}));
+
 vi.mock('@/common', () => ({
   ipcBridge: {
     fs: {

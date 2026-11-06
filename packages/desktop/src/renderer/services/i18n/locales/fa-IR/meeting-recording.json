@@ -1,5 +1,6 @@
 {
   "title": "Meeting Recording",
+  "subtitle": "ضبط، رونویسی و خلاصه‌سازی در یک جا — برای دیدن روی ردیف کلیک کنید",
   "startRecording": "Start recording",
   "stopRecording": "Stop",
   "recording": "Recording",
@@ -9,6 +10,26 @@
   "transcriptionFailed": "Transcription failed",
   "chunkLabel": "Chunk {{index}}",
   "deleteConfirm": "Delete this recording? This cannot be undone.",
+  "deleteConfirmTitle": "این ضبط حذف شود؟",
+  "tabAll": "همهٔ ضبط‌ها {{count}}",
+  "searchPlaceholder": "جست‌وجوی ضبط‌ها یا رونوشت‌ها",
+  "columnName": "نام",
+  "columnDuration": "مدت",
+  "columnCreatedAt": "زمان ضبط",
+  "columnStatus": "وضعیت",
+  "columnActions": "عملیات",
+  "duration": "{{minutes}}دقیقه {{seconds}}ثانیه",
+  "today": "امروز",
+  "yesterday": "دیروز",
+  "sourceSubtitle": "میکروفون و صدای سیستم",
+  "statusSummaryReady": "خلاصه آماده است",
+  "statusPending": "در انتظار رونویسی",
+  "statusFailed": "رونویسی ناموفق بود",
+  "viewAction": "مشاهده",
+  "moreActions": "عملیات بیشتر",
+  "deleteAction": "حذف",
+  "toggleChunks": "نمایش قطعه‌ها",
+  "footerStatus": "{{count}} ضبط · همگام‌شده",
   "transcriptModal": {
     "viewButtonAriaLabel": "View transcript summary",
     "disabledHint": "No transcriptions available yet",
@@ -16,7 +37,8 @@
     "retryTranscribeDisabledHint": "All chunks have been transcribed; nothing to retry",
     "cancelTranscribeConfirmTitle": "Stop transcription?",
     "cancelTranscribeConfirmOk": "Stop",
-    "cancelTranscribeConfirmCancel": "Keep going"
+    "cancelTranscribeConfirmCancel": "Keep going",
+    "cancelTranscribeConfirmDescription": "پس از توقف، قطعه‌های ناتمام رونویسی نمی‌شوند."
   },
   "errors": {
     "permissionDenied": "Microphone access denied",
@@ -26,5 +48,6 @@
     "transcribeFailed": "Transcription failed",
     "recordingUnsupported": "Recording is not supported in this environment",
     "unknown": "Unknown error"
-  }
+  },
+  "cancelTranscribeConfirmDescription": "پس از توقف، قطعه‌های ناتمام رونویسی نمی‌شوند."
 }

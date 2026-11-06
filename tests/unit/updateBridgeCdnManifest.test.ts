@@ -96,6 +96,17 @@ sha512: abc==
 releaseDate: '2026-07-31T14:45:19.381Z'
 `;
 
+const SAMPLE_YML_WITH_NOTES = `version: 2.1.45
+releaseNotes: |
+  ## 更新内容
+
+  - 修复 A
+files:
+  - url: AionUi-2.1.45-mac-arm64.dmg
+    size: 469685641
+releasePageUrl: 'https://example.com/releases/v2.1.45'
+`;
+
 describe('resolveCdnChannelFile', () => {
   it.each([
     ['win32', 'x64', 'latest.yml'],
@@ -119,6 +130,19 @@ describe('parseCdnManifest', () => {
     expect(manifest?.releaseDate).toBe('2026-07-31T14:45:19.381Z');
   });
 
+  it('parses manifest-embedded release notes and release page URL', () => {
+    const manifest = parseCdnManifest(SAMPLE_YML_WITH_NOTES);
+    expect(manifest).not.toBeNull();
+    expect(manifest?.releaseNotes).toContain('修复 A');
+    expect(manifest?.releasePageUrl).toBe('https://example.com/releases/v2.1.45');
+  });
+
+  it('accepts file entries without sha512/size', () => {
+    const manifest = parseCdnManifest('version: 1.0.0\nfiles:\n  - url: BadouWork-1.0.0-win-x64.exe\n');
+    expect(manifest).not.toBeNull();
+    expect(manifest?.files).toEqual([{ url: 'BadouWork-1.0.0-win-x64.exe', size: undefined }]);
+  });
+
   it('returns null for invalid yml or missing version/files', () => {
     expect(parseCdnManifest('not: [valid')).toBeNull();
     expect(parseCdnManifest('files: []')).toBeNull();
@@ -137,12 +161,20 @@ describe('mapCdnManifestToRelease', () => {
     expect(release?.htmlUrl).toBe('');
     expect(release?.publishedAt).toBe('2026-07-31T14:45:19.381Z');
     const dmg = release?.assets.find((a) => a.name.endsWith('.dmg'));
-    expect(dmg?.url).toBe('https://static.aionui.com/releases/2.1.45/AionUi-2.1.45-mac-arm64.dmg');
+    expect(dmg?.url).toBe('https://qw.badousoft.com/badouwork/statics/releases/2.1.45/AionUi-2.1.45-mac-arm64.dmg');
     expect(dmg?.fallbackUrl).toBe(
       'https://github.com/iOfficeAI/AionUi/releases/download/v2.1.45/AionUi-2.1.45-mac-arm64.dmg'
     );
     expect(dmg?.size).toBe(469685641);
     expect(release?.recommendedAsset).toBeDefined();
+  });
+
+  it('maps manifest release notes and release page URL into the release info', () => {
+    const manifest = parseCdnManifest(SAMPLE_YML_WITH_NOTES);
+    if (!manifest) throw new Error('manifest should parse');
+    const release = mapCdnManifestToRelease(manifest, 'zhaolinzhi/BadouWorkUi');
+    expect(release?.body).toContain('修复 A');
+    expect(release?.htmlUrl).toBe('https://example.com/releases/v2.1.45');
   });
 
   it('returns null when version is not valid semver', () => {

@@ -5,7 +5,7 @@
  */
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 
 /**
  * 记录每次 `t()` 请求的 key,断言"用的是哪个词条"时用得上。
@@ -75,13 +75,26 @@ const baseRecording: MeetingRecording = {
   ],
 };
 
+/** 展开分片明细 —— 默认是折叠的(设计稿的表格行不占空间)。 */
+const expandChunks = () => {
+  fireEvent.click(screen.getByTestId('toggle-chunks-button'));
+};
+
 describe('RecordingListItem (chunked)', () => {
   beforeEach(() => {
     tCalls.length = 0;
   });
 
+  it('默认折叠分片明细,点开后才渲染', () => {
+    render(<RecordingListItem recording={baseRecording} onDelete={() => {}} />);
+    expect(screen.queryByText('第一段')).toBeNull();
+    expandChunks();
+    expect(screen.getByText('第一段')).toBeTruthy();
+  });
+
   it('renders all chunks with appropriate status text', () => {
     render(<RecordingListItem recording={baseRecording} onDelete={() => {}} />);
+    expandChunks();
     expect(screen.getByText('第一段')).toBeTruthy();
     expect(screen.getByText('Transcription pending')).toBeTruthy();
     expect(screen.getByText('Transcription failed (HTTP 500)')).toBeTruthy();
@@ -89,23 +102,33 @@ describe('RecordingListItem (chunked)', () => {
 
   it('shows chunk label with 1-based index', () => {
     render(<RecordingListItem recording={baseRecording} onDelete={() => {}} />);
+    expandChunks();
     expect(screen.getByText('Chunk 1')).toBeTruthy();
     expect(screen.getByText('Chunk 3')).toBeTruthy();
     expect(tCalls).toContain('meeting-recording.chunkLabel');
   });
 
-  it('invokes onDelete when Popconfirm OK is clicked', async () => {
+  it('renders the design-mandated columns of the row', () => {
+    render(<RecordingListItem recording={baseRecording} onDelete={() => {}} />);
+    // 时长:90s → 1分30秒
+    expect(screen.getByText('1分30秒')).toBeTruthy();
+    // 状态:有已转写的片段 → 已生成纪要
+    expect(screen.getByText('已生成纪要')).toBeTruthy();
+  });
+
+  it('deletes the recording through the 更多操作 menu and the confirm modal', async () => {
     const onDelete = vi.fn();
     render(<RecordingListItem recording={baseRecording} onDelete={onDelete} />);
-    const trigger = screen.getByLabelText('Delete');
-    trigger.click();
-    const okButton = await screen.findByText('OK');
-    okButton.click();
+    fireEvent.click(screen.getByLabelText('更多操作'));
+    fireEvent.click(await screen.findByTestId('delete-recording-button'));
+    const okButton = await screen.findByText('Delete');
+    fireEvent.click(okButton);
     expect(onDelete).toHaveBeenCalledWith('rec-1');
   });
 
   it('toggles an inline <audio> for the clicked chunk', async () => {
     render(<RecordingListItem recording={baseRecording} onDelete={() => {}} />);
+    expandChunks();
     expect(screen.queryByTestId('audio-rec-1-0')).toBeNull();
     const toggle = screen.getAllByRole('button').find((b) => b.getAttribute('aria-controls') === 'audio-rec-1-0');
     expect(toggle).toBeTruthy();

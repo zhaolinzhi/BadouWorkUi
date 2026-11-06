@@ -28,6 +28,7 @@ import {
   ArrowLeft,
   Book,
   BookOne,
+  Check,
   Delete,
   Download,
   Down,
@@ -37,10 +38,13 @@ import {
   Microphone,
   MoreOne,
   Notes,
+  Play,
   Plus,
   Record,
   Refresh,
   Robot,
+  Search,
+  Star,
   Tips,
 } from '@icon-park/react';
 import type React from 'react';
@@ -70,6 +74,7 @@ export const ICON_PARK_MAP = {
   'arrow-left': ArrowLeft,
   book: Book,
   'book-one': BookOne,
+  check: Check,
   delete: Delete,
   download: Download,
   down: Down,
@@ -77,9 +82,12 @@ export const ICON_PARK_MAP = {
   'folder-open': FolderOpen,
   info: Info,
   'more-one': MoreOne,
+  play: Play,
   plus: Plus,
   refresh: Refresh,
   robot: Robot,
+  search: Search,
+  star: Star,
   tips: Tips,
 
   // —— 产品语义别名 ——

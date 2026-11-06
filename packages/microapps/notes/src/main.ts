@@ -1,6 +1,8 @@
 import React from 'react';
+import { setI18n } from 'react-i18next';
 import { App } from './App';
 import {
+  adoptShellI18n,
   applyStandaloneTheme,
   clearActiveProps,
   clearAppLocalStorage,
@@ -40,7 +42,16 @@ const renderer = createMicroAppRenderer({
 });
 
 export async function bootstrap() {
-  // 一次性初始化(预加载、注册全局事件等)
+  /*
+   * 接管 shell 的 i18next 实例。
+   *
+   * 子应用打包了自己的 `react-i18next`,而 i18next 实例是模块级单例 ——
+   * shell 的 init 只作用在它自己那份上,子应用这份永远是未初始化状态,
+   * `t(key, { defaultValue })` 会一直吐英文兜底文案(而且**不插值**,
+   * `{{count}}` 会原样露在界面上)。复用实例后词条、插值与语言切换
+   * 都由 shell 单点维护。knowledge-base 早已这么接。
+   */
+  adoptShellI18n(setI18n);
 }
 
 export async function mount(props: RenderProps) {

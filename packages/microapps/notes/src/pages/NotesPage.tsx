@@ -11,19 +11,17 @@ import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../AppContext';
 import { useNotebookList } from '../hooks/useNotebookList';
 import { useNotesEditor } from '../hooks/useNotesEditor';
-import NotesSidebar from '../components/NotesSidebar';
+import NotesListPanel from '../components/NotesListPanel';
 import NotesHint from '../components/NotesHint';
 import StandaloneMockNotice from '../components/StandaloneMockNotice';
 import VditorEditor from '../components/VditorEditor';
 import styles from './NotesPage.module.css';
 
-type DeleteTarget = { type: 'notebook' | 'note'; id: string };
-
 const NotesPage: React.FC = () => {
   const { t } = useTranslation();
   const ctx = useAppContext();
   const [clearModalVisible, setClearModalVisible] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
+  const [deleteNoteId, setDeleteNoteId] = useState<string | null>(null);
 
   const list = useNotebookList();
   const editor = useNotesEditor({
@@ -65,33 +63,49 @@ const NotesPage: React.FC = () => {
     setClearModalVisible(false);
   }, [activeNote, list]);
 
-  const requestDeleteNotebook = useCallback((id: string) => setDeleteTarget({ type: 'notebook', id }), []);
+  /**
+   * 新建笔记 —— 界面上没有笔记本层级了,笔记统一落到第一个笔记本;
+   * 一个笔记本都没有时先建一个默认笔记本,让笔记有落点。
+   */
+  const handleCreateNote = useCallback(async () => {
+    const title = t('settings.notesUntitled', { defaultValue: 'Untitled note' });
+    try {
+      const notebookId = list.notebooks[0]?.id;
+      if (!notebookId) {
+        const notebook = await list.createNotebook(t('settings.notesDefaultNotebook', { defaultValue: 'My notes' }));
+        const created = await list.createNote(notebook.id, title);
+        editor.selectNote(created.id);
+        return;
+      }
+      const created = await list.createNote(notebookId, title);
+      editor.selectNote(created.id);
+    } catch (error) {
+      console.error('[NotesPage] create note failed', error);
+    }
+  }, [editor, list, t]);
+
   const requestDeleteNote = useCallback(
     (id: string) => {
       if (activeNote?.id === id) editor.deselectNote();
-      setDeleteTarget({ type: 'note', id });
+      setDeleteNoteId(id);
     },
     [activeNote, editor]
   );
 
   const handleDeleteConfirm = useCallback(() => {
-    if (!deleteTarget) return;
-    if (deleteTarget.type === 'notebook') {
-      void list.deleteNotebook(deleteTarget.id);
-    } else {
-      void list.deleteNote(deleteTarget.id);
-    }
-    setDeleteTarget(null);
-  }, [deleteTarget, list]);
+    if (!deleteNoteId) return;
+    void list.deleteNote(deleteNoteId);
+    setDeleteNoteId(null);
+  }, [deleteNoteId, list]);
 
-  const handleDeleteCancel = useCallback(() => setDeleteTarget(null), []);
+  const handleDeleteCancel = useCallback(() => setDeleteNoteId(null), []);
 
   return (
     /*
      * 根节点是**列**:最上面是独立运行模式的「演示数据」提示条(被 shell 托管时
-     * 它返回 null,不占位),下面一行才是「侧栏 + 编辑器」。
+     * 它返回 null,不占位),下面一行才是「列表 + 编辑器」。
      *
-     * 高度链:外层 h-full → 行 flex-1 + min-h-0 → 侧栏 height:100% / 编辑器
+     * 高度链:外层 h-full → 行 flex-1 + min-h-0 → 列表面板 height:100% / 编辑器
      * flex-1。少任何一环,子应用都会退化成内容高度(下方留白)。
      *
      * loading / error 交给共享层的 `AsyncBoundary` 渲染 —— 它固定「loading >
@@ -106,15 +120,13 @@ const NotesPage: React.FC = () => {
       <div className='flex h-full min-h-0 flex-col overflow-hidden bg-transparent'>
         <StandaloneMockNotice />
         <div className='flex min-h-0 flex-1 overflow-hidden'>
-          <NotesSidebar
-            notebooks={list.notebooks}
+          <NotesListPanel
             notes={list.notes}
+            notebooks={list.notebooks}
             activeNoteId={editor.activeNoteId}
             onSelectNote={editor.selectNote}
-            onCreateNotebook={list.createNotebook}
-            onRenameNotebook={list.renameNotebook}
-            onDeleteNotebook={requestDeleteNotebook}
-            onCreateNote={list.createNote}
+            onCreateNote={() => void handleCreateNote()}
+            onToggleStar={(id) => void list.toggleNoteStar(id)}
             onRenameNote={list.renameNote}
             onDeleteNote={requestDeleteNote}
           />
@@ -188,19 +200,11 @@ const NotesPage: React.FC = () => {
             onOk={handleClearConfirm}
           />
           <ConfirmModal
-            visible={deleteTarget !== null}
-            title={
-              deleteTarget?.type === 'notebook'
-                ? t('settings.notesDeleteNotebook', { defaultValue: 'Delete Notebook' })
-                : t('settings.notesDeleteNote', { defaultValue: 'Delete Note' })
-            }
-            description={
-              deleteTarget?.type === 'notebook'
-                ? t('settings.notesDeleteNotebookConfirm', {
-                    defaultValue: 'Are you sure you want to delete this notebook and all its notes?',
-                  })
-                : t('settings.notesDeleteNoteConfirm', { defaultValue: 'Are you sure you want to delete this note?' })
-            }
+            visible={deleteNoteId !== null}
+            title={t('settings.notesDeleteNote', { defaultValue: 'Delete Note' })}
+            description={t('settings.notesDeleteNoteConfirm', {
+              defaultValue: 'Are you sure you want to delete this note?',
+            })}
             okText={t('common.delete', { defaultValue: 'Delete' })}
             cancelText={t('common.cancel', { defaultValue: 'Cancel' })}
             danger

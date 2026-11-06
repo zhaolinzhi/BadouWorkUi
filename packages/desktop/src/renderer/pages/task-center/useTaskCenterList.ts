@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useAuth } from '@/renderer/hooks/context/AuthContext';
 import { TASK_CENTER_DEFAULT_PER_PAGE_SIZE, TASK_CENTER_TIMEOUT_MS, buildTaskCenterListUrl } from '@/renderer/api';
 
 export interface TaskCenterRow {
@@ -117,7 +116,6 @@ export const useTaskCenterList = (token: string): UseTaskCenterListResult => {
   const [debouncedKeyword, setDebouncedKeyword] = useState('');
   const [pageNo, setPageNo] = useState(1);
   const [perPageSize, setPerPageSize] = useState(TASK_CENTER_DEFAULT_PER_PAGE_SIZE);
-  const { notifyTokenExpired } = useAuth();
 
   const setKeyword = useCallback((v: string) => {
     setKeywordState(v);
@@ -184,12 +182,14 @@ export const useTaskCenterList = (token: string): UseTaskCenterListResult => {
 
         const text = await res.text();
         if (text.length === 0) {
+          // PM 中心在鉴权通过但查不到数据时会返回 200 + 空 body,这与"登录过期"
+          // 不是同一回事。空 body 一律按"没有数据"处理,返回空列表即可,不要
+          // 触发 notifyTokenExpired 把用户踢下线。
           if (mode === 'replace') {
             setItems([]);
             setTotal(0);
           }
-          setError('Empty response from PM center (token may be expired)');
-          notifyTokenExpired('task-center');
+          setError(null);
           return;
         }
 
@@ -228,7 +228,7 @@ export const useTaskCenterList = (token: string): UseTaskCenterListResult => {
         setLoading(false);
       }
     },
-    [token, notifyTokenExpired, debouncedKeyword, pageNo, perPageSize]
+    [token, debouncedKeyword, pageNo, perPageSize]
   );
 
   // The auto effect below refetches when filters/pageNo change. loadMore

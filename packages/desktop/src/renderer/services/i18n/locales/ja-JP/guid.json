@@ -8,6 +8,7 @@
   "selectAssistantHint": "アシスタントを選択してタスクを開始",
   "workspace": {
     "workInProject": "プロジェクトで作業",
+    "selectProject": "プロジェクトを選択",
     "optional": "任意",
     "clearWorkspace": "クリア",
     "specifyWorkspace": "プロジェクトフォルダを選択",
