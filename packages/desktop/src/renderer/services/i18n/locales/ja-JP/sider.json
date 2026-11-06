@@ -1,0 +1,18 @@
+{
+  "nav": {
+    "meetingRecordingShort": "録音",
+    "taskCenterShort": "タスク",
+    "scheduledShort": "定期",
+    "appMarketShort": "アプリ",
+    "ariaLabel": "メインナビゲーション"
+  },
+  "appMarket": {
+    "title": "アプリマーケット",
+    "comingSoon": "アプリマーケットは近日公開予定です。"
+  },
+  "account": {
+    "menuLabel": "アカウント",
+    "openMenu": "アカウントメニューを開く",
+    "appearance": "外観"
+  }
+}

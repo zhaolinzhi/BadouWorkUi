@@ -1,0 +1,234 @@
+/**
+ * 录音列表页的样式 —— 对齐设计稿 BadouWork-Desktop-Handoff 的
+ * `.rec-page` / `.rec-heading` / `.rec-list-tools` / `.rec-list-footer`。
+ *
+ * 设计稿的关键几何:
+ *   .rec-heading        24px 内边距,标题 20px,右侧按钮组
+ *   .rec-list-content   0 24px 内边距,内部可滚动
+ *   .rec-list-tools     36px 高,左侧 tab、右侧 260px 搜索框
+ *   .rec-search         34px 高、8px 圆角、浅灰底
+ *   .rec-list-footer    44px 高,底部状态行
+ */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  min-height: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+  /* 设计稿里 `.rec-page` 本身不带底色 —— 内容面板是白的,灰底只用在
+     表头、搜索框与行 hover 上。 */
+  background-color: var(--rec-surface);
+  /*
+   * 表格列宽要跟着容器宽度变。
+   *
+   * 设计稿的列宽(`minmax(0,1fr) 146px 226px 206px 148px`)是按 1440 宽的
+   * 窗口给的,固定列合计 726px。窗口一窄,固定列先把空间吃光,`1fr` 的
+   * 名称列会被压成 0 —— 表头的「录音名称」于是竖着排成一行,行里的名称
+   * 也会被挤出格子。
+   *
+   * 这里把 `.page` 设成容器查询的容器,按**内容区**宽度(而不是窗口宽度)
+   * 切换列宽,断点与设计稿的 `@container app-window` 对齐:
+   * 窗口 1440 → 内容区 ≈1200,窗口 1100 → 内容区 ≈880。
+   */
+  container-type: inline-size;
+  container-name: rec-list;
+}
+
+/* 页头:标题 + 副标题在左,操作按钮在右 */
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 24px;
+  flex-shrink: 0;
+}
+
+.headingCopy {
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 28px;
+  color: var(--rec-heading);
+}
+
+.subtitle {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 22px;
+  color: var(--rec-muted);
+}
+
+.headingActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+/* 列表区:工具行 + 表格,可滚动 */
+.content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  padding: 0 24px;
+  overflow: auto;
+  /*
+   * 表格的列宽模板。表头(`.head`)与行(`.row`)在两个不同的 CSS Module 里,
+   * 用同一个自定义属性保证两边永远对齐。
+   *
+   * 列间距同理:设计稿是 `gap:0`,但设计稿里的时间文案比我们的短
+   * (我们是「10月30日 14:36」),紧贴着下一列会糊成一团 —— 所以留一档间距,
+   * 宽度还是从 `1fr` 那列里出,不影响固定列的位置。
+   */
+  --rec-cols: minmax(0, 1fr) 146px 226px 206px 148px;
+  --rec-col-gap: 16px;
+}
+
+/* 内容区比设计稿的 1440 窗口窄 —— 换成设计稿在 ≤1439px 窗口下的列宽 */
+@container rec-list (max-width: 1200px) {
+  .content {
+    --rec-cols: minmax(0, 1fr) 90px 124px 130px 106px;
+    --rec-col-gap: 12px;
+  }
+}
+
+/* 更窄 —— 设计稿在 ≤1100px 窗口下的列宽 */
+@container rec-list (max-width: 880px) {
+  .content {
+    /* 操作列比设计稿多留一点:里面是「查看」+「···」两个按钮,
+       设计稿的 78px 减去行内边距放不下,会压到状态列上。 */
+    --rec-cols: minmax(0, 1fr) 80px 110px 104px 112px;
+    --rec-col-gap: 8px;
+  }
+}
+
+.tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  height: 36px;
+  margin-bottom: 20px;
+  flex-shrink: 0;
+}
+
+.tabs {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.tab {
+  height: 36px !important;
+  padding: 0 8px !important;
+  border-radius: 6px !important;
+  background: transparent !important;
+  color: var(--rec-brand) !important;
+  font-size: 14px !important;
+  line-height: 36px !important;
+}
+
+.tab:hover {
+  background: var(--rec-app-bg) !important;
+}
+
+/* 搜索框:260px 宽、34px 高、8px 圆角、浅灰底 */
+.search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  width: 260px;
+  height: 34px;
+  padding: 0 12px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  background: var(--rec-app-bg);
+}
+
+.searchIcon {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  color: var(--rec-muted);
+}
+
+/*
+ * Arco 的内部结构(组 → inner-wrapper → input)每一层都自带内边距与边框。
+ * Arco 会把 `className` 同时挂在 group-wrapper 和 inner-wrapper 上,所以这些
+ * 覆盖一律挂在 `.search` 下面,靠它做祖先命中整条链。
+ *
+ * `background` / `border` / `box-shadow` 一律带 `!important`:shell 的
+ * `layout.css` 里有 `.arco-input, .arco-input-inner-wrapper { background-color:
+ * var(--fill-0) !important }`,它给输入区刷了一层白底 —— 不带 `!important`
+ * 就压不过,浅灰胶囊里会露出一圈白色矩形(用户截图就是这个现象)。
+ */
+.search :global(.arco-input-group-wrapper) {
+  height: 100%;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.search :global(.arco-input-group),
+.search :global(.arco-input-inner-wrapper) {
+  height: 100%;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.search :global(.arco-input) {
+  height: 100%;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  color: var(--rec-heading);
+  font-size: 12px;
+  line-height: 20px;
+}
+
+/* 聚焦态:Arco 会给 inner-wrapper 加品牌色描边与光晕,搜索框里不要这圈描边 */
+.search :global(.arco-input-inner-wrapper-focus),
+.search :global(.arco-input:focus) {
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.search :global(.arco-input::placeholder) {
+  color: var(--rec-placeholder);
+}
+
+/* 底部状态行:「N 条录音 · 已同步」 */
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 24px 8px;
+  flex-shrink: 0;
+  font-size: 12px;
+  line-height: 22px;
+  color: var(--rec-muted);
+}
+
+.footerIcon {
+  color: var(--rec-muted);
+}

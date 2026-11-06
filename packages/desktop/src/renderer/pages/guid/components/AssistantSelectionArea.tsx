@@ -6,7 +6,7 @@
 
 import styles from '../index.module.css';
 import { assistantRuntimeKey, type Assistant } from '@/common/types/agent/assistantTypes';
-import { Down, Robot } from '@icon-park/react';
+import { Robot } from '@icon-park/react';
 import { Button } from '@arco-design/web-react';
 import { AionSearchInput } from '@/renderer/components/base';
 import { useAssistantOrder } from '@/renderer/hooks/assistant/useAssistantOrder';
@@ -14,8 +14,11 @@ import { useManagedAgentRuntimeCatalog } from '@/renderer/hooks/agent/useManaged
 import { managedAgentSearchText } from '@/renderer/utils/model/agentTypes';
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { resolveAssistantAvatar } from '@/renderer/utils/model/assistantAvatar';
+import ThumbnailImage from '@/renderer/components/media/ThumbnailImage';
 import { selectableAssistants } from '@/renderer/utils/model/assistantSelection';
 import { useTranslation } from 'react-i18next';
+import { AppIcon } from '@aionui/ui';
+import { iconColors } from '@/renderer/styles/colors';
 
 /**
  * Mirrors the Agent settings search: matches the assistant's own name and
@@ -233,22 +236,19 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
         data-assistant-backend={assistantRuntimeKey(assistant)}
         data-assistant-selected={isSelected ? 'true' : 'false'}
         type='text'
-        className={`!inline-flex !min-w-0 !h-auto !items-center !gap-6px !rounded-999px !border-none !px-12px !py-8px !text-13px transition-all ${
-          fullWidth ? '!w-full !justify-start' : ''
-        } ${
+        className={`${styles.assistantPill} ${fullWidth ? '!w-full !justify-start' : ''} ${
           isSelected
-            ? 'font-600 text-t-primary shadow-sm'
+            ? `font-600 text-t-primary ${styles.assistantPillSelected}`
             : `text-t-secondary opacity-75 hover:opacity-100 ${styles.assistantSelectorInactive}`
         }`}
-        style={isSelected ? { background: 'var(--bg-base, #fff)' } : { background: 'transparent' }}
         onClick={() => {
           onSelectAssistant(assistant.id);
           setMoreVisible(false);
         }}
       >
-        <span className='inline-flex h-20px w-20px items-center justify-center overflow-hidden rounded-999px bg-fill-2'>
+        <span className='inline-flex h-20px w-20px items-center justify-center overflow-hidden rounded-999px'>
           {avatar.kind === 'image' ? (
-            <img src={avatar.value} alt='' className='h-full w-full object-contain' />
+            <ThumbnailImage src={avatar.value} size={20} alt='' className='h-full w-full object-contain' />
           ) : avatar.kind === 'emoji' ? (
             <span className={styles.assistantCardEmoji}>{avatar.value}</span>
           ) : (
@@ -293,26 +293,25 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
   );
 
   return (
-    <div ref={containerRef} className='mt-18px mb-16px w-full'>
+    <div ref={containerRef} className={`${styles.assistantSwitchRow} w-full`}>
       <div className='flex w-full justify-center'>
         <div
           ref={barRef}
-          className='relative inline-flex max-w-full items-center rounded-999px px-6px py-6px'
-          style={{ background: 'var(--color-guid-agent-bar, var(--aou-2))' }}
+          className={styles.assistantSwitchBar}
           onMouseEnter={hasOverflow ? handleBarMouseEnter : undefined}
           onMouseLeave={hasOverflow ? handleBarMouseLeave : undefined}
         >
-          <div className='flex min-w-0 max-w-full items-center gap-6px'>
+          <div className='flex min-w-0 max-w-full items-center gap-8px'>
             {visibleAssistants.map((assistant) => renderAssistantPill(assistant, `preset-pill-${assistant.id}`))}
             {hasOverflow ? (
               <Button
                 data-testid='assistant-more-btn'
                 type='text'
-                className={`!ml-6px !inline-flex !h-34px !shrink-0 !items-center !gap-4px !rounded-999px !border-none !px-12px !py-8px !text-13px !text-t-secondary opacity-75 transition-opacity hover:opacity-100 ${styles.assistantSelectorInactive}`}
+                className={`${styles.assistantPill} !ml-6px !shrink-0 text-t-secondary opacity-75 transition-opacity hover:opacity-100 ${styles.assistantSelectorInactive}`}
                 onClick={() => setMoreVisible((visible) => !visible)}
               >
                 <span>{t('common.more', { defaultValue: 'More' })}</span>
-                <Down theme='outline' size={14} />
+                <AppIcon name='chevron-down' size={12} fill={iconColors.secondary} className='shrink-0' />
               </Button>
             ) : null}
           </div>

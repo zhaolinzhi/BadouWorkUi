@@ -70,6 +70,62 @@
   --fill-white-to-black: #ffffff; /* 白到黑填充色 */
   --border-special: var(--bg-3); /* 特殊边框色 */
   --color-guid-agent-bar: #eaecf7; /* 首页 Agent 选择条背景 - 亮色 */
+
+  /* 侧栏「新会话」主入口 —— 设计稿的浅蓝描边磁贴 */
+  --sider-nav-accent-border: #b4d7ff; /* 主入口描边色 */
+  --sider-nav-accent-bg: #ffffff; /* 主入口磁贴底色 */
+
+  /* 侧栏底部账号区 —— 设计稿的 `.account-anchor` / `.account-button` */
+  --sider-account-border: #e6ebf3; /* 账号区分隔线 */
+  --sider-account-bg: #f6f7f8; /* 账号按钮底色 */
+  --sider-account-avatar-bg: #2d6afb; /* 用户头像底色(设计稿占位:首字母圆底) */
+
+  /* 侧栏品牌文字标志 —— 设计稿的深海军蓝 */
+  --sider-brand-color: #083575;
+
+  /* 首页对话栏 —— 设计稿 BadouWork-Desktop-Handoff 的输入区 */
+  --guid-composer-bg: #ffffff; /* 输入卡底色 */
+  --guid-composer-border: #e8ebf2; /* 输入卡描边 */
+  --guid-composer-border-focus: #8fb9ff; /* 聚焦态描边 */
+  --guid-composer-shadow: 0 2px 8px rgba(246, 249, 255, 1); /* 输入卡投影 */
+  --guid-composer-shadow-focus: 0 2px 12px rgba(246, 249, 255, 1), 0 0 0 2px rgba(39, 100, 255, 0.04);
+  --guid-tray-bg: #f4f4f4; /* 项目托盘底色 */
+  --guid-tray-shadow: 0 2px 16px rgba(246, 249, 255, 1);
+  --guid-add-btn-bg: #edeff1; /* 加号按钮底色 */
+  --guid-add-btn-hover-bg: #e4e7ea;
+  --guid-selector-hover: #f5f6f8; /* 模型 / 授权选择器悬停底色 */
+  --guid-selector-active: #f0f1f3; /* 模型 / 授权选择器按下底色 */
+  --guid-send-bg: linear-gradient(140deg, #54a1ff, #2764ff); /* 发送按钮渐变 */
+  --guid-hero-text: #0d0d0d; /* 首页标题 / 建议指令标题 */
+  --guid-assistant-bar-bg: #f1f4f8; /* 助手切换条底色 */
+  --guid-assistant-selected-bg: #ffffff; /* 助手切换条选中底色 */
+  --guid-assistant-selected-border: #b4d7ff; /* 助手切换条选中描边 */
+  --guid-placeholder: #b4bece; /* 输入框占位符 */
+  --guid-suggestion-text: rgba(39, 49, 58, 0.7); /* 建议指令文字 */
+  --guid-project-label: #6f7680; /* 项目托盘文案 */
+
+  /* 笔记模块 —— 设计稿 BadouWork-Desktop-Handoff 的笔记页 */
+  --notes-panel-bg: #ffffff; /* 笔记列表面板底色 */
+  --notes-panel-border: #e8ebf2; /* 面板分隔线 / 列表边框 */
+  --notes-search-bg: #f5f7fa; /* 搜索框底色 */
+  --notes-selected-bg: #edf4ff; /* 选中条目 / 选中筛选胶囊底色 */
+  --notes-brand: #2764ff; /* 品牌蓝(按钮文字、选中态文字) */
+  --notes-brand-border: #b4d7ff; /* 描边按钮的浅蓝描边 */
+  --notes-focus-ring: #8fb9ff; /* 搜索框聚焦描边 */
+  --notes-muted: #6b7280; /* 次要文字(摘要、元信息、状态) */
+  --notes-heading: #0d0d0d; /* 面板标题 */
+
+  /* 录音模块 —— 设计稿 BadouWork-Desktop-Handoff 的录音列表页 */
+  --rec-app-bg: #f5f7fa; /* 页面底色 / 表头与搜索框底色 */
+  --rec-surface: #ffffff; /* 卡片、按钮底色 */
+  --rec-border: #e8ebf2; /* 表格分隔线 / 描边 */
+  --rec-brand: #2764ff; /* 品牌蓝(主按钮、选中态文字) */
+  --rec-brand-hover: #2058ed; /* 主按钮悬停 */
+  --rec-brand-soft: #ecf3ff; /* 浅蓝底(播放方块、状态胶囊) */
+  --rec-brand-border: #b4d7ff; /* 浅蓝描边 */
+  --rec-muted: #6b7280; /* 次要文字(表头、副标题、状态) */
+  --rec-placeholder: #b4bece; /* 占位符文字 */
+  --rec-heading: #0d0d0d; /* 页面标题 */
 }
 
 /* Dark Mode */
@@ -141,4 +197,60 @@
   --fill-0: rgba(255, 255, 255, 0.08); /* 填充色 0 - 暗色模式下为半透明白色 */
   --fill-white-to-black: #000000; /* 白到黑填充色（暗色模式下为黑色） */
   --border-special: #60677e; /* 特殊边框色 */
+
+  /* 侧栏「新会话」主入口 —— 设计稿的浅蓝描边磁贴（暗色下描边不变，底色加深） */
+  --sider-nav-accent-border: #b4d7ff;
+  --sider-nav-accent-bg: #3b4659;
+
+  /* 侧栏底部账号区（暗色下分隔线加深、按钮底色用设计稿的深灰） */
+  --sider-account-border: #3e4754;
+  --sider-account-bg: #303740;
+  --sider-account-avatar-bg: #2d6afb; /* 头像底色不随主题变 —— 设计稿给的品牌蓝 */
+
+  /* 品牌字标（暗色下用提亮后的品牌蓝，否则深海军蓝在深底上几乎看不见） */
+  --sider-brand-color: #7ea6e0;
+
+  /* 首页对话栏（暗色沿用设计稿 dark.css 的灰阶） */
+  --guid-composer-bg: #2b2b2b;
+  --guid-composer-border: #3d3d3d;
+  --guid-composer-border-focus: #7396d6;
+  --guid-composer-shadow: 0 4px 16px rgba(0, 0, 0, 0.13);
+  --guid-composer-shadow-focus: 0 4px 16px rgba(0, 0, 0, 0.13), 0 0 0 1px rgba(89, 117, 169, 0.25);
+  --guid-tray-bg: #262626;
+  --guid-tray-shadow: 0 6px 20px rgba(0, 0, 0, 0.13);
+  --guid-add-btn-bg: #333333;
+  --guid-add-btn-hover-bg: #3a3a3a;
+  --guid-selector-hover: #333333;
+  --guid-selector-active: #3a3a3a;
+  --guid-send-bg: linear-gradient(140deg, #5b91ff, #4070ed);
+  --guid-hero-text: #f1f1f1;
+  --guid-assistant-bar-bg: #292929;
+  --guid-assistant-selected-bg: #373737;
+  --guid-assistant-selected-border: #536c91;
+  --guid-placeholder: #999999;
+  --guid-suggestion-text: #9e9e9e;
+  --guid-project-label: #a8a8a8;
+
+  /* 笔记模块（暗色沿用设计稿 dark.css 的深蓝灰选中底色） */
+  --notes-panel-bg: #0e0e0e;
+  --notes-panel-border: #333333;
+  --notes-search-bg: #1a1a1a;
+  --notes-selected-bg: #293953;
+  --notes-brand: #7ea6e0;
+  --notes-brand-border: #536c91;
+  --notes-focus-ring: #7396d6;
+  --notes-muted: #a8a8a8;
+  --notes-heading: #f1f1f1;
+
+  /* 录音模块（暗色沿用设计稿 dark.css 的深蓝灰浅蓝底） */
+  --rec-app-bg: #1a1a1a;
+  --rec-surface: #0e0e0e;
+  --rec-border: #333333;
+  --rec-brand: #7ea6e0;
+  --rec-brand-hover: #527ff0;
+  --rec-brand-soft: #293953;
+  --rec-brand-border: #536c91;
+  --rec-muted: #a8a8a8;
+  --rec-placeholder: #6b7280;
+  --rec-heading: #f1f1f1;
 }

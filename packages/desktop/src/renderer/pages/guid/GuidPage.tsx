@@ -34,7 +34,7 @@ import { BoundBadge } from './components/BoundBadge';
 import { useTypewriterPlaceholder } from './hooks/useTypewriterPlaceholder';
 import { ensureBackendMcpCatalog } from '@/renderer/hooks/mcp/catalog';
 import { resolveGuidAssistantDefaults } from './utils/assistantDefaults';
-import { useKnowledgeBaseList } from '@/renderer/hooks/knowledge-base';
+import { useKnowledgeBaseList } from '@/renderer/hooks/kb-chat/useKnowledgeBaseList';
 import SpeechInputButton from '@/renderer/components/chat/SpeechInputButton';
 import { chatFileRefPath, uploadFileRef } from '@/common/types/chatFile';
 import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
@@ -69,7 +69,7 @@ const GuidPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const guidContainerRef = useRef<HTMLDivElement>(null);
-  const { activeBorderColor, inactiveBorderColor, activeShadow } = useInputFocusRing();
+  const { inactiveBorderColor, activeShadow } = useInputFocusRing();
   const { user } = useAuth();
 
   const localeKey = resolveLocaleKey(i18n.language);
@@ -778,41 +778,40 @@ const GuidPage: React.FC = () => {
             {/*  </button>*/}
             {/*</div>*/}
 
-            <div className={styles.heroHeader}>
-              <p className='text-2xl font-semibold mb-0 text-0 text-center'>
-                {t('conversation.welcome.title', { name: user?.username || '' })}
-              </p>
+            {/* 首页顶部区块：标题 + 助手切换条（设计稿 `.hero`） */}
+            <div className={styles.hero}>
+              <h1 className={styles.heroTitle}>{t('conversation.welcome.title', { name: user?.username || '' })}</h1>
+
+              {presets.status === 'bound' && presets.binding && (
+                <BoundBadge binding={presets.binding} assistants={assistantOptions} onRebind={presets.rebind} />
+              )}
+
+              {projectId && requireBinding && presets.userDismissed && !presets.binding && (
+                <button
+                  type='button'
+                  className='bound-badge'
+                  data-testid='reopen-binding-button'
+                  onClick={presets.openModal}
+                  style={{
+                    background: 'transparent',
+                    border: '1px dashed var(--color-border-2, #c9cdd4)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <span className='bound-badge__label'>{t('guid.projectBinding.unboundHint')}</span>
+                  <span style={{ marginLeft: 8, color: 'var(--color-primary, #165dff)' }}>
+                    {t('guid.projectBinding.rebind')}
+                  </span>
+                </button>
+              )}
+
+              <AssistantSelectionArea
+                selectedAssistantId={agentSelection.selectedAssistantId}
+                assistants={agentSelection.assistants}
+                localeKey={localeKey}
+                onSelectAssistant={handleSelectAssistant}
+              />
             </div>
-
-            {presets.status === 'bound' && presets.binding && (
-              <BoundBadge binding={presets.binding} assistants={assistantOptions} onRebind={presets.rebind} />
-            )}
-
-            {projectId && requireBinding && presets.userDismissed && !presets.binding && (
-              <button
-                type='button'
-                className='bound-badge'
-                data-testid='reopen-binding-button'
-                onClick={presets.openModal}
-                style={{
-                  background: 'transparent',
-                  border: '1px dashed var(--color-border-2, #c9cdd4)',
-                  cursor: 'pointer',
-                }}
-              >
-                <span className='bound-badge__label'>{t('guid.projectBinding.unboundHint')}</span>
-                <span style={{ marginLeft: 8, color: 'var(--color-primary, #165dff)' }}>
-                  {t('guid.projectBinding.rebind')}
-                </span>
-              </button>
-            )}
-
-            <AssistantSelectionArea
-              selectedAssistantId={agentSelection.selectedAssistantId}
-              assistants={agentSelection.assistants}
-              localeKey={localeKey}
-              onSelectAssistant={handleSelectAssistant}
-            />
 
             <GuidInputCard
               focusRequestKey={navState?.focusPrefill && navState.prefillPrompt ? location.key : undefined}
@@ -823,11 +822,7 @@ const GuidPage: React.FC = () => {
               onFocus={guidInput.handleTextareaFocus}
               onBlur={guidInput.handleTextareaBlur}
               placeholder={typewriterPlaceholder || t('conversation.welcome.placeholder')}
-              isInputActive={guidInput.isInputFocused}
               isFileDragging={guidInput.isFileDragging}
-              activeBorderColor={activeBorderColor}
-              inactiveBorderColor={inactiveBorderColor}
-              activeShadow={activeShadow}
               dragHandlers={guidInput.dragHandlers}
               files={displayFilePaths}
               onRemoveFile={(path) => {
@@ -849,30 +844,28 @@ const GuidPage: React.FC = () => {
             />
 
             {selectedAssistantPrompts.length > 0 ? (
-              <div className='mt-18px w-full animate-fade-in pl-20px'>
-                <div className={`${styles.assistantPromptHint} mb-10px text-left`}>
+              <div className={`${styles.suggestions} animate-fade-in`}>
+                <p className={styles.assistantPromptHint}>
                   {t('guid.promptExamplesHint', { defaultValue: 'Try these example prompts:' })}
-                </div>
-                <div className='flex flex-col gap-9px'>
-                  {selectedAssistantPrompts.map((prompt, index) => (
-                    <Button
-                      key={`${index}-${prompt}`}
-                      type='text'
-                      className='group !h-auto !w-full !border-none !bg-transparent !px-0 !py-6px !text-left !text-12.5px !text-t-secondary !whitespace-normal !break-words transition-colors hover:!bg-transparent hover:!text-t-primary'
-                      onClick={() => {
-                        guidInput.setInput(prompt);
-                        guidInput.handleTextareaFocus();
-                      }}
-                    >
-                      <span>{prompt}</span>
-                      <ArrowRightUp
-                        theme='outline'
-                        size='13'
-                        className='ml-6px inline-flex flex-shrink-0 align-[-1px] text-t-primary opacity-0 transition-opacity group-hover:opacity-100'
-                      />
-                    </Button>
-                  ))}
-                </div>
+                </p>
+                {selectedAssistantPrompts.map((prompt, index) => (
+                  <Button
+                    key={`${index}-${prompt}`}
+                    type='text'
+                    className={`group !h-auto !border-none !bg-transparent !px-0 !py-0 !text-left !whitespace-normal !break-words transition-colors hover:!bg-transparent ${styles.promptSuggestion}`}
+                    onClick={() => {
+                      guidInput.setInput(prompt);
+                      guidInput.handleTextareaFocus();
+                    }}
+                  >
+                    <span>{prompt}</span>
+                    <ArrowRightUp
+                      theme='outline'
+                      size='13'
+                      className='inline-flex flex-shrink-0 align-[-1px] text-t-primary opacity-0 transition-opacity group-hover:opacity-100'
+                    />
+                  </Button>
+                ))}
               </div>
             ) : null}
           </div>

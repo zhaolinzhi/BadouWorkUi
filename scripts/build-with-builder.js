@@ -14,6 +14,7 @@ const { execSync, spawnSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { computeMicroAppEnvFingerprint } = require('../packages/shared-scripts/src/micro-app-env.js');
 
 // DMG retry logic for macOS: detects DMG creation failures by checking artifacts
 // (.app exists but .dmg missing) and retries only the DMG step using
@@ -177,7 +178,11 @@ function walkFiles(dir, acc = []) {
   for (const entry of entries) {
     const fullPath = path.join(dir, entry.name);
     if (entry.isDirectory()) {
-      if (entry.name === 'node_modules' || entry.name === 'out' || entry.name === '.git') continue;
+      // `dist` is a build output directory: the micro apps write their Vite output to
+      // `packages/microapps/<name>/dist/`, and hashing those files would change the
+      // cache key on every build — the incremental cache could never hit again.
+      if (entry.name === 'node_modules' || entry.name === 'out' || entry.name === 'dist' || entry.name === '.git')
+        continue;
       walkFiles(fullPath, acc);
     } else if (entry.isFile()) {
       acc.push(fullPath);
@@ -225,6 +230,13 @@ function computeSourceHash() {
       hash.update(String(stat.mtimeMs));
     }
   }
+
+  // The renderer bundle also depends on inputs that live outside the source tree: the
+  // `.env` files Vite loads and the `VITE_*` overrides in the environment. Without them
+  // in the hash, switching between the bundled `app://microapps` base and a CDN base
+  // would silently reuse a renderer bundle built for the other one.
+  hash.update('micro-app-env:');
+  hash.update(computeMicroAppEnvFingerprint({ rootDir }));
 
   return hash.digest('hex');
 }
@@ -608,6 +620,8 @@ function cleanupWindowsPackOutput() {
 // Parse command line arguments
 const args = process.argv.slice(2);
 const archList = ['x64', 'arm64', 'ia32', 'armv7l'];
+const { resolveAutoArchArgs } = require('../packages/shared-scripts/src/resolve-auto-arch-args.js');
+const { assertNodeVersion } = require('../packages/shared-scripts/src/assert-node-version.js');
 
 // Check for special flags
 const skipVite = args.includes('--skip-vite');
@@ -701,7 +715,19 @@ if (archArgs.length > 1) {
     else if (builderArgs.includes('--win')) detectedPlatform = 'win';
 
     const configArch = detectedPlatform ? getTargetArchFromConfig(detectedPlatform) : null;
-    targetArch = configArch || buildMachineArch;
+    if (configArch) {
+      targetArch = configArch;
+    } else {
+      // electron-builder.yml 没写 arch: 时按本机能力选。关键约束是「本机必须跑得动目标
+      // 二进制」—— prepareAioncore 会 execFileSync 它来拉 managed-resources。
+      const autoArchArgs = resolveAutoArchArgs(detectedPlatform, buildMachineArch);
+      if (autoArchArgs.length > 1) {
+        multiArch = true;
+        archArgs.push(...autoArchArgs);
+      }
+      targetArch = autoArchArgs[0];
+      console.log(`🔨 Auto-selected architectures: ${autoArchArgs.join(', ')} (host ${buildMachineArch})`);
+    }
   }
 } else {
   // Explicit architecture or default to build machine
@@ -720,6 +746,10 @@ let restorePackageVersionOverride = () => {};
 let buildFailed = false;
 
 try {
+  // node 版本闸门。这个脚本跑在 PATH 上的 node 上(`bun run` 不会把 node 换成 bun),
+  // 版本过低会以极难排查的形式失败 —— 详见 assert-node-version.js 的注释。
+  assertNodeVersion();
+
   restorePackageVersionOverride = applyDebugAutoUpdateVersionOverride(packageJsonPath);
 
   // Generate release-notes.md for electron-builder's releaseInfo.releaseNotesFile.
@@ -740,7 +770,28 @@ try {
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n');
   }
 
+  // 1.5 Micro-app bundling: point the renderer at the assets we're about to embed.
+  //
+  // These two must land in process.env BEFORE electron-vite build, because that is what
+  // bakes import.meta.env into the renderer bundle. Vite gives pre-existing process env
+  // priority over .env files, so writing them here is what overrides the
+  // VITE_MICRO_APP_ENABLED=false placeholder in packages/desktop/.env.production.
+  //
+  // Step 2's cache key folds the effective env into its hash, so a cached renderer bundle
+  // is only reused when it was built with the same asset base.
+  const bundleMicroApps = process.env.MICRO_APP_BUNDLE === '1';
+  if (bundleMicroApps) {
+    console.log('🧩 Bundling micro apps into the installer (entry: app://microapps)');
+    process.env.VITE_MICRO_APP_ENABLED = 'true';
+    process.env.VITE_MICRO_APP_ASSET_BASE = 'app://microapps';
+  }
+
   // 2. Check if we can skip Vite build (incremental build)
+  //
+  // The cache key covers the micro-app env fingerprint (the .env files Vite loads plus the
+  // VITE_* overrides in the environment). A plain `bun run build` and a
+  // `bun run build:all` therefore hash differently — the renderer bundle carries the
+  // asset base — while a second run with the same env stays incremental.
   const skipViteBuild = shouldSkipViteBuild(skipVite, forceBuild);
 
   if (!skipViteBuild) {
@@ -786,23 +837,61 @@ try {
     throw new Error(`Vite build output is incomplete:\n${viteOutputValidation.problems.join('\n')}`);
   }
 
+  // 4.5 Build the micro apps and copy them next to the shell bundle.
+  //
+  // This MUST come after electron-vite build: that step empties out/, so copying any
+  // earlier would be undone. It must also come before electron-builder, which reads
+  // out/renderer/**/* per electron-builder.yml's files list.
+  if (bundleMicroApps) {
+    execSync(`node "${path.join(__dirname, 'build-micro-apps.mjs')}"`, {
+      stdio: 'inherit',
+      shell: process.platform === 'win32',
+    });
+  }
+
   // If --pack-only, skip electron-builder distributable creation
   if (packOnly) {
     console.log('✅ Package completed! (skipped distributable creation)');
     return;
   }
 
-  // 5. Prepare aioncore binary (for packaged runtime usage)
+  // 5. Prepare aioncore binaries (for packaged runtime usage)
+  //
+  // Every architecture being packaged needs its own prepared bundle. electron-builder.yml
+  // copies the WHOLE resources/bundled-aioncore directory into each installer via
+  // extraResources, so an arch we skipped here would ship with no backend at all — or with
+  // whatever stale remnant happened to be lying around.
+  //
+  // Prepare each arch we target. That set is safe to execute: resolveAutoArchArgs only ever
+  // emits architectures this host can run (Rosetta 2 covers x86_64 on Apple Silicon), which
+  // is the same constraint prepareAioncore's execFileSync imposes.
   const { prepareAioncore } = require('../packages/shared-scripts/src/prepare-aioncore.js');
+  const { pruneStaleAioncoreBundles } = require('../packages/shared-scripts/src/prune-stale-aioncore-bundles.js');
   const { resolveAioncoreVersion } = require('./resolveAioncoreVersion.js');
   const projectRoot = path.resolve(__dirname, '..');
   writeGeneratedSentryDsnInclude(projectRoot);
-  prepareAioncore({
-    projectRoot,
-    platform: process.platform,
-    arch: targetArch,
-    version: resolveAioncoreVersion(projectRoot),
-  });
+
+  const aioncoreArchs = multiArch ? archArgs : [targetArch];
+  const aioncoreVersion = resolveAioncoreVersion(projectRoot);
+  for (const arch of aioncoreArchs) {
+    prepareAioncore({
+      projectRoot,
+      platform: process.platform,
+      arch,
+      version: aioncoreVersion,
+    });
+  }
+
+  // Drop leftovers from earlier or failed builds so they cannot ride along in extraResources.
+  // A failed prepare stops before fetching managed resources, leaving a directory that exists
+  // but is missing manifest.json and managed-resources/ — the runtime can still select it.
+  const pruneResult = pruneStaleAioncoreBundles(
+    path.join(projectRoot, 'resources', 'bundled-aioncore'),
+    aioncoreArchs.map((arch) => `${process.platform}-${arch}`)
+  );
+  if (pruneResult.removed.length > 0) {
+    console.log(`🧹 Removed stale aioncore bundles not targeted by this build: ${pruneResult.removed.join(', ')}`);
+  }
 
   // 6. Prepare hub resources (index.json + extension zips for offline fallback)
   execSync('node scripts/prepareHubResources.js', { stdio: 'inherit', env: process.env });

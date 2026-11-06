@@ -1,0 +1,18 @@
+{
+  "nav": {
+    "meetingRecordingShort": "Record",
+    "taskCenterShort": "Tasks",
+    "scheduledShort": "Scheduled",
+    "appMarketShort": "Apps",
+    "ariaLabel": "Main navigation"
+  },
+  "appMarket": {
+    "title": "App Market",
+    "comingSoon": "The App Market is coming soon. Stay tuned."
+  },
+  "account": {
+    "menuLabel": "Account",
+    "openMenu": "Open account menu",
+    "appearance": "Appearance"
+  }
+}

@@ -11,7 +11,8 @@ import os from 'os';
 // already carry the magic prefix, so `repairWebmChunk` is a no-op
 // for chunk #0 and a header-prefix for later chunks).
 vi.mock('../../../packages/desktop/src/process/services/meetingRecording/sttClient', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../../packages/desktop/src/process/services/meetingRecording/sttClient')>();
+  const actual =
+    await importOriginal<typeof import('../../../packages/desktop/src/process/services/meetingRecording/sttClient')>();
   return {
     ...actual,
     transcribeFile: vi.fn(),

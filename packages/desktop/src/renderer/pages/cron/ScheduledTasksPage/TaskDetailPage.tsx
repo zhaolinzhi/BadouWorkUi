@@ -24,6 +24,7 @@ import { getActivityTime } from '@/renderer/utils/chat/timeline';
 import { mutate } from 'swr';
 import { getConversationRuntimeWorkspaceErrorMessage } from '@renderer/pages/conversation/utils/conversationCreateError';
 import { emitter } from '@/renderer/utils/emitter';
+import ThumbnailImage from '@/renderer/components/media/ThumbnailImage';
 
 const resolveTeamId = (conversation: TChatConversation): string | undefined => {
   const extra = conversation.extra as { team_id?: unknown; teamId?: unknown } | undefined;
@@ -505,8 +506,9 @@ const TaskDetailPage: React.FC = () => {
                 <h2 className='m-0 text-13px font-medium text-t-secondary'>{t('cron.detail.assistant')}</h2>
                 <div className='flex items-center gap-10px'>
                   {assistantIdentity.logo ? (
-                    <img
+                    <ThumbnailImage
                       src={assistantIdentity.logo}
+                      size={28}
                       alt={assistantIdentity.name}
                       className='h-28px w-28px rounded-50%'
                     />

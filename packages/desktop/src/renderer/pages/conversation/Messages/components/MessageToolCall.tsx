@@ -7,9 +7,11 @@
 import type { IMessageToolCall } from '@/common/chat/chatLib';
 import { normalizeToolCall } from '@/common/chat/normalizeToolCall';
 import type { NormalizedToolStatus } from '@/common/chat/normalizeToolCall';
+import { isAskUserToolName } from '@/common/chat/askUserTool';
 import FileChangesPanel from '@/renderer/components/base/FileChangesPanel';
 import { useDiffPreviewHandlers } from '@/renderer/hooks/file/useDiffPreviewHandlers';
 import { parseDiff } from '@/renderer/utils/file/diffUtils';
+import { AskUserToolCard } from '../MessageQuestion';
 import { Badge } from '@arco-design/web-react';
 import { IconDown, IconRight } from '@arco-design/web-react/icon';
 import { createTwoFilesPatch } from 'diff';
@@ -54,12 +56,19 @@ const ReplacePreview: React.FC<{ message: IMessageToolCall }> = ({ message }) =>
   );
 };
 
-const MessageToolCall: React.FC<{ message: IMessageToolCall }> = ({ message }) => {
+const MessageToolCall: React.FC<{ message: IMessageToolCall; answered?: boolean }> = ({ message, answered }) => {
   const { name } = message.content;
   const [expanded, setExpanded] = useState(false);
 
   if (name === 'replace' || name === 'Edit') {
     return <ReplacePreview message={message} />;
+  }
+
+  // The built-in ask-user MCP tool: render an interactive question card so the
+  // user can answer the agent's design questions instead of reading them as
+  // plain prose.
+  if (isAskUserToolName(name)) {
+    return <AskUserToolCard message={message} answered={answered} />;
   }
 
   const normalized = normalizeToolCall(message);

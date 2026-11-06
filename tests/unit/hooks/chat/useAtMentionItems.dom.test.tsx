@@ -7,7 +7,7 @@ import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const kbList = vi.fn();
-vi.mock('@/renderer/hooks/knowledge-base/useKnowledgeBaseList', () => ({
+vi.mock('@/renderer/hooks/kb-chat/useKnowledgeBaseList', () => ({
   useKnowledgeBaseList: () => {
     const v = kbList();
     return {

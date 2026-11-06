@@ -4,6 +4,7 @@ import { resolveAgentAvatar, useAgentLogos } from '@renderer/utils/model/agentLo
 import { usePresetAssistantInfo } from '@renderer/hooks/agent/usePresetAssistantInfo';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { Robot } from '@icon-park/react';
+import ThumbnailImage from '@/renderer/components/media/ThumbnailImage';
 
 type Props = {
   assistant_name: string;
@@ -66,10 +67,10 @@ const TeamAgentIdentity: React.FC<Props> = ({
       if (presetInfo.isEmoji) {
         return <span className={resolvedAvatarClassName}>{presetInfo.logo}</span>;
       }
-      return <img src={presetInfo.logo} alt={displayName} className={resolvedLogoClassName} />;
+      return <ThumbnailImage src={presetInfo.logo} size={16} alt={displayName} className={resolvedLogoClassName} />;
     }
     if (agentAvatar.kind === 'image') {
-      return <img src={agentAvatar.value} alt={displayName} className={resolvedLogoClassName} />;
+      return <ThumbnailImage src={agentAvatar.value} size={16} alt={displayName} className={resolvedLogoClassName} />;
     }
     if (agentAvatar.kind === 'emoji') {
       return <span className={resolvedAvatarClassName}>{agentAvatar.value}</span>;

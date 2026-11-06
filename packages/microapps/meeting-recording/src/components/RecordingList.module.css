@@ -1,0 +1,54 @@
+/**
+ * 录音列表(表格)的样式 —— 对齐设计稿 BadouWork-Desktop-Handoff 的
+ * `.rec-table-head` / `.rec-table-row`。
+ *
+ * 设计稿把录音列表做成一张表:一行灰底圆角的表头,下面是等宽的五列。
+ * 列宽与行的网格定义保持一致,见 `RecordingListItem.module.css`。
+ */
+
+.table {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  /*
+   * 再窄也得让列有地方摆 —— 低于这个宽度就横向滚动,而不是把名称列压没
+   * (表头文字会被挤成竖排)。
+   */
+  min-width: 640px;
+}
+
+/*
+ * 列宽模板由页面统一给(`--rec-cols`,见 `RecordingListPage.module.css`),
+ * 这里只引用 —— 表头与行必须用同一份,否则两列会错位。
+ */
+.head {
+  display: grid;
+  grid-template-columns: var(--rec-cols);
+  /* 列间距也来自页面 —— 表头与行必须用同一份,否则表头文字和下面的内容会错开 */
+  column-gap: var(--rec-col-gap);
+  align-items: center;
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 8px;
+  background: var(--rec-app-bg);
+  color: var(--rec-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+/* 表头文字不换行 —— 列再窄也是一行,省略号收尾 */
+.head > span {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 120px 0;
+}

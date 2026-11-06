@@ -48,29 +48,39 @@ test.describe('Theme Switching', () => {
     expect(restoredTheme).toBe(initialTheme);
   });
 
-  test('quick toggle updates its action immediately and can switch back', async ({ page }) => {
-    const toggle = page.getByTestId('theme-toggle');
-    await expect(toggle).toBeVisible();
+  test('account menu switches theme and can switch back', async ({ page }) => {
+    // 主题切换在侧栏底部的个人菜单里(设计稿的「外观」分组)。
+    const trigger = page.getByTestId('sider-account-trigger');
+    await trigger.waitFor({ state: 'visible', timeout: 10_000 });
 
     const initialTheme = await page.evaluate(() => document.documentElement.getAttribute('data-theme'));
-    const initialLabel = await toggle.getAttribute('aria-label');
     const targetTheme = initialTheme === 'light' ? 'dark' : 'light';
+    const targetItem =
+      targetTheme === 'dark'
+        ? page.getByTestId('sider-account-theme-dark')
+        : page.getByTestId('sider-account-theme-light');
 
-    await toggle.click();
+    await trigger.click();
+    await targetItem.waitFor({ state: 'visible', timeout: 10_000 });
+    await targetItem.click();
     await page.waitForFunction(
       (expected) => document.documentElement.getAttribute('data-theme') === expected,
       targetTheme,
       { timeout: 5_000 }
     );
-    await expect(toggle).not.toHaveAttribute('aria-label', initialLabel ?? '');
 
-    await toggle.click();
+    const backItem =
+      targetTheme === 'dark'
+        ? page.getByTestId('sider-account-theme-light')
+        : page.getByTestId('sider-account-theme-dark');
+    await trigger.click();
+    await backItem.waitFor({ state: 'visible', timeout: 10_000 });
+    await backItem.click();
     await page.waitForFunction(
       (expected) => document.documentElement.getAttribute('data-theme') === expected,
       initialTheme,
       { timeout: 5_000 }
     );
-    await expect(toggle).toHaveAttribute('aria-label', initialLabel ?? '');
   });
 
   test('dark button sets data-theme to dark', async ({ page }) => {

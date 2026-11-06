@@ -42,7 +42,7 @@ vi.mock('@/renderer/hooks/context/ConversationContext', () => ({
   }),
 }));
 
-vi.mock('@/renderer/hooks/knowledge-base/useKnowledgeBaseList', () => ({
+vi.mock('@/renderer/hooks/kb-chat/useKnowledgeBaseList', () => ({
   useKnowledgeBaseList: () => ({
     personalItems: [],
     sharedItems: [],

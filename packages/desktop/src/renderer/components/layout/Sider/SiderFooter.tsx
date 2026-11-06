@@ -6,10 +6,11 @@
 
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Tooltip } from '@arco-design/web-react';
-import { ArrowCircleLeft, CloseOne, Moon, SettingTwo, SunOne } from '@icon-park/react';
+import { Dropdown, Menu } from '@arco-design/web-react';
+import { ArrowCircleLeft, Check } from '@icon-park/react';
+import { AppIcon } from '@aionui/ui';
 import classNames from 'classnames';
-import { iconColors } from '@renderer/styles/colors';
+import styles from './Sider.module.css';
 import CollapsedRailTooltip from './CollapsedRailTooltip';
 
 interface SiderFooterProps {
@@ -17,124 +18,189 @@ interface SiderFooterProps {
   isSettings: boolean;
   collapsed?: boolean;
   theme: string;
+  /** 当前登录用户名 —— 没有登录态时退回到品牌名。 */
+  userName?: string;
   onSettingsClick: () => void;
-  onThemeToggle: () => void;
+  onThemeChange: (theme: 'light' | 'dark') => void;
   showLogout?: boolean;
   onLogoutClick?: () => void;
 }
 
+/**
+ * 侧栏底部账号区 —— 设计稿的 `.account-anchor`。
+ *
+ * 展开态：头像 + 用户名 + 右箭头(打开个人菜单)+ 右侧独立的设置齿轮。
+ * 收缩态：只剩一个 28px 的圆形头像,点开就是个人菜单。
+ *
+ * 收缩态把齿轮藏起来是设计稿的取舍(`responsive.css` 里 `.sidebar-settings`
+ * 在窄屏下 `display:none`),所以「设置 / 外观 / 退出登录」必须能在个人菜单里
+ * 找到 —— 否则收缩态下这些入口就彻底没了。
+ */
 const SiderFooter: React.FC<SiderFooterProps> = ({
   isMobile,
   isSettings,
   collapsed = false,
   theme,
+  userName,
   onSettingsClick,
-  onThemeToggle,
+  onThemeChange,
   showLogout = false,
   onLogoutClick,
 }) => {
   const { t } = useTranslation();
 
-  const settingsIcon = isSettings ? (
-    <ArrowCircleLeft
-      theme='outline'
-      size='20'
-      fill='currentColor'
-      className='block leading-none'
-      style={{ lineHeight: 0 }}
-    />
-  ) : (
-    <SettingTwo
-      theme='outline'
-      size='20'
-      fill='currentColor'
-      className='block leading-none'
-      style={{ lineHeight: 0 }}
-    />
+  const displayName = userName?.trim() || 'BadouWork';
+  const initial = displayName.slice(0, 1).toUpperCase();
+  const isDark = theme === 'dark';
+
+  const avatar = (size: 28 | 32) => (
+    <span
+      className={classNames(
+        'shrink-0 rd-full flex items-center justify-center bg-[var(--sider-account-avatar-bg)] text-white font-[500]',
+        size === 28 ? 'size-28px text-12px' : 'size-32px text-14px'
+      )}
+    >
+      {initial}
+    </span>
   );
-  const settingsLabel = isSettings ? t('common.back') : t('common.settings');
-  const showThemeToggle = isSettings;
-  const themeTooltip = theme === 'dark' ? t('settings.lightMode') : t('settings.darkMode');
 
-  // Use Arco Tooltip when expanded (label sits in-flow), custom CollapsedRailTooltip
-  // when collapsed (avoids the StrictMode findDOMNode bug).
-  const Wrap: React.FC<{ label: string; children: React.ReactElement }> = ({ label, children }) =>
-    collapsed ? (
-      <CollapsedRailTooltip label={label}>{children}</CollapsedRailTooltip>
-    ) : (
-      <Tooltip content={label} position='right'>
-        {children}
-      </Tooltip>
+  const menu = (
+    <Menu
+      onClickMenuItem={(key) => {
+        if (key === 'settings') {
+          onSettingsClick();
+        } else if (key === 'theme-light') {
+          onThemeChange('light');
+        } else if (key === 'theme-dark') {
+          onThemeChange('dark');
+        } else if (key === 'logout') {
+          onLogoutClick?.();
+        }
+      }}
+    >
+      <Menu.Item key='settings'>
+        <span data-testid='sider-account-settings' className='flex items-center'>
+          <AppIcon name='sider-settings' size={16} className='mr-6px' />
+          {t('common.settings')}
+        </span>
+      </Menu.Item>
+      {/* 外观 —— 设计稿里是一个二级菜单,这里用分组标题把「浅色 / 深色」平铺出来,
+          少一层悬停展开,点按路径更短。 */}
+      <Menu.ItemGroup
+        title={
+          <>
+            <AppIcon name='account-appearance' size={16} className='mr-6px' />
+            {t('sider.account.appearance')}
+          </>
+        }
+      >
+        <Menu.Item key='theme-light'>
+          <span data-testid='sider-account-theme-light' className='w-full flex items-center'>
+            <AppIcon name='account-light' size={16} className='mr-6px' />
+            {t('settings.lightMode')}
+            {isDark ? null : <Check theme='outline' size={16} className='ml-auto' />}
+          </span>
+        </Menu.Item>
+        <Menu.Item key='theme-dark'>
+          <span data-testid='sider-account-theme-dark' className='w-full flex items-center'>
+            <AppIcon name='account-dark' size={16} className='mr-6px' />
+            {t('settings.darkMode')}
+            {isDark ? <Check theme='outline' size={16} className='ml-auto' /> : null}
+          </span>
+        </Menu.Item>
+      </Menu.ItemGroup>
+      {showLogout && onLogoutClick && (
+        <Menu.Item key='logout'>
+          <span data-testid='sider-account-logout' className='flex items-center'>
+            <AppIcon name='account-logout' size={16} className='mr-6px text-danger' />
+            {t('settings.googleLogout')}
+          </span>
+        </Menu.Item>
+      )}
+    </Menu>
+  );
+
+  const accountTrigger = (content: React.ReactNode, extraClassName?: string) => (
+    <Dropdown droplist={menu} trigger='click' position='br'>
+      <div
+        role='button'
+        tabIndex={0}
+        data-testid='sider-account-trigger'
+        aria-label={t('sider.account.openMenu')}
+        aria-haspopup='menu'
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            (event.currentTarget as HTMLElement).click();
+          }
+        }}
+        className={classNames('cursor-pointer select-none', extraClassName)}
+      >
+        {content}
+      </div>
+    </Dropdown>
+  );
+
+  // 收缩态 —— 设计稿只留一个圆形头像,居中放在侧栏底部。
+  if (collapsed) {
+    return (
+      <div className='shrink-0 sider-footer mt-auto w-full flex justify-center pt-4px pb-16px'>
+        <CollapsedRailTooltip label={displayName}>
+          {accountTrigger(
+            <div className='rd-full flex items-center justify-center' aria-label={t('sider.account.menuLabel')}>
+              {avatar(28)}
+            </div>
+          )}
+        </CollapsedRailTooltip>
+      </div>
     );
+  }
 
+  // 展开态 —— 账号按钮(头像 + 名字 + 右箭头)+ 右侧的设置齿轮。
+  // 左右留白由外层 `layout-sider-content` 的 px-8px 提供,这里补上设计稿
+  // `.account-anchor` 剩下的右边距(18px)与上下内边距。
   return (
-    <div className='shrink-0 sider-footer mt-auto pt-8px pb-8px border-t border-solid border-[var(--color-border-2)] border-l-0 border-r-0 border-b-0'>
-      <div className={classNames('flex', collapsed ? 'flex-col gap-2px' : 'items-center gap-2px')}>
-        <Wrap label={settingsLabel}>
-          <div
-            onClick={onSettingsClick}
-            className={classNames(
-              'group h-34px flex items-center rd-0.5rem cursor-pointer transition-colors',
-              collapsed ? 'w-full justify-center' : 'flex-1 min-w-0 justify-start gap-8px pl-10px pr-8px',
-              isMobile && 'sider-footer-btn-mobile',
-              {
-                'bg-fill-3': isSettings,
-                'hover:bg-fill-3 active:bg-fill-4': !isSettings,
-              }
-            )}
-          >
-            <span className='size-22px flex items-center justify-center shrink-0 text-t-secondary'>{settingsIcon}</span>
-            <span className='collapsed-hidden text-t-primary text-14px font-[500] leading-24px truncate'>
-              {settingsLabel}
-            </span>
-          </div>
-        </Wrap>
-        {showLogout && onLogoutClick && (
-          <Wrap label={t('settings.googleLogout')}>
-            <div
-              onClick={onLogoutClick}
-              className={classNames(
-                'h-32px flex items-center rd-0.5rem cursor-pointer transition-colors hover:bg-[rgba(var(--primary-6),0.14)] active:bg-fill-2',
-                collapsed ? 'w-full justify-center' : 'flex-1 min-w-0 justify-start gap-10px px-14px',
-                isMobile && 'sider-footer-btn-mobile'
-              )}
-            >
-              <span className='size-20px flex items-center justify-center shrink-0'>
-                <CloseOne
-                  theme='outline'
-                  size='20'
-                  fill={iconColors.primary}
-                  className='block leading-none'
-                  style={{ lineHeight: 0 }}
-                />
-              </span>
-              <span className='collapsed-hidden text-t-primary text-14px font-[500] leading-24px truncate'>
-                {t('settings.googleLogout')}
-              </span>
-            </div>
-          </Wrap>
+    <div
+      className={classNames(
+        'shrink-0 sider-footer mt-auto h-65px box-border flex items-center justify-between gap-40px pt-13px pr-10px pb-10px pl-0',
+        styles.accountAnchor
+      )}
+    >
+      {accountTrigger(
+        <div
+          className={classNames(
+            'min-w-0 flex-1 flex items-center gap-8px px-4px py-4px rd-8px transition-colors',
+            styles.accountButton
+          )}
+        >
+          {avatar(32)}
+          <span className='flex-1 min-w-0 truncate text-14px leading-20px text-t-primary'>{displayName}</span>
+          <AppIcon name='sider-chevron-right' size={12} className='shrink-0 text-t-secondary' />
+        </div>
+      )}
+      {/* 设置 / 返回 —— 设置页里变成「返回」。 */}
+      <div
+        role='button'
+        tabIndex={0}
+        onClick={onSettingsClick}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            onSettingsClick();
+          }
+        }}
+        data-testid='sider-settings-trigger'
+        aria-label={isSettings ? t('common.back') : t('common.settings')}
+        title={isSettings ? t('common.back') : t('common.settings')}
+        className={classNames(
+          'w-18px h-18px shrink-0 flex items-center justify-center rd-4px text-t-secondary cursor-pointer transition-colors hover:bg-fill-3 hover:text-t-primary',
+          isMobile && 'sider-footer-btn-mobile'
         )}
-        {/* Theme toggle — lightweight icon button, only while inside Settings page (not in collapsed mode) */}
-        {showThemeToggle && (
-          <Wrap label={themeTooltip}>
-            <div
-              onClick={onThemeToggle}
-              data-testid='theme-toggle'
-              className={classNames(
-                'h-32px w-40px shrink-0 flex items-center justify-center cursor-pointer rd-0.5rem transition-colors text-t-secondary hover:bg-fill-2 hover:text-t-primary active:bg-fill-3',
-                isMobile && 'sider-footer-btn-mobile'
-              )}
-              aria-label={themeTooltip}
-            >
-              <span className='w-28px h-28px flex items-center justify-center shrink-0'>
-                {theme === 'dark' ? (
-                  <SunOne theme='outline' size='18' fill='currentColor' className='block leading-none' />
-                ) : (
-                  <Moon theme='outline' size='18' fill='currentColor' className='block leading-none' />
-                )}
-              </span>
-            </div>
-          </Wrap>
+      >
+        {isSettings ? (
+          <ArrowCircleLeft theme='outline' size={18} fill='currentColor' className='block leading-none' />
+        ) : (
+          <AppIcon name='sider-settings' size={18} />
         )}
       </div>
     </div>

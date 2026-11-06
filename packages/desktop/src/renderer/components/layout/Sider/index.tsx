@@ -1,5 +1,7 @@
 import classNames from 'classnames';
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Message } from '@arco-design/web-react';
+import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { usePreviewContext } from '@renderer/pages/conversation/Preview/context/PreviewContext';
 import { cleanupSiderTooltips, getSiderTooltipProps } from '@renderer/utils/ui/siderTooltip';
@@ -18,6 +20,7 @@ import {
   SiderMeetingRecordingEntry,
   SiderWorkbenchEntry,
   SiderTaskCenterEntry,
+  SiderAppMarketEntry,
 } from './SiderNav';
 import SiderFooter from './SiderFooter';
 import TeamSiderSection from './TeamSiderSection';
@@ -38,8 +41,9 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   const { pathname, search, hash } = location;
 
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { closePreview, clearPreviewForScope, isOpen: previewIsOpen } = usePreviewContext();
-  const { logout, status } = useAuth();
+  const { logout, status, user } = useAuth();
   const { theme, setTheme } = useThemeContext();
   const [isBatchMode, setIsBatchMode] = useState(false);
   const isSettings = pathname.startsWith('/settings');
@@ -197,9 +201,17 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
     }
   };
 
-  const handleQuickThemeToggle = () => {
-    void setTheme(theme === 'dark' ? 'light' : 'dark');
-  };
+  const handleThemeChange = useCallback(
+    (next: 'light' | 'dark') => {
+      void setTheme(next);
+    },
+    [setTheme]
+  );
+
+  // 应用市场还没有页面 —— 先弹一条提示占位,等页面就绪再换成真正的路由跳转。
+  const handleAppMarketClick = useCallback(() => {
+    Message.info(t('sider.appMarket.comingSoon'));
+  }, [t]);
 
   const handleLogout = useCallback(async () => {
     cleanupSiderTooltips();
@@ -289,85 +301,100 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
             <SettingsSider collapsed={collapsed} tooltipEnabled={tooltipEnabled} />
           </Suspense>
         ) : (
-          <div className='size-full flex flex-col gap-2px'>
-            <SiderToolbar
-              isMobile={isMobile}
-              isBatchMode={isBatchMode}
-              collapsed={collapsed}
-              onNewChat={handleNewChat}
-              onToggleBatchMode={() => setIsBatchMode((prev) => !prev)}
-            />
-            {/* Search entry — desktop moves this into the titlebar toolbar;
-                mobile keeps it here in the sidebar. */}
-            {isMobile && (
-              <SiderSearchEntry
-                isMobile={isMobile}
-                collapsed={collapsed}
-                siderTooltipProps={siderTooltipProps}
-                onConversationSelect={handleConversationSelect}
-                onSessionClick={onSessionClick}
-              />
-            )}
-            {/* Assistant nav entry - fixed above Scheduled */}
-            <SiderAssistantEntry
-              isMobile={isMobile}
-              isActive={pathname.startsWith('/assistants')}
-              collapsed={collapsed}
-              onClick={handleAssistantClick}
-            />
-            {/* Knowledge base nav entry - fixed below Assistant */}
-            <SiderKnowledgeEntry
-              isMobile={isMobile}
-              isActive={pathname.startsWith('/knowledge-base')}
-              collapsed={collapsed}
-              onClick={handleKnowledgeClick}
-            />
-            {/* Notes nav entry - fixed below Knowledge base */}
-            <SiderNoteEntry
-              isMobile={isMobile}
-              isActive={pathname.startsWith('/notes')}
-              collapsed={collapsed}
-              onClick={handleNoteClick}
-            />
-            {/* Meeting recording nav entry - fixed below Notes */}
-            <SiderMeetingRecordingEntry
-              isMobile={isMobile}
-              isActive={pathname.startsWith('/meeting-recording')}
-              collapsed={collapsed}
-              onClick={handleMeetingRecordingClick}
-            />
-            {/* Workbench nav entry - opens external PM center in-app webview (enterprise only) */}
-            {SiderWorkbenchEntry && (
-              <SiderWorkbenchEntry
-                isMobile={isMobile}
-                isActive={pathname.startsWith('/workbench')}
-                collapsed={collapsed}
-                onClick={handleWorkbenchClick}
-              />
-            )}
-            {/* Task Center nav entry - native task list page (enterprise only) */}
-            {SiderTaskCenterEntry && (
-              <SiderTaskCenterEntry
-                isMobile={isMobile}
-                isActive={pathname.startsWith('/task-center')}
-                collapsed={collapsed}
-                onClick={handleTaskCenterClick}
-              />
-            )}
-            {/* Scheduled tasks nav entry - fixed above scroll */}
-            <SiderScheduledEntry
-              isMobile={isMobile}
-              isActive={pathname === '/scheduled'}
-              collapsed={collapsed}
-              onClick={handleScheduledClick}
-            />
-            {/* Divider between fixed top nav and scrollable content area */}
-            <div
+          <div className='size-full flex flex-col'>
+            {/* 固定导航区 —— 设计稿的 `<nav>`。
+                收缩态:56px 磁贴居中、间距 8px、上下留白 10px;
+                展开态:整行 32px、间距 4px、上下留白 8px。
+                左右留白由外层 `layout-sider-content` 的 px-8px 提供 —— 设计稿的
+                侧栏本身也是「0 内边距 + 导航区 8px 内边距」,两者叠起来才对得上。 */}
+            <nav
+              aria-label={t('sider.nav.ariaLabel')}
               className={classNames(
-                'shrink-0 mt-6px mb-2px h-1px bg-[var(--color-border-2)]',
-                collapsed ? 'mx-6px' : 'mx-10px'
+                'shrink-0 flex flex-col',
+                collapsed ? 'items-center gap-8px py-10px' : 'gap-4px py-8px'
               )}
-            />
+            >
+              <SiderToolbar
+                isMobile={isMobile}
+                isBatchMode={isBatchMode}
+                collapsed={collapsed}
+                onNewChat={handleNewChat}
+                onToggleBatchMode={() => setIsBatchMode((prev) => !prev)}
+              />
+              {/* Search entry — desktop moves this into the titlebar toolbar;
+                  mobile keeps it here in the sidebar. */}
+              {isMobile && (
+                <SiderSearchEntry
+                  isMobile={isMobile}
+                  collapsed={collapsed}
+                  siderTooltipProps={siderTooltipProps}
+                  onConversationSelect={handleConversationSelect}
+                  onSessionClick={onSessionClick}
+                />
+              )}
+              {/* 导航项顺序对齐设计稿:新会话 → 任务 → 工作台 → 笔记 → 录音 → 知识库 → 应用。
+                  「助手」与「任务中心」设计稿里没有对应项,排在最后。 */}
+              {/* Scheduled tasks nav entry - 复用设计稿的「任务」图标 */}
+              <SiderScheduledEntry
+                isMobile={isMobile}
+                isActive={pathname === '/scheduled'}
+                collapsed={collapsed}
+                onClick={handleScheduledClick}
+              />
+              {/* Workbench nav entry - opens external PM center in-app webview (enterprise only) */}
+              {SiderWorkbenchEntry && (
+                <SiderWorkbenchEntry
+                  isMobile={isMobile}
+                  isActive={pathname.startsWith('/workbench')}
+                  collapsed={collapsed}
+                  onClick={handleWorkbenchClick}
+                />
+              )}
+              {/* Notes nav entry */}
+              <SiderNoteEntry
+                isMobile={isMobile}
+                isActive={pathname.startsWith('/notes')}
+                collapsed={collapsed}
+                onClick={handleNoteClick}
+              />
+              {/* Meeting recording nav entry */}
+              <SiderMeetingRecordingEntry
+                isMobile={isMobile}
+                isActive={pathname.startsWith('/meeting-recording')}
+                collapsed={collapsed}
+                onClick={handleMeetingRecordingClick}
+              />
+              {/* Knowledge base nav entry */}
+              <SiderKnowledgeEntry
+                isMobile={isMobile}
+                isActive={pathname.startsWith('/knowledge-base')}
+                collapsed={collapsed}
+                onClick={handleKnowledgeClick}
+              />
+              {/* 应用市场 —— 设计稿有这一项,产品里还没有对应路由,先占位。 */}
+              <SiderAppMarketEntry
+                isMobile={isMobile}
+                isActive={false}
+                collapsed={collapsed}
+                onClick={handleAppMarketClick}
+              />
+              {/* Assistant nav entry - 设计稿没有对应项 */}
+              <SiderAssistantEntry
+                isMobile={isMobile}
+                isActive={pathname.startsWith('/assistants')}
+                collapsed={collapsed}
+                onClick={handleAssistantClick}
+              />
+              {/* Task Center nav entry - native task list page (enterprise only) */}
+              {SiderTaskCenterEntry && (
+                <SiderTaskCenterEntry
+                  isMobile={isMobile}
+                  isActive={pathname.startsWith('/task-center')}
+                  collapsed={collapsed}
+                  onClick={handleTaskCenterClick}
+                />
+              )}
+            </nav>
             {/* Scrollable content: pinned → team (slot) → projects → conversations */}
             <div className={classNames('flex-1 min-h-0 overflow-y-auto', siderStyles.scrollArea)}>
               <Suspense fallback={<div className='min-h-200px' />}>
@@ -379,14 +406,15 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
           </div>
         )}
       </div>
-      {/* Footer */}
+      {/* Footer —— 底部账号区 */}
       <SiderFooter
         isMobile={isMobile}
         isSettings={isSettings}
         collapsed={collapsed}
         theme={theme}
+        userName={user?.username}
         onSettingsClick={handleSettingsClick}
-        onThemeToggle={handleQuickThemeToggle}
+        onThemeChange={handleThemeChange}
         showLogout={showLogout}
         onLogoutClick={handleLogout}
       />

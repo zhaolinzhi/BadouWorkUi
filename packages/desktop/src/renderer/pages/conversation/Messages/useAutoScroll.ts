@@ -15,6 +15,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { TMessage } from '@/common/chat/chatLib';
+import { isSiderAnimating, onSiderAnimationEnd } from '@renderer/utils/ui/siderAnimation';
 
 const PROGRAMMATIC_SCROLL_GUARD_MS = 150;
 const AT_BOTTOM_THRESHOLD_PX = 100;
@@ -58,6 +59,8 @@ export function useAutoScroll({ messages, itemCount }: UseAutoScrollOptions): Us
   const lastProgrammaticScrollTimeRef = useRef(0);
   const initialScrollDoneRef = useRef(false);
   const pendingAutoFollowFrameRef = useRef<number | null>(null);
+  /** Set when a measurement was skipped because the sider was animating. */
+  const deferredMeasureRef = useRef(false);
   const userInputActiveRef = useRef(false);
 
   const markProgrammaticScroll = useCallback(() => {
@@ -104,6 +107,16 @@ export function useAutoScroll({ messages, itemCount }: UseAutoScrollOptions): Us
     pendingAutoFollowFrameRef.current = requestAnimationFrame(() => {
       pendingAutoFollowFrameRef.current = null;
       if (!scrollerEl || userScrolledRef.current) return;
+
+      // Measuring the gap forces a synchronous layout. While the sider width
+      // transition is running, the scroller is resized on every frame, so this
+      // read would flush a full-page reflow mid-animation — the very thing the
+      // transition is trying to animate. Skip it and re-measure once the
+      // transition settles.
+      if (isSiderAnimating()) {
+        deferredMeasureRef.current = true;
+        return;
+      }
 
       const gap = getBottomGap(scrollerEl);
       if (gap > 2) {
@@ -179,6 +192,14 @@ export function useAutoScroll({ messages, itemCount }: UseAutoScrollOptions): Us
     if (!scrollerEl || !contentEl) return;
 
     const observer = new ResizeObserver(() => {
+      // While the sider width transition is in flight the scroller is resized
+      // on every frame. Measuring here would force a synchronous layout in the
+      // middle of that transition, so the measurement is deferred to the end of
+      // the animation instead.
+      if (isSiderAnimating()) {
+        deferredMeasureRef.current = true;
+        return;
+      }
       scheduleAutoFollow();
       updateBottomState(scrollerEl);
     });
@@ -188,6 +209,17 @@ export function useAutoScroll({ messages, itemCount }: UseAutoScrollOptions): Us
 
     return () => observer.disconnect();
   }, [contentEl, scheduleAutoFollow, scrollerEl, updateBottomState]);
+
+  // Re-run the measurement that was skipped during the sider transition.
+  useEffect(() => {
+    if (!scrollerEl) return undefined;
+    return onSiderAnimationEnd(() => {
+      if (!deferredMeasureRef.current) return;
+      deferredMeasureRef.current = false;
+      scheduleAutoFollow();
+      updateBottomState(scrollerEl);
+    });
+  }, [scrollerEl, scheduleAutoFollow, updateBottomState]);
 
   useEffect(() => {
     if (!scrollerEl || initialScrollDoneRef.current || itemCount === 0) return;

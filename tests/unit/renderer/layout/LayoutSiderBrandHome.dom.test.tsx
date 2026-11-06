@@ -159,7 +159,7 @@ describe('Layout sider brand Home button', () => {
 
     // No actionable role/label in chat routes.
     expect(screen.queryByLabelText(BACK_KEY)).toBeNull();
-    const wordmark = screen.getByText('BadouWork');
+    const wordmark = screen.getByLabelText('BadouWorker');
     fireEvent.click(wordmark);
     expect(navigate).not.toHaveBeenCalled();
   });
@@ -168,7 +168,7 @@ describe('Layout sider brand Home button', () => {
     currentPathname = '/conversation/xyz';
     renderLayout();
 
-    fireEvent.click(screen.getByText('BadouWork'));
+    fireEvent.click(screen.getByLabelText('BadouWorker'));
     expect(navigate).not.toHaveBeenCalled();
   });
 
@@ -194,6 +194,18 @@ describe('Layout sider brand Home button', () => {
     renderLayout();
 
     expect(shortcutMocks.params?.toggleSider).toEqual(expect.any(Function));
+  });
+
+  it('shows the brand mark at the size the design draws it', () => {
+    const { container } = renderLayout();
+
+    const logo = container.querySelector('img[alt="logo"]') as HTMLImageElement;
+    expect(logo).toBeTruthy();
+    // 设计稿的 logo 是那个蓝色的 ∞ 标记(styles.css `.logo>img` 40x28.096),
+    // 不是蓝底方块徽标 —— 之前的版本既用错了素材、又画得太小。
+    expect(logo.getAttribute('src')).toContain('app-mark');
+    // 展开 40x28.096、收起 35.2x24.724(styles.css `.logo>img` / responsive.css)
+    expect(logo.className).toMatch(/w-40px|w-\[35\.2px\]/);
   });
 
   it('clicking the logo icon counts toward the devtools easter-egg and never navigates', () => {

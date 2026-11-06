@@ -16,6 +16,7 @@ import {
   formatManagedAgentDiagnosticMessage,
 } from '@/renderer/utils/model/agentTypes';
 import { BoundAssistantStack } from './BoundAssistants';
+import ThumbnailImage from '@/renderer/components/media/ThumbnailImage';
 
 type AgentCardProps =
   | {
@@ -132,7 +133,7 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
           style={{ flexShrink: 0, backgroundColor: avatar.kind === 'image' ? 'transparent' : 'var(--color-fill-2)' }}
         >
           {avatar.kind === 'image' ? (
-            <img src={avatar.value} alt={agent.name} className='h-full w-full object-contain' />
+            <ThumbnailImage src={avatar.value} size={32} alt={agent.name} className='h-full w-full object-contain' />
           ) : avatar.kind === 'emoji' ? (
             <span className='text-18px leading-none'>{avatar.value}</span>
           ) : (

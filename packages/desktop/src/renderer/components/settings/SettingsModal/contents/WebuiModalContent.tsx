@@ -24,6 +24,7 @@ import { CheckOne, Communication, Copy, Earth, EditTwo, Refresh } from '@icon-pa
 import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSettingsViewMode } from '../settingsViewContext';
+import ThumbnailImage from '@/renderer/components/media/ThumbnailImage';
 
 /**
  * 偏好设置行组件
@@ -837,7 +838,7 @@ const WebuiModalContent: React.FC = () => {
                     title={item.alt}
                     aria-label={item.alt}
                   >
-                    <img src={item.src} alt={item.alt} className='w-14px h-14px object-contain' />
+                    <ThumbnailImage src={item.src} size={14} alt={item.alt} className='w-14px h-14px object-contain' />
                   </span>
                 ))}
               </span>

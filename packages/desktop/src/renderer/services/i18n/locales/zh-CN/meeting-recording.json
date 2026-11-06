@@ -1,5 +1,6 @@
 {
   "title": "会议录音",
+  "subtitle": "录音、转写与纪要集中管理，点击记录即可查看",
   "startRecording": "开始录音",
   "stopRecording": "停止",
   "recording": "正在录音",
@@ -9,6 +10,26 @@
   "transcriptionFailed": "转写失败",
   "chunkLabel": "片段 {{index}}",
   "deleteConfirm": "确认删除此录音?删除后无法恢复。",
+  "deleteConfirmTitle": "删除这条录音？",
+  "tabAll": "全部录音 {{count}}",
+  "searchPlaceholder": "搜索录音标题或转写内容",
+  "columnName": "录音名称",
+  "columnDuration": "时长",
+  "columnCreatedAt": "录制时间",
+  "columnStatus": "状态",
+  "columnActions": "操作",
+  "duration": "{{minutes}}分{{seconds}}秒",
+  "today": "今天",
+  "yesterday": "昨天",
+  "sourceSubtitle": "麦克风与系统声音",
+  "statusSummaryReady": "已生成纪要",
+  "statusPending": "等待转写",
+  "statusFailed": "转写失败",
+  "viewAction": "查看",
+  "moreActions": "更多操作",
+  "deleteAction": "删除",
+  "toggleChunks": "展开分片",
+  "footerStatus": "{{count}} 条录音 · 已同步",
   "transcriptModal": {
     "viewButtonAriaLabel": "查看转写汇总",
     "disabledHint": "还没有可汇总的转写结果",
@@ -16,7 +37,8 @@
     "retryTranscribeDisabledHint": "所有片段都已转写完成,无需重试",
     "cancelTranscribeConfirmTitle": "确定停止转写吗?",
     "cancelTranscribeConfirmOk": "停止",
-    "cancelTranscribeConfirmCancel": "继续转写"
+    "cancelTranscribeConfirmCancel": "继续转写",
+    "cancelTranscribeConfirmDescription": "停止后，尚未完成的片段将不再转写。"
   },
   "errors": {
     "permissionDenied": "麦克风权限被拒绝",
@@ -24,6 +46,8 @@
     "saveFailed": "保存录音失败",
     "deleteFailed": "删除录音失败",
     "transcribeFailed": "转写失败",
-    "recordingUnsupported": "当前环境不支持录音"
-  }
+    "recordingUnsupported": "当前环境不支持录音",
+    "unknown": "未知错误"
+  },
+  "cancelTranscribeConfirmDescription": "停止后，尚未完成的片段将不再转写。"
 }

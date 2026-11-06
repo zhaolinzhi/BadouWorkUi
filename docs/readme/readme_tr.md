@@ -700,7 +700,7 @@ brew install aionui
 
 ### Geliştirme Ortamı
 
-AionUi yerel geliştirme iki depo kullanır: Electron frontend için AionUi ve yerel backend için AionCore. macOS, Linux ve Windows için tam kurulum adımları için [Development Guide](../contributing/development.md) belgesine bakın.
+AionUi yerel geliştirme iki depo kullanır: Electron frontend için AionUi ve yerel backend için BadouWorkCore. macOS, Linux ve Windows için tam kurulum adımları için [Development Guide](../contributing/development.md) belgesine bakın.
 
 ---
 

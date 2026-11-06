@@ -8,6 +8,7 @@
   "selectAssistantHint": "Göreve başlamak için bir asistan seçin",
   "workspace": {
     "workInProject": "Projede çalış",
+    "selectProject": "Proje seç",
     "optional": "İsteğe bağlı",
     "clearWorkspace": "Temizle",
     "specifyWorkspace": "Proje klasörü seç",

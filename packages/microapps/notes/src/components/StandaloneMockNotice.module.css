@@ -1,0 +1,25 @@
+/**
+ * 独立运行模式的「演示数据」提示条。
+ *
+ * 刻意做成醒目样式:它要解决的就是"看不出来当前是假数据"的问题。
+ * 颜色全部走主题变量,明暗两套自动跟随。
+ */
+
+.notice {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  background-color: var(--bg-2);
+  border-bottom: 1px solid var(--bg-3);
+  border-left: 3px solid var(--warning);
+  color: var(--text-primary);
+  font-size: 12px;
+  line-height: 1.5;
+  flex-shrink: 0;
+}
+
+.notice svg {
+  flex-shrink: 0;
+  color: var(--warning);
+}

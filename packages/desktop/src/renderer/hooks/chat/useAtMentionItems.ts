@@ -64,12 +64,5 @@ export const useAtMentionItems = ({
       }
     }
     return { items: merged, loading: kbMention.loading || projectMention.loading, knownKbIds };
-  }, [
-    isOpen,
-    kbMention.items,
-    kbMention.loading,
-    projectMention.active,
-    projectMention.items,
-    projectMention.loading,
-  ]);
+  }, [isOpen, kbMention.items, kbMention.loading, projectMention.active, projectMention.items, projectMention.loading]);
 };

@@ -1,5 +1,6 @@
 {
   "title": "Meeting Recording",
+  "subtitle": "Grave, transcreva e resuma em um só lugar — clique na linha para ver",
   "startRecording": "Start recording",
   "stopRecording": "Stop",
   "recording": "Recording",
@@ -9,6 +10,26 @@
   "transcriptionFailed": "Transcription failed",
   "chunkLabel": "Chunk {{index}}",
   "deleteConfirm": "Delete this recording? This cannot be undone.",
+  "deleteConfirmTitle": "Excluir esta gravação?",
+  "tabAll": "Todas as gravações {{count}}",
+  "searchPlaceholder": "Buscar gravações ou transcrições",
+  "columnName": "Nome",
+  "columnDuration": "Duração",
+  "columnCreatedAt": "Gravado em",
+  "columnStatus": "Status",
+  "columnActions": "Ações",
+  "duration": "{{minutes}}min {{seconds}}s",
+  "today": "Hoje",
+  "yesterday": "Ontem",
+  "sourceSubtitle": "Microfone e áudio do sistema",
+  "statusSummaryReady": "Resumo pronto",
+  "statusPending": "Aguardando transcrição",
+  "statusFailed": "Falha na transcrição",
+  "viewAction": "Ver",
+  "moreActions": "Mais ações",
+  "deleteAction": "Excluir",
+  "toggleChunks": "Alternar trechos",
+  "footerStatus": "{{count}} gravações · Sincronizado",
   "transcriptModal": {
     "viewButtonAriaLabel": "View transcript summary",
     "disabledHint": "No transcriptions available yet",
@@ -16,7 +37,8 @@
     "retryTranscribeDisabledHint": "All chunks have been transcribed; nothing to retry",
     "cancelTranscribeConfirmTitle": "Stop transcription?",
     "cancelTranscribeConfirmOk": "Stop",
-    "cancelTranscribeConfirmCancel": "Keep going"
+    "cancelTranscribeConfirmCancel": "Keep going",
+    "cancelTranscribeConfirmDescription": "Após parar, os trechos incompletos não serão transcritos."
   },
   "errors": {
     "permissionDenied": "Microphone access denied",
@@ -24,6 +46,8 @@
     "saveFailed": "Failed to save recording",
     "deleteFailed": "Failed to delete recording",
     "transcribeFailed": "Transcription failed",
-    "recordingUnsupported": "Recording is not supported in this environment"
-  }
+    "recordingUnsupported": "Recording is not supported in this environment",
+    "unknown": "Unknown error"
+  },
+  "cancelTranscribeConfirmDescription": "Após parar, os trechos incompletos não serão transcritos."
 }

@@ -1,5 +1,6 @@
 {
   "title": "Meeting Recording",
+  "subtitle": "Kayıt, yazıya dökme ve özetler tek yerde; satıra tıklayarak görüntüleyin",
   "startRecording": "Start recording",
   "stopRecording": "Stop",
   "recording": "Recording",
@@ -9,6 +10,26 @@
   "transcriptionFailed": "Transcription failed",
   "chunkLabel": "Chunk {{index}}",
   "deleteConfirm": "Delete this recording? This cannot be undone.",
+  "deleteConfirmTitle": "Bu kayıt silinsin mi?",
+  "tabAll": "Tüm kayıtlar {{count}}",
+  "searchPlaceholder": "Kayıt veya metin ara",
+  "columnName": "Kayıt Adı",
+  "columnDuration": "Süre",
+  "columnCreatedAt": "Kayıt Zamanı",
+  "columnStatus": "Durum",
+  "columnActions": "İşlemler",
+  "duration": "{{minutes}}dk {{seconds}}sn",
+  "today": "Bugün",
+  "yesterday": "Dün",
+  "sourceSubtitle": "Mikrofon ve sistem sesi",
+  "statusSummaryReady": "Özet hazır",
+  "statusPending": "Metin bekleniyor",
+  "statusFailed": "Metin dökülemedi",
+  "viewAction": "Görüntüle",
+  "moreActions": "Diğer işlemler",
+  "deleteAction": "Sil",
+  "toggleChunks": "Parçaları aç/kapat",
+  "footerStatus": "{{count}} kayıt · Senkronize",
   "transcriptModal": {
     "viewButtonAriaLabel": "View transcript summary",
     "disabledHint": "No transcriptions available yet",
@@ -16,7 +37,8 @@
     "retryTranscribeDisabledHint": "All chunks have been transcribed; nothing to retry",
     "cancelTranscribeConfirmTitle": "Stop transcription?",
     "cancelTranscribeConfirmOk": "Stop",
-    "cancelTranscribeConfirmCancel": "Keep going"
+    "cancelTranscribeConfirmCancel": "Keep going",
+    "cancelTranscribeConfirmDescription": "Durdurulduktan sonra tamamlanmamış parçalar yazıya dökülmez."
   },
   "errors": {
     "permissionDenied": "Microphone access denied",
@@ -24,6 +46,8 @@
     "saveFailed": "Failed to save recording",
     "deleteFailed": "Failed to delete recording",
     "transcribeFailed": "Transcription failed",
-    "recordingUnsupported": "Recording is not supported in this environment"
-  }
+    "recordingUnsupported": "Recording is not supported in this environment",
+    "unknown": "Unknown error"
+  },
+  "cancelTranscribeConfirmDescription": "Durdurulduktan sonra tamamlanmamış parçalar yazıya dökülmez."
 }

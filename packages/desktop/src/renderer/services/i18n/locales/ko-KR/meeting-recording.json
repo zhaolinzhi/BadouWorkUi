@@ -1,5 +1,6 @@
 {
   "title": "Meeting Recording",
+  "subtitle": "녹음, 변환, 요약을 한곳에서 관리하세요. 행을 클릭하면 확인할 수 있습니다",
   "startRecording": "Start recording",
   "stopRecording": "Stop",
   "recording": "Recording",
@@ -9,6 +10,26 @@
   "transcriptionFailed": "Transcription failed",
   "chunkLabel": "Chunk {{index}}",
   "deleteConfirm": "Delete this recording? This cannot be undone.",
+  "deleteConfirmTitle": "이 녹음을 삭제할까요?",
+  "tabAll": "모든 녹음 {{count}}",
+  "searchPlaceholder": "녹음 제목 또는 변환 내용 검색",
+  "columnName": "녹음 이름",
+  "columnDuration": "길이",
+  "columnCreatedAt": "녹음 일시",
+  "columnStatus": "상태",
+  "columnActions": "작업",
+  "duration": "{{minutes}}분 {{seconds}}초",
+  "today": "오늘",
+  "yesterday": "어제",
+  "sourceSubtitle": "마이크 및 시스템 오디오",
+  "statusSummaryReady": "요약 생성됨",
+  "statusPending": "변환 대기 중",
+  "statusFailed": "변환 실패",
+  "viewAction": "보기",
+  "moreActions": "더 많은 작업",
+  "deleteAction": "삭제",
+  "toggleChunks": "청크 펼치기/접기",
+  "footerStatus": "녹음 {{count}}개 · 동기화됨",
   "transcriptModal": {
     "viewButtonAriaLabel": "View transcript summary",
     "disabledHint": "No transcriptions available yet",
@@ -16,7 +37,8 @@
     "retryTranscribeDisabledHint": "All chunks have been transcribed; nothing to retry",
     "cancelTranscribeConfirmTitle": "Stop transcription?",
     "cancelTranscribeConfirmOk": "Stop",
-    "cancelTranscribeConfirmCancel": "Keep going"
+    "cancelTranscribeConfirmCancel": "Keep going",
+    "cancelTranscribeConfirmDescription": "중지하면 완료되지 않은 청크는 변환되지 않습니다."
   },
   "errors": {
     "permissionDenied": "Microphone access denied",
@@ -24,6 +46,8 @@
     "saveFailed": "Failed to save recording",
     "deleteFailed": "Failed to delete recording",
     "transcribeFailed": "Transcription failed",
-    "recordingUnsupported": "Recording is not supported in this environment"
-  }
+    "recordingUnsupported": "Recording is not supported in this environment",
+    "unknown": "Unknown error"
+  },
+  "cancelTranscribeConfirmDescription": "중지하면 완료되지 않은 청크는 변환되지 않습니다."
 }

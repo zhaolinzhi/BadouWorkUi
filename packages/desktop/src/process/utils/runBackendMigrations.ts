@@ -16,6 +16,7 @@ import {
   type ImageGenerationMcpEnvResolveResult,
 } from '@/common/config/imageGenerationMcpEnv';
 import { BUILTIN_IMAGE_GEN_NAME, type IMcpServer, type IProvider } from '@/common/config/storage';
+import { ASK_USER_SERVER_LEGACY_NAMES, ASK_USER_SERVER_NAME } from '@/common/chat/askUserTool';
 import { getBuiltinMcpScriptPath, type ProcessConfig as ProcessConfigType } from './initStorage';
 import { migrateAssistantsToBackend } from './migrateAssistants';
 
@@ -38,6 +39,17 @@ const BUILTIN_CHROME_DEVTOOLS_NAME = 'chrome-devtools';
  * happens in the side preview panel where the user can watch it.
  */
 const BUILTIN_BROWSER_SCRIPT = 'builtin-mcp-browser';
+
+/**
+ * 内置「向用户提问」MCP。
+ *
+ * 让 Agent 在设计方案遇到需要用户拍板的决策时，先把问题交给用户、等用户回答，
+ * 再继续工作。没有它，Agent 只能自己假设并直接往下做。
+ *
+ * The built-in ask-user MCP. Lets an agent hand a design decision to the user
+ * and wait for the answer instead of silently assuming one and moving on.
+ */
+const BUILTIN_ASK_USER_SCRIPT = 'builtin-mcp-ask-user';
 
 const LEGACY_BACKEND_CLIENT_PREFERENCE_KEYS = [
   'assistants',
@@ -220,7 +232,40 @@ function buildDefaultMcpServers(): McpImportServer[] {
       original_json: JSON.stringify({ mcpServers: { [BUILTIN_CHROME_DEVTOOLS_NAME]: chromeConfig } }, null, 2),
     },
     buildBuiltinBrowserServer(),
+    buildBuiltinAskUserServer(),
   ];
+}
+
+/**
+ * 内置「向用户提问」MCP —— 让 Agent 把设计决策交给用户拍板。
+ *
+ * 默认开启：这是 Agent 与用户协作的核心能力，不应要求用户先去设置里打开。
+ * 与浏览器 MCP 一样，脚本绝对路径写在 transport.args 里，因此每次启动都要对齐
+ * 一次（见 ensureBootstrapMcpServersInDb 的路径修复逻辑）。
+ *
+ * The built-in ask-user MCP. Enabled by default — this is the core
+ * agent/user collaboration capability and must not require a settings toggle.
+ */
+function buildBuiltinAskUserServer(): McpImportServer {
+  const scriptPath = getBuiltinMcpScriptPath(BUILTIN_ASK_USER_SCRIPT);
+  const serverConfig = {
+    command: 'node',
+    args: [scriptPath],
+  };
+
+  return {
+    name: ASK_USER_SERVER_NAME,
+    description:
+      'Ask the user a question and wait for their answer. Use this before implementing anything that depends on a decision only the user can make.',
+    enabled: true,
+    builtin: true,
+    transport: {
+      type: 'stdio',
+      command: serverConfig.command,
+      args: serverConfig.args,
+    },
+    original_json: JSON.stringify({ mcpServers: { [ASK_USER_SERVER_NAME]: serverConfig } }, null, 2),
+  };
 }
 
 async function isCommandAvailable(command: string): Promise<boolean> {
@@ -292,6 +337,28 @@ function buildOriginalJsonFromTransport(server: Pick<IMcpServer, 'name' | 'descr
   );
 }
 
+/**
+ * 删除旧名字的内置 ask-user MCP 记录。
+ *
+ * 该 server 从 `aionui-ask-user` 改名为 `badouwork-ask-user`。旧行如果不删，
+ * 新名字会以另一条记录重新注册，旧行会变成用户列表里一个连不上的僵尸条目。
+ *
+ * Remove the ask-user MCP row left behind under its previous name. The server
+ * was renamed to match the product name; without this the old row survives as a
+ * dead entry in the user's MCP list.
+ */
+async function removeLegacyAskUserServer(): Promise<void> {
+  try {
+    const servers = (await mcpService.listServers.invoke()) || [];
+    const legacy = servers.find((server) => (ASK_USER_SERVER_LEGACY_NAMES as readonly string[]).includes(server.name));
+    if (!legacy) return;
+    await mcpService.deleteServer.invoke({ id: legacy.id });
+    console.info('[Migration] removed legacy ask-user MCP server, id: %s, name: %s', legacy.id, legacy.name);
+  } catch (error) {
+    console.warn('[Migration] failed to remove legacy ask-user MCP server', error);
+  }
+}
+
 async function ensureBootstrapMcpServersInDb(configFile: ConfigFile): Promise<void> {
   const [backendPrefs, fileImageConfig, providers] = await Promise.all([
     fetchBackendClientPreferences(),
@@ -300,6 +367,7 @@ async function ensureBootstrapMcpServersInDb(configFile: ConfigFile): Promise<vo
   ]);
   const imageConfig = resolveImageGenerationMigrationConfig(backendPrefs, fileImageConfig);
   const imageConfigSource = resolveImageGenerationMigrationConfigSource(backendPrefs, fileImageConfig);
+  await removeLegacyAskUserServer();
   const existing = await mcpService.listServers.invoke();
   const existingByName = new Map((existing ?? []).map((server) => [server.name, server]));
   const existingImageServer = existingByName.get(BUILTIN_IMAGE_GEN_NAME);
@@ -434,11 +502,49 @@ async function ensureBootstrapMcpServersInDb(configFile: ConfigFile): Promise<vo
     }
   }
 
+  /**
+   * 修复 ask-user MCP 记录里过期的脚本绝对路径。
+   *
+   * 与浏览器 MCP 同理：绝对路径只在首次插入时写入，应用被移动后就会失效，
+   * 因此每次启动都对齐一次实际路径。
+   *
+   * Repair a stale absolute script path in the ask-user MCP record. Same
+   * reasoning as the browser MCP: the path is baked in on first insert and
+   * goes stale when the app moves, so reconcile it on every startup.
+   */
+  const existingAskUserServer = existing.find((server) => server.name === ASK_USER_SERVER_NAME);
+  let askUserServerUpdated = false;
+  if (existingAskUserServer) {
+    const desiredAskUserServer = buildBuiltinAskUserServer();
+    const askUserTransportChanged = !isSameStdioTransport(
+      existingAskUserServer.transport,
+      desiredAskUserServer.transport
+    );
+    const askUserJsonChanged = existingAskUserServer.original_json !== desiredAskUserServer.original_json;
+    if (askUserTransportChanged || askUserJsonChanged) {
+      console.info(
+        '[Migration] ask-user MCP path drifted, server id: %s, transport changed: %s, json changed: %s',
+        existingAskUserServer.id,
+        askUserTransportChanged ? 'yes' : 'no',
+        askUserJsonChanged ? 'yes' : 'no'
+      );
+      await mcpService.updateServer.invoke({
+        id: existingAskUserServer.id,
+        data: {
+          transport: desiredAskUserServer.transport,
+          original_json: desiredAskUserServer.original_json,
+        },
+      });
+      askUserServerUpdated = true;
+    }
+  }
+
   console.info(
-    '[Migration] MCP bootstrap completed, imported %d missing defaults, updated image server: %s, updated browser server: %s, image config source: %s, image enabled: %s',
+    '[Migration] MCP bootstrap completed, imported %d missing defaults, updated image server: %s, updated browser server: %s, updated ask-user server: %s, image config source: %s, image enabled: %s',
     missing.length,
     imageServerUpdated ? 'yes' : 'no',
     browserServerUpdated ? 'yes' : 'no',
+    askUserServerUpdated ? 'yes' : 'no',
     imageConfigSource,
     imageConfig?.switch === true ? 'yes' : 'no'
   );

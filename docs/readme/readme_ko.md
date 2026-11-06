@@ -702,7 +702,7 @@ PR을 열기 전에 [CONTRIBUTING.md](../../CONTRIBUTING.md)를 읽어주세요.
 
 ### 개발 환경 설정
 
-AionUi 로컬 개발은 Electron 프런트엔드용 AionUi와 로컬 백엔드용 AionCore 두 저장소를 사용합니다. macOS, Linux, Windows 전체 설정 절차는 [Development Guide](../contributing/development.md)를 참고하세요.
+AionUi 로컬 개발은 Electron 프런트엔드용 AionUi와 로컬 백엔드용 BadouWorkCore 두 저장소를 사용합니다. macOS, Linux, Windows 전체 설정 절차는 [Development Guide](../contributing/development.md)를 참고하세요.
 
 ---
 
