@@ -49,5 +49,12 @@
     "recordingUnsupported": "Recording is not supported in this environment",
     "unknown": "Unknown error"
   },
-  "cancelTranscribeConfirmDescription": "پس از توقف، قطعه‌های ناتمام رونویسی نمی‌شوند."
+  "cancelTranscribeConfirmDescription": "پس از توقف، قطعه‌های ناتمام رونویسی نمی‌شوند.",
+  "emptyTitle": "هنوز ضبطی وجود ندارد",
+  "emptyDescription": "روی «شروع» کلیک کنید — رونویسی و صورت‌جلسه به‌صورت خودکار ساخته می‌شود",
+  "emptySubtitle": "گفت‌وگو را ضبط کنید، صورت‌جلسه بنویسید و از AI بپرسید",
+  "importAudio": "وارد کردن فایل صوتی موجود",
+  "recordingSettings": "تنظیمات ضبط",
+  "defaultInputHint": "میکروفون پیش‌فرض · چینی (ماندارین)",
+  "featureComingSoon": "به‌زودی"
 }

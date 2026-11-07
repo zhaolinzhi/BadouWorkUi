@@ -48,6 +48,7 @@ import {
   Search,
   Star,
   Tips,
+  Upload,
 } from '@icon-park/react';
 import type React from 'react';
 
@@ -93,6 +94,7 @@ export const ICON_PARK_MAP = {
   search: Search,
   star: Star,
   tips: Tips,
+  upload: Upload,
 
   // —— 产品语义别名 ——
   notes: Notes,

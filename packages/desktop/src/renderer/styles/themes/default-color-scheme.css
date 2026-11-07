@@ -126,6 +126,8 @@
   --rec-muted: #6b7280; /* 次要文字(表头、副标题、状态) */
   --rec-placeholder: #b4bece; /* 占位符文字 */
   --rec-heading: #0d0d0d; /* 页面标题 */
+  --rec-disabled-text: #9199a6; /* 置灰入口的文字(功能未上线) */
+  --rec-disabled-bg: #f1f4f8; /* 置灰入口的底色与描边 */
 
   /* 知识库模块 —— 设计稿 BadouWork-Desktop-Handoff 的知识库首页 */
   --kb-app-bg: #f5f7fa; /* 浅灰底(搜索框、排序框、图标方块、胶囊底) */
@@ -266,6 +268,8 @@
   --rec-muted: #a8a8a8;
   --rec-placeholder: #6b7280;
   --rec-heading: #f1f1f1;
+  --rec-disabled-text: #9199a6;
+  --rec-disabled-bg: #303030;
 
   /* 知识库模块（暗色沿用设计稿 dark.css 的深灰浅蓝） */
   --kb-app-bg: #1a1a1a;

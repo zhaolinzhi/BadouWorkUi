@@ -49,5 +49,12 @@
     "recordingUnsupported": "Recording is not supported in this environment",
     "unknown": "Unknown error"
   },
-  "cancelTranscribeConfirmDescription": "Durdurulduktan sonra tamamlanmamış parçalar yazıya dökülmez."
+  "cancelTranscribeConfirmDescription": "Durdurulduktan sonra tamamlanmamış parçalar yazıya dökülmez.",
+  "emptyTitle": "Henüz kayıt yok",
+  "emptyDescription": "Başlatın; otomatik olarak yazıya dökülür ve özetlenir",
+  "emptySubtitle": "Tartışmayı kaydedin, özet oluşturun ve AI’a sormaya devam edin",
+  "importAudio": "Mevcut sesi içe aktar",
+  "recordingSettings": "Kayıt ayarları",
+  "defaultInputHint": "Varsayılan mikrofon · Mandarin (CN)",
+  "featureComingSoon": "Yakında"
 }

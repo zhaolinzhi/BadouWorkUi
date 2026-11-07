@@ -62,13 +62,27 @@ const recording = (id: string, name: string, transcription = ''): MeetingRecordi
   }) as unknown as MeetingRecording;
 
 describe('RecordingListPage', () => {
-  it('渲染页头标题、副标题与录音按钮', async () => {
+  it('一条录音都没有时,换成设计稿的空态版式', async () => {
     ipcMocks.listMock.mockResolvedValue([]);
     render(<RecordingListPage />);
+    await waitFor(() => expect(screen.getByTestId('recording-empty-state')).toBeTruthy());
     expect(screen.getByText('录音')).toBeTruthy();
-    expect(screen.getByText('录音、转写与纪要集中管理，点击记录即可查看')).toBeTruthy();
+    // 空态屏的副标题与列表屏不是同一句
+    expect(screen.getByText('录下讨论，整理成纪要，也可以继续向 AI 提问')).toBeTruthy();
+    expect(screen.getByText('还没有录音')).toBeTruthy();
+    expect(screen.getByText('点击开始，自动转写并整理纪要')).toBeTruthy();
     expect(screen.getByRole('button', { name: '开始录音' })).toBeTruthy();
-    await waitFor(() => expect(screen.getByTestId('empty-state')).toBeTruthy());
+    // 空态屏没有工具行、表格与底栏
+    expect(screen.queryByTestId('empty-state')).toBeNull();
+    expect(screen.queryByTestId('recording-search')).toBeNull();
+  });
+
+  it('空态里的「导入已有音频」与「录音设置」置灰', async () => {
+    ipcMocks.listMock.mockResolvedValue([]);
+    render(<RecordingListPage />);
+    await waitFor(() => expect(screen.getByTestId('recording-empty-state')).toBeTruthy());
+    expect((screen.getByRole('button', { name: '导入已有音频' }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole('button', { name: '录音设置' }) as HTMLButtonElement).disabled).toBe(true);
   });
 
   it('tab 上显示录音条数,底栏显示同步状态', async () => {

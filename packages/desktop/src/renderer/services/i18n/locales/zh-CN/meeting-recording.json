@@ -49,5 +49,12 @@
     "recordingUnsupported": "当前环境不支持录音",
     "unknown": "未知错误"
   },
-  "cancelTranscribeConfirmDescription": "停止后，尚未完成的片段将不再转写。"
+  "cancelTranscribeConfirmDescription": "停止后，尚未完成的片段将不再转写。",
+  "emptyTitle": "还没有录音",
+  "emptyDescription": "点击开始，自动转写并整理纪要",
+  "emptySubtitle": "录下讨论，整理成纪要，也可以继续向 AI 提问",
+  "importAudio": "导入已有音频",
+  "recordingSettings": "录音设置",
+  "defaultInputHint": "默认麦克风 · 中文普通话",
+  "featureComingSoon": "功能开发中"
 }

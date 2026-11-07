@@ -49,5 +49,12 @@
     "recordingUnsupported": "Recording is not supported in this environment",
     "unknown": "Unknown error"
   },
-  "cancelTranscribeConfirmDescription": "Unfinished chunks will not be transcribed after stopping."
+  "cancelTranscribeConfirmDescription": "Unfinished chunks will not be transcribed after stopping.",
+  "emptyTitle": "Nothing recorded yet",
+  "emptyDescription": "Start recording — transcripts and minutes are generated automatically",
+  "emptySubtitle": "Record the discussion, turn it into minutes, and keep asking AI",
+  "importAudio": "Import existing audio",
+  "recordingSettings": "Recording settings",
+  "defaultInputHint": "Default microphone · Mandarin (CN)",
+  "featureComingSoon": "Coming soon"
 }

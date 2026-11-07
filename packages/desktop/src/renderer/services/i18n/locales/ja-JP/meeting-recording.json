@@ -49,5 +49,12 @@
     "recordingUnsupported": "Recording is not supported in this environment",
     "unknown": "Unknown error"
   },
-  "cancelTranscribeConfirmDescription": "停止すると未完了のチャンクは文字起こしされません。"
+  "cancelTranscribeConfirmDescription": "停止すると未完了のチャンクは文字起こしされません。",
+  "emptyTitle": "まだ録音がありません",
+  "emptyDescription": "開始すると自動で文字起こしと要約を作成します",
+  "emptySubtitle": "議論を録音し、要約にまとめ、さらに AI に質問できます",
+  "importAudio": "既存の音声を取り込む",
+  "recordingSettings": "録音設定",
+  "defaultInputHint": "デフォルトのマイク · 中国語（標準）",
+  "featureComingSoon": "開発中"
 }

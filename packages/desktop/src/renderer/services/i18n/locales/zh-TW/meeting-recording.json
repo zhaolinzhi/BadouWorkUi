@@ -49,5 +49,12 @@
     "recordingUnsupported": "Recording is not supported in this environment",
     "unknown": "Unknown error"
   },
-  "cancelTranscribeConfirmDescription": "停止後，尚未完成的片段將不再轉寫。"
+  "cancelTranscribeConfirmDescription": "停止後，尚未完成的片段將不再轉寫。",
+  "emptyTitle": "還沒有錄音",
+  "emptyDescription": "點擊開始，自動轉寫並整理紀要",
+  "emptySubtitle": "錄下討論，整理成紀要，也可以繼續向 AI 提問",
+  "importAudio": "匯入已有音訊",
+  "recordingSettings": "錄音設定",
+  "defaultInputHint": "預設麥克風 · 中文普通話",
+  "featureComingSoon": "功能開發中"
 }

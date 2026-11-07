@@ -11,6 +11,7 @@ import { ipcBridge } from '../__qiankun__/ipc';
 import type { MeetingRecording } from '../__qiankun__/ipc';
 import RecorderPanel from '../components/RecorderPanel';
 import RecordingList from '../components/RecordingList';
+import RecordingEmptyState from './RecordingEmptyState';
 import styles from './RecordingListPage.module.css';
 
 /**
@@ -138,6 +139,26 @@ const RecordingListPage: React.FC = () => {
       )
     );
   }, [recordings, keyword]);
+
+  /**
+   * 还没有任何录音时,页面换成设计稿的 `record-empty` 版式:只留页头
+   * (副标题换成空态那句)与居中的空态块,没有工具行、表格与底栏。
+   */
+  if (!loading && recordings.length === 0) {
+    return (
+      <div className={styles.page}>
+        <header className={styles.heading}>
+          <div className={styles.headingCopy}>
+            <h1 className={styles.title}>{t('meeting-recording.title', { defaultValue: '录音' })}</h1>
+            <p className={styles.subtitle}>
+              {t('meeting-recording.emptySubtitle', { defaultValue: '录下讨论，整理成纪要，也可以继续向 AI 提问' })}
+            </p>
+          </div>
+        </header>
+        <RecordingEmptyState onRecorded={handleRecorded} />
+      </div>
+    );
+  }
 
   return (
     <div className={styles.page}>

@@ -49,5 +49,12 @@
     "recordingUnsupported": "Recording is not supported in this environment",
     "unknown": "Unknown error"
   },
-  "cancelTranscribeConfirmDescription": "После остановки незавершённые фрагменты не будут расшифрованы."
+  "cancelTranscribeConfirmDescription": "После остановки незавершённые фрагменты не будут расшифрованы.",
+  "emptyTitle": "Пока нет записей",
+  "emptyDescription": "Нажмите «Начать» — расшифровка и итоги создаются автоматически",
+  "emptySubtitle": "Запишите обсуждение, составьте итоги и продолжайте задавать вопросы AI",
+  "importAudio": "Импортировать аудио",
+  "recordingSettings": "Настройки записи",
+  "defaultInputHint": "Микрофон по умолчанию · Китайский (путунхуа)",
+  "featureComingSoon": "Скоро будет"
 }

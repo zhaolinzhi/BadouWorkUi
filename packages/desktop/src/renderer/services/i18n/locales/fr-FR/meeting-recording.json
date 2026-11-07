@@ -49,5 +49,12 @@
     "recordingUnsupported": "Recording is not supported in this environment",
     "unknown": "Unknown error"
   },
-  "cancelTranscribeConfirmDescription": "Après l'arrêt, les fragments incomplets ne seront pas transcrits."
+  "cancelTranscribeConfirmDescription": "Après l'arrêt, les fragments incomplets ne seront pas transcrits.",
+  "emptyTitle": "Aucun enregistrement pour l’instant",
+  "emptyDescription": "Cliquez sur démarrer — la transcription et le compte rendu sont générés automatiquement",
+  "emptySubtitle": "Enregistrez la discussion, rédigez le compte rendu et continuez à interroger l’IA",
+  "importAudio": "Importer un audio existant",
+  "recordingSettings": "Paramètres d’enregistrement",
+  "defaultInputHint": "Microphone par défaut · Mandarin (CN)",
+  "featureComingSoon": "Bientôt disponible"
 }

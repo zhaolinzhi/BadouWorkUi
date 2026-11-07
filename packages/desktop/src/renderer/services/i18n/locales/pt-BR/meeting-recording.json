@@ -49,5 +49,12 @@
     "recordingUnsupported": "Recording is not supported in this environment",
     "unknown": "Unknown error"
   },
-  "cancelTranscribeConfirmDescription": "Após parar, os trechos incompletos não serão transcritos."
+  "cancelTranscribeConfirmDescription": "Após parar, os trechos incompletos não serão transcritos.",
+  "emptyTitle": "Nenhuma gravação ainda",
+  "emptyDescription": "Clique em iniciar — a transcrição e a ata são geradas automaticamente",
+  "emptySubtitle": "Grave a discussão, transforme em ata e continue perguntando à IA",
+  "importAudio": "Importar áudio existente",
+  "recordingSettings": "Configurações de gravação",
+  "defaultInputHint": "Microfone padrão · Mandarim (CN)",
+  "featureComingSoon": "Em breve"
 }

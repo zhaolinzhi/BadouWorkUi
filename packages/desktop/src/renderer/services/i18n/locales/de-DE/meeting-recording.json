@@ -49,5 +49,12 @@
     "recordingUnsupported": "Recording is not supported in this environment",
     "unknown": "Unknown error"
   },
-  "cancelTranscribeConfirmDescription": "Nach dem Stopp werden unvollständige Abschnitte nicht transkribiert."
+  "cancelTranscribeConfirmDescription": "Nach dem Stopp werden unvollständige Abschnitte nicht transkribiert.",
+  "emptyTitle": "Noch keine Aufnahmen",
+  "emptyDescription": "Auf „Starten“ tippen — Transkript und Protokoll entstehen automatisch",
+  "emptySubtitle": "Nimm die Diskussion auf, erstelle das Protokoll und frage die KI weiter",
+  "importAudio": "Vorhandenes Audio importieren",
+  "recordingSettings": "Aufnahme-Einstellungen",
+  "defaultInputHint": "Standardmikrofon · Mandarin (CN)",
+  "featureComingSoon": "Demnächst"
 }

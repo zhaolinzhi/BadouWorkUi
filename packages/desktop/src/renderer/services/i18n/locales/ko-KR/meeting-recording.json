@@ -49,5 +49,12 @@
     "recordingUnsupported": "Recording is not supported in this environment",
     "unknown": "Unknown error"
   },
-  "cancelTranscribeConfirmDescription": "중지하면 완료되지 않은 청크는 변환되지 않습니다."
+  "cancelTranscribeConfirmDescription": "중지하면 완료되지 않은 청크는 변환되지 않습니다.",
+  "emptyTitle": "아직 녹음이 없습니다",
+  "emptyDescription": "시작하면 자동으로 변환하고 요약을 작성합니다",
+  "emptySubtitle": "대화를 녹음해 요약하고 AI에게 계속 질문할 수 있습니다",
+  "importAudio": "기존 오디오 가져오기",
+  "recordingSettings": "녹음 설정",
+  "defaultInputHint": "기본 마이크 · 중국어(표준)",
+  "featureComingSoon": "개발 중"
 }

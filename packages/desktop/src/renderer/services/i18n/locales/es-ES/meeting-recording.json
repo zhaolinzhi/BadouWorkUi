@@ -49,5 +49,12 @@
     "recordingUnsupported": "Recording is not supported in this environment",
     "unknown": "Unknown error"
   },
-  "cancelTranscribeConfirmDescription": "Al detener, los fragmentos incompletos no se transcribirán."
+  "cancelTranscribeConfirmDescription": "Al detener, los fragmentos incompletos no se transcribirán.",
+  "emptyTitle": "Aún no hay grabaciones",
+  "emptyDescription": "Pulsa iniciar: la transcripción y el acta se generan automáticamente",
+  "emptySubtitle": "Graba la conversación, redacta el acta y sigue preguntando a la IA",
+  "importAudio": "Importar audio existente",
+  "recordingSettings": "Ajustes de grabación",
+  "defaultInputHint": "Micrófono predeterminado · Mandarín (CN)",
+  "featureComingSoon": "Próximamente"
 }
