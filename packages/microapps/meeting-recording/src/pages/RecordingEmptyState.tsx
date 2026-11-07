@@ -3,14 +3,19 @@
  * Copyright 2026 AionUi (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Tooltip } from '@arco-design/web-react';
 import { AppIcon } from '@aionui/ui';
 import RecorderPanel from '../components/RecorderPanel';
+import type { MeetingRecorder } from '../components/RecorderPanel';
+import { useRecordingName } from '../hooks/useRecordingName';
+import RecordingSettingsModal from './RecordingSettingsModal';
 import styles from './RecordingEmptyState.module.css';
 
 export type RecordingEmptyStateProps = {
+  /** 页面持有的录音机 —— 弹窗与面板共用同一个实例。 */
+  recorder: MeetingRecorder;
   /** 录音保存成功后回调 —— 页面据此刷新列表,空态随之退场。 */
   onRecorded?: () => void;
 };
@@ -24,13 +29,24 @@ export type RecordingEmptyStateProps = {
  *   .rec-empty-home .rec-actions    两个按钮并排,间距 12px
  *   .rec-empty-home .rec-settings-link  灰字 + 蓝色链接,间距 16px
  *
- * 「导入已有音频」与「录音设置」目前没有后端能力(IPC bridge 里没有导入与
- * 设置的接口),按约定**只做视觉对齐**:入口照设计稿的位置渲染,但置灰,
- * 并用 Tooltip 说明功能尚未上线。
+ * 「录音设置」是可点的:打开录音设置弹窗,确认后直接开始录音。
+ * 「导入已有音频」没有对应的 IPC 能力,仍然置灰并用 Tooltip 说明。
  */
-const RecordingEmptyState: React.FC<RecordingEmptyStateProps> = ({ onRecorded }) => {
+const RecordingEmptyState: React.FC<RecordingEmptyStateProps> = ({ recorder, onRecorded }) => {
   const { t } = useTranslation();
   const comingSoon = t('meeting-recording.featureComingSoon', { defaultValue: '功能开发中' });
+  const [settingsVisible, setSettingsVisible] = useState(false);
+  /**
+   * 自动命名的生成器 —— 名字里带当前时间,只能在弹窗**打开的那一刻**才算,
+   * 所以传函数给弹窗,而不是提前算好一个字符串。
+   */
+  const { buildDefaultName } = useRecordingName();
+
+  /** 弹窗确认后关闭弹窗并开录 —— 用的是面板同一个录音机实例。 */
+  const handleConfirm = async (name: string) => {
+    setSettingsVisible(false);
+    await recorder.start({ name });
+  };
 
   return (
     <div className={styles.emptyHome} data-testid='recording-empty-state'>
@@ -50,7 +66,7 @@ const RecordingEmptyState: React.FC<RecordingEmptyStateProps> = ({ onRecorded })
       </p>
 
       <div className={styles.actions}>
-        <RecorderPanel onRecorded={onRecorded} />
+        <RecorderPanel recorder={recorder} onRecorded={onRecorded} />
         <Tooltip content={comingSoon}>
           <span className={styles.tooltipTarget}>
             <Button className={styles.secondaryButton} disabled>
@@ -65,14 +81,17 @@ const RecordingEmptyState: React.FC<RecordingEmptyStateProps> = ({ onRecorded })
         <span className={styles.settingsHint}>
           {t('meeting-recording.defaultInputHint', { defaultValue: '默认麦克风 · 中文普通话' })}
         </span>
-        <Tooltip content={comingSoon}>
-          <span className={styles.tooltipTarget}>
-            <Button type='text' className={styles.settingsLink} disabled>
-              {t('meeting-recording.recordingSettings', { defaultValue: '录音设置' })}
-            </Button>
-          </span>
-        </Tooltip>
+        <Button type='text' className={styles.settingsLink} onClick={() => setSettingsVisible(true)}>
+          {t('meeting-recording.recordingSettings', { defaultValue: '录音设置' })}
+        </Button>
       </div>
+
+      <RecordingSettingsModal
+        visible={settingsVisible}
+        buildDefaultName={buildDefaultName}
+        onCancel={() => setSettingsVisible(false)}
+        onConfirm={handleConfirm}
+      />
     </div>
   );
 };

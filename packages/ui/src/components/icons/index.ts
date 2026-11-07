@@ -29,6 +29,7 @@ import {
   Book,
   BookOne,
   Check,
+  CloseSmall,
   Delete,
   Download,
   Down,
@@ -49,6 +50,7 @@ import {
   Star,
   Tips,
   Upload,
+  VolumeNotice,
 } from '@icon-park/react';
 import type React from 'react';
 
@@ -78,6 +80,7 @@ export const ICON_PARK_MAP = {
   book: Book,
   'book-one': BookOne,
   check: Check,
+  'close-small': CloseSmall,
   delete: Delete,
   download: Download,
   down: Down,
@@ -95,6 +98,7 @@ export const ICON_PARK_MAP = {
   star: Star,
   tips: Tips,
   upload: Upload,
+  'volume-notice': VolumeNotice,
 
   // —— 产品语义别名 ——
   notes: Notes,

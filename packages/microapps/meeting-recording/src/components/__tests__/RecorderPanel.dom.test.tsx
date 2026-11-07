@@ -22,38 +22,45 @@ vi.mock('../../__qiankun__/ipc', () => ({
   },
 }));
 
-const recorderState = vi.hoisted(() => ({
-  status: 'idle' as 'idle' | 'requesting' | 'recording' | 'finalizing' | 'error',
-  durationMs: 0,
-}));
+import RecorderPanel from '../RecorderPanel';
+import type { MeetingRecorder } from '../RecorderPanel';
 
-vi.mock('../../hooks/useMeetingRecorder', () => ({
-  useMeetingRecorder: () => ({
-    status: recorderState.status,
-    durationMs: recorderState.durationMs,
+/** 造一个可控的录音机 —— 面板是受控组件,自己不再创建录音机。 */
+const createRecorder = (overrides: Partial<MeetingRecorder> = {}): MeetingRecorder =>
+  ({
+    status: 'idle',
+    durationMs: 0,
     errorCode: undefined,
     start: vi.fn(async () => {}),
     stop: vi.fn(async () => undefined),
     reset: vi.fn(),
-  }),
-}));
-
-import RecorderPanel from '../RecorderPanel';
+    ...overrides,
+  }) as MeetingRecorder;
 
 describe('RecorderPanel', () => {
   it('renders a button labelled 开始录音 in idle state', () => {
-    render(<RecorderPanel />);
+    render(<RecorderPanel recorder={createRecorder()} />);
     const button = screen.getByRole('button', { name: '开始录音' });
     expect(button).toBeTruthy();
   });
 
   it('renders a 停止 button and the elapsed timer while recording', () => {
-    recorderState.status = 'recording';
-    recorderState.durationMs = 65000;
-    render(<RecorderPanel />);
+    render(
+      <RecorderPanel
+        recorder={createRecorder({
+          status: 'recording',
+          durationMs: 65000,
+        })}
+      />
+    );
     expect(screen.getByRole('button', { name: '停止' })).toBeTruthy();
     expect(screen.getByText('01:05')).toBeTruthy();
-    recorderState.status = 'idle';
-    recorderState.durationMs = 0;
+  });
+
+  it('点击「开始录音」调用页面持有的录音机', () => {
+    const recorder = createRecorder();
+    render(<RecorderPanel recorder={recorder} />);
+    screen.getByRole('button', { name: '开始录音' }).click();
+    expect(recorder.start).toHaveBeenCalled();
   });
 });

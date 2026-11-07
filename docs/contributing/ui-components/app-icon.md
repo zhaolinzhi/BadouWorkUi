@@ -53,6 +53,7 @@ import { IconApps } from '@icon-park/react';
 | `book`                | `Book`                  |                                                                                                    |
 | `book-one`            | `BookOne`               |                                                                                                    |
 | `check`               | `Check`                 | 录音列表底部的「已同步」标记                                                                       |
+| `close-small`         | `CloseSmall`            | 录音列表搜索框里的「清除搜索」                                                                     |
 | `delete`              | `Delete`                |                                                                                                    |
 | `download`            | `Download`              |                                                                                                    |
 | `down`                | `Down`                  |                                                                                                    |
@@ -70,6 +71,7 @@ import { IconApps } from '@icon-park/react';
 | `star`                | `Star`                  | 笔记的「收藏」标记                                                                                 |
 | `tips`                | `Tips`                  |                                                                                                    |
 | `upload`              | `Upload`                | 录音空态的「导入已有音频」入口                                                                     |
+| `volume-notice`       | `VolumeNotice`          | 录音设置弹窗里的「系统声音」来源                                                                   |
 | `notes`               | `Notes`                 | 笔记（产品语义别名）                                                                               |
 | `knowledge-base`      | `Book`                  | 知识库（产品语义别名）                                                                             |
 | `recording`           | `Microphone`            | 录音（产品语义别名）                                                                               |

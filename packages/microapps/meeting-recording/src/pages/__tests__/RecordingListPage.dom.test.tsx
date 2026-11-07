@@ -77,12 +77,15 @@ describe('RecordingListPage', () => {
     expect(screen.queryByTestId('recording-search')).toBeNull();
   });
 
-  it('空态里的「导入已有音频」与「录音设置」置灰', async () => {
+  it('空态里的「导入已有音频」置灰,「录音设置」可点开弹窗', async () => {
     ipcMocks.listMock.mockResolvedValue([]);
     render(<RecordingListPage />);
     await waitFor(() => expect(screen.getByTestId('recording-empty-state')).toBeTruthy());
     expect((screen.getByRole('button', { name: '导入已有音频' }) as HTMLButtonElement).disabled).toBe(true);
-    expect((screen.getByRole('button', { name: '录音设置' }) as HTMLButtonElement).disabled).toBe(true);
+    const settingsButton = screen.getByRole('button', { name: '录音设置' }) as HTMLButtonElement;
+    expect(settingsButton.disabled).toBe(false);
+    fireEvent.click(settingsButton);
+    await waitFor(() => expect(screen.getByText('按需调整声音来源，确认后开始录音。')).toBeTruthy());
   });
 
   it('tab 上显示录音条数,底栏显示同步状态', async () => {
@@ -100,5 +103,52 @@ describe('RecordingListPage', () => {
     fireEvent.change(screen.getByRole('textbox'), { target: { value: '客户' } });
     expect(screen.queryByText('周会')).toBeNull();
     expect(screen.getByText('客户访谈')).toBeTruthy();
+  });
+
+  it('搜索没匹配上时,表头保留,下面换成设计稿的空结果态', async () => {
+    ipcMocks.listMock.mockResolvedValue([recording('rec-1', '周会')]);
+    render(<RecordingListPage />);
+    await waitFor(() => expect(screen.getByText('周会')).toBeTruthy());
+
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: '客户回访' } });
+
+    // 录音行没了,但表头还在 —— 设计稿的空结果态是「表头 + 下面的空态块」
+    expect(screen.queryByText('周会')).toBeNull();
+    expect(screen.getByText('录音名称')).toBeTruthy();
+
+    expect(screen.getByTestId('recording-no-results')).toBeTruthy();
+    expect(screen.getByText('没有找到相关录音')).toBeTruthy();
+    // 说明句里带上了用户搜的关键词
+    expect(screen.getByText('未找到与“客户回访”匹配的标题或转写内容')).toBeTruthy();
+    expect(screen.getByTestId('recording-clear-search')).toBeTruthy();
+  });
+
+  it('有查询时搜索框旁出现清除按钮,点它把关键词清空', async () => {
+    ipcMocks.listMock.mockResolvedValue([recording('rec-1', '周会')]);
+    render(<RecordingListPage />);
+    await waitFor(() => expect(screen.getByText('周会')).toBeTruthy());
+
+    // 没有查询 → 没有清除按钮
+    expect(screen.queryByTestId('recording-search-clear')).toBeNull();
+
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: '客户回访' } });
+    const clearButton = screen.getByTestId('recording-search-clear');
+    expect(clearButton.getAttribute('aria-label')).toBe('清除录音搜索');
+
+    fireEvent.click(clearButton);
+    await waitFor(() => expect(screen.getByText('周会')).toBeTruthy());
+    expect((screen.getByRole('textbox') as HTMLInputElement).value).toBe('');
+    expect(screen.queryByTestId('recording-no-results')).toBeNull();
+  });
+
+  it('空结果块里的「清空搜索」也能把关键词清空', async () => {
+    ipcMocks.listMock.mockResolvedValue([recording('rec-1', '周会')]);
+    render(<RecordingListPage />);
+    await waitFor(() => expect(screen.getByText('周会')).toBeTruthy());
+
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: '客户回访' } });
+    fireEvent.click(screen.getByTestId('recording-clear-search'));
+    await waitFor(() => expect(screen.getByText('周会')).toBeTruthy());
+    expect((screen.getByRole('textbox') as HTMLInputElement).value).toBe('');
   });
 });
