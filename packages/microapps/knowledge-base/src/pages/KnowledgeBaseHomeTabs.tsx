@@ -5,14 +5,13 @@
  */
 
 import type { KnowledgeBaseItem, KnowledgeBaseTab } from '../types';
-import PersonalKnowledgeBaseList from '../components/PersonalKnowledgeBaseList';
-import SharedKnowledgeBaseGrid from '../components/SharedKnowledgeBaseGrid';
-import { useAppRuntime } from '../AppContext';
+import KnowledgeBaseGrid from '../components/kb/KnowledgeBaseGrid';
+import { interpolateI18n } from '../utils/knowledgeBaseUtils';
 import { AppIcon } from '@aionui/ui';
-import { Button } from '@arco-design/web-react';
-import classNames from 'classnames';
-import React, { useState } from 'react';
+import { Button, Input, Select } from '@arco-design/web-react';
+import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import styles from './KnowledgeBaseHomeTabs.module.css';
 
 type KnowledgeBaseHomeTabsProps = {
   personalItems: KnowledgeBaseItem[];
@@ -24,7 +23,6 @@ type KnowledgeBaseHomeTabsProps = {
   onRetryLoadPersonal?: () => void;
   onRetryLoadShared?: () => void;
   onRefresh?: (tab: KnowledgeBaseTab) => void;
-  onEdit: (item: KnowledgeBaseItem) => void;
   onDelete: (item: KnowledgeBaseItem) => void;
   /** Row click destination for the personal list (view URL). */
   onOpenView: (item: KnowledgeBaseItem) => void;
@@ -36,6 +34,8 @@ type KnowledgeBaseHomeTabsProps = {
   onTabChange?: (tab: KnowledgeBaseTab) => void;
 };
 
+type SortKey = 'recent' | 'name';
+
 const KnowledgeBaseHomeTabs: React.FC<KnowledgeBaseHomeTabsProps> = ({
   personalItems,
   personalLoading = false,
@@ -46,7 +46,6 @@ const KnowledgeBaseHomeTabs: React.FC<KnowledgeBaseHomeTabsProps> = ({
   onRetryLoadPersonal,
   onRetryLoadShared,
   onRefresh,
-  onEdit,
   onDelete,
   onOpenView,
   onOpenEdit,
@@ -56,125 +55,150 @@ const KnowledgeBaseHomeTabs: React.FC<KnowledgeBaseHomeTabsProps> = ({
   onTabChange,
 }) => {
   const { t } = useTranslation();
-  /*
-   * shell 侧原来是 `useLayoutContext().isMobile`。子应用在 qiankun 沙箱里
-   * 够不到那个 Provider,改为读 shell mount 时快照进 props 的值(见 AppContext)。
-   * 注意这是**挂载时刻**的判定,窗口尺寸变化不会自动跟随 —— 真要响应式
-   * 需要自己监听 resize。
-   */
-  const { isMobile } = useAppRuntime();
   const [tab, setTab] = useState<KnowledgeBaseTab>(initialTab);
+  const [keyword, setKeyword] = useState('');
+  const [sort, setSort] = useState<SortKey>('recent');
 
   const selectTab = (next: KnowledgeBaseTab) => {
     if (next === tab) return;
     setTab(next);
+    setKeyword('');
     onTabChange?.(next);
     onRefresh?.(next);
   };
 
-  const counts = {
-    personal: personalItems.length,
-    shared: sharedItems.length,
-  };
+  const isPersonal = tab === 'personal';
+  const items = isPersonal ? personalItems : sharedItems;
 
-  const tabButton = (key: KnowledgeBaseTab, label: string, count: number) => (
+  const filtered = useMemo(() => {
+    const query = keyword.trim().toLowerCase();
+    const list = query ? items.filter((item) => item.name.toLowerCase().includes(query)) : items;
+    const sorted = [...list];
+    if (sort === 'name') {
+      sorted.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
+    } else {
+      sorted.sort((a, b) => (b.updatedAt ?? '').localeCompare(a.updatedAt ?? ''));
+    }
+    return sorted;
+  }, [items, keyword, sort]);
+
+  const totalDocuments = useMemo(() => items.reduce((sum, item) => sum + (item.documentCount ?? 0), 0), [items]);
+
+  const scopeTab = (key: KnowledgeBaseTab, label: string, count: number) => (
     <Button
       type='text'
+      role='tab'
+      aria-selected={tab === key}
       data-testid={`kb-tab-${key}`}
       onClick={() => selectTab(key)}
-      className={`!h-auto !relative !inline-flex !cursor-pointer !items-center !border-none !bg-transparent !px-2px !pb-12px !text-14px !leading-none ${
-        tab === key ? '!font-600 !text-t-primary' : '!font-500 !text-t-tertiary hover:!text-t-secondary'
-      }`}
+      className={`${styles.scopeTab} ${tab === key ? styles.scopeTabActive : ''}`}
     >
       <span>{label}</span>
-      <span
-        className={`ml-6px inline-flex h-16px min-w-16px items-center justify-center rounded-999px px-5px text-10px font-500 leading-none ${
-          tab === key ? 'bg-primary-1 text-primary-6' : 'bg-fill-2 text-t-quaternary'
-        }`}
-      >
-        {count}
-      </span>
-      {tab === key ? <span className='absolute inset-x-0 -bottom-1px h-2px rounded-2px bg-primary-6' /> : null}
+      <small className={styles.scopeTabCount}>{count}</small>
     </Button>
   );
 
   return (
-    <div data-testid='kb-home-shell' className='flex h-full min-h-0 flex-col overflow-hidden bg-transparent'>
-      <div
-        className={`border-b border-border-2 bg-bg-0 ${isMobile ? 'px-16px pt-14px' : 'px-12px pt-24px md:px-40px md:pt-32px'}`}
-      >
-        <div className='mx-auto w-full max-w-800px'>
-          <div className='flex w-full items-center justify-between gap-12px sm:gap-16px'>
-            <h1
-              className={classNames(
-                'm-0 min-w-0 flex-1 font-bold text-t-primary',
-                isMobile ? 'text-22px leading-[1.2]' : 'text-28px leading-[1.15]'
-              )}
-            >
-              {t('settings.knowledgeBase', { defaultValue: 'Knowledge Base' })}
-            </h1>
-            <Button
-              type='primary'
-              size='default'
-              icon={<AppIcon name='plus' size={14} />}
-              className='!shrink-0 !rounded-8px'
-              onClick={onCreate}
-              data-testid='btn-create-knowledge-base'
-            >
-              {t('settings.knowledgeBaseCreate', { defaultValue: 'Create knowledge base' })}
-            </Button>
+    <div data-testid='kb-home-shell' className='h-full min-h-0 overflow-auto'>
+      <div className={styles.home}>
+        <header className={styles.titleRow}>
+          <div>
+            <h1 className={styles.title}>{t('settings.knowledgeBase', { defaultValue: '知识库' })}</h1>
+            <p className={styles.subtitle}>
+              {t('settings.knowledgeBaseLead', {
+                defaultValue: '让文档有序，让知识随时可用。集中整理个人资料，与团队共享工作中的积累。',
+              })}
+            </p>
           </div>
-          <p
-            className={classNames(
-              'm-0 mt-8px w-full text-t-secondary',
-              isMobile ? 'text-13px leading-20px' : 'text-14px leading-22px'
-            )}
+          <Button
+            type='primary'
+            icon={<AppIcon name='plus' size={16} />}
+            className={styles.createButton}
+            onClick={onCreate}
+            data-testid='btn-create-knowledge-base'
           >
-            {t('settings.knowledgeBaseLeadShort', {
-              defaultValue:
-                'Organize documents into knowledge bases. Personal bases are private; shared bases are available to your team.',
-            })}
-          </p>
-          <div className='mt-18px flex gap-26px'>
-            {tabButton(
-              'personal',
-              t('settings.knowledgeBaseTabPersonal', { defaultValue: 'Personal' }),
-              counts.personal
-            )}
-            {tabButton('shared', t('settings.knowledgeBaseTabShared', { defaultValue: 'Shared' }), counts.shared)}
-          </div>
-        </div>
-      </div>
+            {t('settings.knowledgeBaseCreate', { defaultValue: '新建知识库' })}
+          </Button>
+        </header>
 
-      <div
-        data-testid='kb-home-body'
-        className={`min-h-0 flex-1 overflow-auto ${isMobile ? 'px-16px pb-14px pt-14px' : 'px-12px pb-24px pt-18px md:px-40px'}`}
-      >
-        <div className='mx-auto w-full max-w-800px'>
-          {tab === 'personal' ? (
-            <PersonalKnowledgeBaseList
-              items={personalItems}
-              loading={personalLoading}
-              error={personalError}
-              onRetry={onRetryLoadPersonal}
-              onEdit={onEdit}
-              onDelete={onDelete}
-              onOpen={onOpenView}
-              onOpenEdit={onOpenEdit}
-              onCreate={onCreate}
-              onStartChat={onStartChat}
-            />
-          ) : (
-            <SharedKnowledgeBaseGrid
-              items={sharedItems}
-              loading={sharedLoading}
-              error={sharedError}
-              onRetry={onRetryLoadShared}
-              onOpenView={onOpenView}
-              onStartChat={onStartChat}
-            />
-          )}
+        <div className={styles.scopeRow}>
+          <div className={styles.scopeTabs} role='tablist'>
+            {scopeTab(
+              'personal',
+              t('settings.knowledgeBaseTabPersonal', { defaultValue: '个人知识库' }),
+              personalItems.length
+            )}
+            {scopeTab(
+              'shared',
+              t('settings.knowledgeBaseTabShared', { defaultValue: '共享知识库' }),
+              sharedItems.length
+            )}
+          </div>
+
+          {items.length > 0 ? (
+            <div className={styles.search}>
+              <AppIcon name='search' size={16} className={styles.searchIcon} />
+              <Input
+                value={keyword}
+                onChange={setKeyword}
+                placeholder={t('settings.knowledgeBaseSearchPlaceholder', { defaultValue: '搜索知识库' })}
+                data-testid='kb-search'
+              />
+            </div>
+          ) : null}
         </div>
+
+        {items.length > 0 ? (
+          <div className={styles.listTools}>
+            <div className={styles.listCount}>
+              <b className={styles.listCountTitle}>
+                {t('settings.knowledgeBaseAllTitle', { defaultValue: '全部知识库' })}
+              </b>
+              <span className={styles.listCountMeta}>
+                {interpolateI18n(
+                  t('settings.knowledgeBaseListSummary', {
+                    count: items.length,
+                    documents: totalDocuments,
+                    defaultValue: '{{count}} 个知识库 · {{documents}} 份文档',
+                  }),
+                  { count: items.length, documents: totalDocuments }
+                )}
+              </span>
+            </div>
+            <Select
+              className={styles.sortSelect}
+              value={sort}
+              onChange={(value) => setSort(value as SortKey)}
+              options={[
+                {
+                  value: 'recent',
+                  label: t('settings.knowledgeBaseSortRecent', { defaultValue: '最近更新' }),
+                },
+                {
+                  value: 'name',
+                  label: t('settings.knowledgeBaseSortName', { defaultValue: '名称排序' }),
+                },
+              ]}
+              aria-label={t('settings.knowledgeBaseSortLabel', { defaultValue: '知识库排序' })}
+              data-testid='kb-sort'
+            />
+          </div>
+        ) : null}
+
+        <KnowledgeBaseGrid
+          scope={tab}
+          items={filtered}
+          total={items.length}
+          loading={isPersonal ? personalLoading : sharedLoading}
+          error={isPersonal ? personalError : sharedError}
+          onRetry={isPersonal ? onRetryLoadPersonal : onRetryLoadShared}
+          onOpen={onOpenView}
+          onOpenEdit={onOpenEdit}
+          onDelete={onDelete}
+          onStartChat={onStartChat}
+          onCreate={onCreate}
+          onClearSearch={() => setKeyword('')}
+        />
       </div>
     </div>
   );

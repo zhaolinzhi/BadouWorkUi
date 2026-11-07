@@ -1375,5 +1375,19 @@
   "notesMoreActions": "Autres actions",
   "notesDefaultNotebook": "Mes notes",
   "knowledgeBaseDeleteTitle": "Supprimer la base de connaissances",
-  "knowledgeBaseDeleteConfirm": "Êtes-vous sûr de vouloir supprimer cette base de connaissances ? Cette action est irréversible."
+  "knowledgeBaseDeleteConfirm": "Êtes-vous sûr de vouloir supprimer cette base de connaissances ? Cette action est irréversible.",
+  "knowledgeBaseSearchPlaceholder": "Rechercher des bases de connaissances",
+  "knowledgeBaseAllTitle": "Toutes les bases de connaissances",
+  "knowledgeBaseListSummary": "{{count}} bases de connaissances · {{documents}} documents",
+  "knowledgeBaseSortRecent": "Récemment mises à jour",
+  "knowledgeBaseSortName": "Trier par nom",
+  "knowledgeBaseSortLabel": "Tri des bases de connaissances",
+  "knowledgeBasePrivateOnly": "Visible uniquement par vous",
+  "knowledgeBaseTeamShared": "Partagé avec l'équipe",
+  "knowledgeBaseDocsCount": "{{count}} documents",
+  "knowledgeBaseUpdatedAt": "Mis à jour le {{date}}",
+  "knowledgeBaseNoResultsTitle": "Aucun résultat",
+  "knowledgeBaseNoResultsBody": "Essayez un autre mot-clé ou effacez la recherche.",
+  "knowledgeBaseClearSearch": "Effacer la recherche",
+  "knowledgeBaseLead": "Des documents bien rangés, le savoir toujours à portée de main. Rassemblez vos matériaux et partagez avec l’équipe ce que vous accumulez."
 }

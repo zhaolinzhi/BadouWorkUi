@@ -7,8 +7,8 @@
 /**
  * 异步数据的四态边界:loading / error / empty / content。
  *
- * 收拢三个微应用各写一遍的三态渲染 —— KB 的 `PersonalKnowledgeBaseList` 与
- * `SharedKnowledgeBaseGrid` 里那两段几乎逐字相同的 class 串就是典型。
+ * 收拢三个微应用各写一遍的三态渲染 —— KB 的 `KnowledgeBaseGrid` 里那两段
+ * 几乎逐字相同的 class 串就是典型。
  *
  * 设计约束
  * ========

@@ -1,0 +1,20 @@
+/**
+ * 知识库卡片网格 —— 对齐设计稿 BadouWork-Desktop-Handoff 的 `.kb-grid`。
+ *
+ * 设计稿:.kb-grid 用 `repeat(auto-fill, minmax(min(100%, 220px), 1fr))` + 20px 间距,
+ * 每张卡片最小 220px 宽,窗口变窄时自动换行。
+ */
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+  gap: 20px;
+}
+
+/* 空状态区域:设计稿里是固定高度 520px 的居中块 */
+.emptyZone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 420px;
+}

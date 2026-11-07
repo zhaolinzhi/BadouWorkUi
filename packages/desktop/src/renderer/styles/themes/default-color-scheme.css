@@ -126,6 +126,19 @@
   --rec-muted: #6b7280; /* 次要文字(表头、副标题、状态) */
   --rec-placeholder: #b4bece; /* 占位符文字 */
   --rec-heading: #0d0d0d; /* 页面标题 */
+
+  /* 知识库模块 —— 设计稿 BadouWork-Desktop-Handoff 的知识库首页 */
+  --kb-app-bg: #f5f7fa; /* 浅灰底(搜索框、排序框、图标方块、胶囊底) */
+  --kb-surface: #ffffff; /* 卡片底色 / 选中胶囊底色 */
+  --kb-border: #e8ebf2; /* 卡片描边 */
+  --kb-brand: #2764ff; /* 品牌蓝(主按钮、选中态文字) */
+  --kb-brand-hover: #2058ed; /* 主按钮悬停 */
+  --kb-brand-border: #b4d7ff; /* 浅蓝描边(选中胶囊、卡片悬停描边) */
+  --kb-focus-ring: #8fb9ff; /* 搜索框聚焦描边 */
+  --kb-hover: rgba(237, 239, 241, 0.8); /* 图标按钮悬停底色 */
+  --kb-muted: #6b7280; /* 次要文字(副标题、统计、可见范围) */
+  --kb-placeholder: #b4bece; /* 占位符文字 */
+  --kb-heading: #0d0d0d; /* 页面标题 / 卡片标题 */
 }
 
 /* Dark Mode */
@@ -253,4 +266,17 @@
   --rec-muted: #a8a8a8;
   --rec-placeholder: #6b7280;
   --rec-heading: #f1f1f1;
+
+  /* 知识库模块（暗色沿用设计稿 dark.css 的深灰浅蓝） */
+  --kb-app-bg: #1a1a1a;
+  --kb-surface: #0e0e0e;
+  --kb-border: #333333;
+  --kb-brand: #7ea6e0;
+  --kb-brand-hover: #527ff0;
+  --kb-brand-border: #536c91;
+  --kb-focus-ring: #7396d6;
+  --kb-hover: #303030;
+  --kb-muted: #a8a8a8;
+  --kb-placeholder: #6b7280;
+  --kb-heading: #f1f1f1;
 }

@@ -59,7 +59,9 @@ import { IconApps } from '@icon-park/react';
 | `file-text`           | `FileText`              |                                                                                                    |
 | `folder-open`         | `FolderOpen`            |                                                                                                    |
 | `info`                | `Info`                  |                                                                                                    |
+| `lock`                | `Lock`                  | 知识库卡片的「仅自己可见」标记                                                                     |
 | `more-one`            | `MoreOne`               | 「更多」菜单                                                                                       |
+| `peoples`             | `Peoples`               | 知识库卡片的「团队共享」标记                                                                       |
 | `play`                | `Play`                  | 录音列表行左侧的播放方块                                                                           |
 | `plus`                | `Plus`                  |                                                                                                    |
 | `refresh`             | `Refresh`               |                                                                                                    |
