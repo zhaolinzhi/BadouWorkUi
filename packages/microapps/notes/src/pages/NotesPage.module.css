@@ -25,6 +25,17 @@
 }
 
 .editorContainer :global(.vditor) {
+  /*
+   * `position: relative` 把下拉面板(标题/更多)的**包含块**上移到 `.vditor`。
+   *
+   * 为什么要上移:面板是绝对定位的,默认包含块是工具栏项
+   * (`.vditor-toolbar__item`)。工具栏要横向滚动,所以带
+   * `overflow-x: auto`(overflow-y 被规范强制成 hidden)—— 而绝对定位的元素
+   * 会被「位于它与包含块之间」的祖先裁掉,面板于是只剩落在工具栏盒子里的
+   * 两行可见(标题菜单只剩「三级标题」「四级标题」)。把包含块上移到
+   * `.vditor` 之后,工具栏不再位于面板与包含块之间,裁剪失效。
+   */
+  position: relative;
   background-color: var(--notes-panel-bg);
   color: var(--text-primary);
 }
@@ -48,8 +59,21 @@
 
 .editorContainer :global(.vditor-toolbar__item) {
   float: none;
-  display: inline-flex;
-  align-items: center;
+  /*
+   * `position: static`:工具栏项不再当包含块,面板的包含块因此是上面的
+   * `.vditor`(包含块在工具栏之外 → 工具栏的 overflow 裁不到面板)。
+   *
+   * `display: block`(而不是 inline-flex):绝对定位的子元素在 flex 容器里
+   * 会「当作唯一的 flex item」计算静态位置,`align-items: center` 会把面板
+   * 垂直居中到按钮上 —— 面板就往上溢出了。改成 block 之后,面板的静态位置
+   * 落在按钮正下方(和 Vditor 上游 float 布局下的效果一致)。
+   *
+   * `line-height: 0` + 按钮 `vertical-align: top`:按钮是行内盒,行盒会额外
+   * 撑出基线以下的空隙,这里不要那点空隙,工具栏项保持 32px 高。
+   */
+  position: static;
+  display: block;
+  line-height: 0;
   flex-shrink: 0;
 }
 
@@ -64,6 +88,19 @@
   border-radius: 4px;
   background-color: transparent;
   color: var(--text-secondary);
+  /*
+   * 工具栏项变成 static 之后,按钮自己当包含块 —— 上传按钮里那个隐藏的
+   * `<input type="file">` 才能继续盖在按钮上(否则会跑到编辑器左上角,
+   * 点按钮弹不出文件选择框)。
+   */
+  position: relative;
+  vertical-align: top;
+}
+
+/* 上传的隐藏 <input> 精确铺满按钮 */
+.editorContainer :global(.vditor-toolbar__item .vditor-tooltipped input) {
+  width: 100%;
+  height: 100%;
 }
 
 .editorContainer :global(.vditor-toolbar__item .vditor-tooltipped:hover) {
@@ -92,6 +129,18 @@
 /* 末尾一组(全屏 / 编辑模式 / 更多)靠右对齐 */
 .editorContainer :global(.vditor-toolbar__item:last-of-type) {
   margin-left: auto;
+}
+
+/*
+ * 下拉面板里的快捷键提示(⌥⌘1 之类)是符号字形,Vditor 默认字体
+ * "Helvetica Neue" 里没有这些码位,会掉到字体回退渲染成乱码。
+ * 这里系统字体优先(中文仍走系统字体),符号字体兜底。
+ */
+.editorContainer :global(.vditor-hint),
+.editorContainer :global(.vditor-panel) {
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Apple Symbols', 'Segoe UI Symbol', 'Helvetica Neue', Arial,
+    sans-serif;
 }
 
 /* 文档区:32px 48px 内边距、1280px 最大宽度 */
