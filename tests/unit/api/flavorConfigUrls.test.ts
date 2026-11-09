@@ -5,7 +5,12 @@
  */
 import { describe, expect, it } from 'vitest';
 import { FLAVOR } from '@/common/config/flavor';
-import { AIPAAS_BASE_URL, EXTERNAL_LOGIN_URL_BASE, getExternalLoginUrl } from '@/renderer/api/config';
+import {
+  AIPAAS_BASE_URL,
+  EXTERNAL_LOGIN_FLAG,
+  EXTERNAL_LOGIN_URL_BASE,
+  getExternalLoginUrl,
+} from '@/renderer/api/config';
 
 const ENTERPRISE_AIPAAS = 'http://devops.badousoft.com/aipaas-service';
 const PUBLIC_AIPAAS = 'http://localhost:8081';
@@ -23,8 +28,15 @@ describe('flavor-conditional URLs in api/config.ts', () => {
     expect(EXTERNAL_LOGIN_URL_BASE).toBe(expected);
   });
 
+  it('EXTERNAL_LOGIN_FLAG identifies the app to AIPaaS as badouwork', () => {
+    // The `from` value doubles as the deep-link scheme AIPaaS redirects to,
+    // so it must stay in sync with PROTOCOL_SCHEME in process/utils/deepLink.ts.
+    expect(EXTERNAL_LOGIN_FLAG).toBe('from=badouwork');
+  });
+
   it('getExternalLoginUrl composes the base with the from flag', () => {
-    expect(getExternalLoginUrl()).toBe(`${EXTERNAL_LOGIN_URL_BASE}?from=aionui`);
+    expect(getExternalLoginUrl()).toBe(`${EXTERNAL_LOGIN_URL_BASE}?${EXTERNAL_LOGIN_FLAG}`);
+    expect(getExternalLoginUrl()).toBe(`${EXTERNAL_LOGIN_URL_BASE}?from=badouwork`);
   });
 
   it('enterprise and public values are distinct', () => {

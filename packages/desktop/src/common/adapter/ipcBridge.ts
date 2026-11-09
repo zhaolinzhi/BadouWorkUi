@@ -194,7 +194,7 @@ export const auth = {
    *  the token itself arrives asynchronously via `externalLoginCompleted`. */
   startExternalLogin: bridge.buildProvider<{ success: boolean; message?: string }, void>('auth:start-external-login'),
   /** Main → renderer: aipaas-front redirected back with a validated token
-   *  via the `aionui://auth/callback` deep link. */
+   *  via the `badouwork://auth/callback` deep link. */
   externalLoginCompleted: bridge.buildEmitter<{ token: string; user: { id: string; username: string } }>(
     'auth:external-login-completed'
   ),
