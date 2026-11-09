@@ -7,7 +7,7 @@
 /**
  * 「更多」菜单。
  *
- * notes 的 `NoteItem` / `NotebookItem` 与 knowledge-base 的 `KnowledgeBaseRow`
+ * notes 的 `NoteItem` / `NotebookItem` 与 knowledge-base 的 `KnowledgeBaseCard`
  * 各写了一份「⋮ → Arco Dropdown → Menu」的组合,连触发按钮的 class 都一样。
  * 共享层把它们收成一个:统一图标、统一菜单结构、统一回调方式。
  *

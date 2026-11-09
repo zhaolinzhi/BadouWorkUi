@@ -29,9 +29,7 @@ jobs:
           node-version: '22'
 
       - name: Setup bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
+        uses: ./.github/actions/setup-bun
 
       - name: Setup just
         uses: extractions/setup-just@v2

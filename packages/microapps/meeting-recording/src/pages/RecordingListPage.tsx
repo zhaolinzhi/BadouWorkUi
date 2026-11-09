@@ -11,20 +11,29 @@ import { ipcBridge } from '../__qiankun__/ipc';
 import type { MeetingRecording } from '../__qiankun__/ipc';
 import RecorderPanel from '../components/RecorderPanel';
 import RecordingList from '../components/RecordingList';
+import { useMeetingRecorder } from '../hooks/useMeetingRecorder';
+import RecordingEmptyState from './RecordingEmptyState';
+import { recordingNoResultsIllustration } from './assets';
 import styles from './RecordingListPage.module.css';
 
 /**
  * i18next 的插值只在接管了 shell 的 i18n 实例时生效;独立运行时 `t()` 只会
- * 原样返回 defaultValue,`{{count}}` 会裸露在界面上。这里兜底替换一次 ——
- * 已经插值好的文案不含占位符,替换是空操作。
+ * 原样返回 defaultValue,`{{count}}` / `{{query}}` 会裸露在界面上。这里兜底替换
+ * 一次 —— 已经插值好的文案不含占位符,替换是空操作。
  */
-const withCount = (text: string, count: number): string => text.replace(/\{\{count\}\}/g, String(count));
+const interpolate = (text: string, values: Record<string, string | number>): string =>
+  Object.entries(values).reduce(
+    (result, [key, value]) => result.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), String(value)),
+    text
+  );
 
 const RecordingListPage: React.FC = () => {
   const { t } = useTranslation();
   const [recordings, setRecordings] = useState<MeetingRecording[]>([]);
   const [loading, setLoading] = useState(true);
   const [keyword, setKeyword] = useState('');
+  // 录音机由页面持有 —— 空态里的录音面板、录音设置弹窗共用同一个实例。
+  const recorder = useMeetingRecorder();
 
   const refresh = useCallback(async () => {
     try {
@@ -129,15 +138,42 @@ const RecordingListPage: React.FC = () => {
   );
 
   /** 搜索在客户端做 —— 录音列表接口没有 `q` 参数。 */
+  const query = keyword.trim();
   const filtered = useMemo(() => {
-    const query = keyword.trim().toLowerCase();
-    if (!query) return recordings;
+    const needle = query.toLowerCase();
+    if (!needle) return recordings;
     return recordings.filter((recording) =>
       [recording.name, ...recording.chunks.map((chunk) => chunk.transcription ?? '')].some((field) =>
-        field.toLowerCase().includes(query)
+        field.toLowerCase().includes(needle)
       )
     );
-  }, [recordings, keyword]);
+  }, [recordings, query]);
+
+  /** 有查询、但一条都没匹配上 —— 设计稿的「没有找到相关录音」空结果态。 */
+  const showNoResults = query.length > 0 && filtered.length === 0;
+
+  /** 清空搜索:搜索框上的叉号与空结果块里的「清空搜索」都走这里。 */
+  const handleClearSearch = useCallback(() => setKeyword(''), []);
+
+  /**
+   * 还没有任何录音时,页面换成设计稿的 `record-empty` 版式:只留页头
+   * (副标题换成空态那句)与居中的空态块,没有工具行、表格与底栏。
+   */
+  if (!loading && recordings.length === 0) {
+    return (
+      <div className={styles.page}>
+        <header className={styles.heading}>
+          <div className={styles.headingCopy}>
+            <h1 className={styles.title}>{t('meeting-recording.title', { defaultValue: '录音' })}</h1>
+            <p className={styles.subtitle}>
+              {t('meeting-recording.emptySubtitle', { defaultValue: '录下讨论，整理成纪要，也可以继续向 AI 提问' })}
+            </p>
+          </div>
+        </header>
+        <RecordingEmptyState recorder={recorder} onRecorded={handleRecorded} />
+      </div>
+    );
+  }
 
   return (
     <div className={styles.page}>
@@ -149,7 +185,7 @@ const RecordingListPage: React.FC = () => {
           </p>
         </div>
         <div className={styles.headingActions}>
-          <RecorderPanel onRecorded={handleRecorded} />
+          <RecorderPanel recorder={recorder} onRecorded={handleRecorded} />
         </div>
       </header>
 
@@ -157,33 +193,86 @@ const RecordingListPage: React.FC = () => {
         <div className={styles.tools}>
           <div className={styles.tabs}>
             <Button type='text' className={styles.tab} aria-selected='true'>
-              {withCount(
+              {interpolate(
                 t('meeting-recording.tabAll', { count: recordings.length, defaultValue: '全部录音 {{count}}' }),
-                recordings.length
+                { count: recordings.length }
               )}
             </Button>
           </div>
           <div className={styles.search}>
-            <AppIcon name='search' size={14} className={styles.searchIcon} />
+            {/*
+              设计稿的放大镜有两套:没有查询时是深色的(#0D0D0D),有查询时
+              换成灰色(#6F7680) —— 同一个语义、两种状态色。
+            */}
+            <AppIcon
+              name='search'
+              size={16}
+              className={`${styles.searchIcon} ${query ? styles.searchIconMuted : styles.searchIconStrong}`}
+            />
             <Input
               value={keyword}
               onChange={setKeyword}
               placeholder={t('meeting-recording.searchPlaceholder', {
                 defaultValue: '搜索录音标题或转写内容',
               })}
-              allowClear
+              aria-label={t('meeting-recording.searchLabel', { defaultValue: '搜索录音' })}
               data-testid='recording-search'
             />
+            {/*
+              清除按钮是搜索框**外面**的一个 16px 圆形叉号(常显)——
+              Arco 的 `allowClear` 是输入框内、hover 才出现的图标,不是设计稿那套。
+            */}
+            {query ? (
+              <Button
+                type='text'
+                className={styles.searchClear}
+                aria-label={t('meeting-recording.searchClear', { defaultValue: '清除录音搜索' })}
+                onClick={handleClearSearch}
+                data-testid='recording-search-clear'
+              >
+                <AppIcon name='close-small' size={12} strokeWidth={2} />
+              </Button>
+            ) : null}
           </div>
         </div>
-        <RecordingList recordings={filtered} onDelete={handleDelete} loading={loading} />
+        <RecordingList
+          recordings={filtered}
+          onDelete={handleDelete}
+          loading={loading}
+          emptyContent={
+            showNoResults ? (
+              <div className={styles.noResults} data-testid='recording-no-results'>
+                <img className={styles.noResultsImage} src={recordingNoResultsIllustration} alt='' />
+                <h2 className={styles.noResultsTitle}>
+                  {t('meeting-recording.noResultsTitle', { defaultValue: '没有找到相关录音' })}
+                </h2>
+                <p className={styles.noResultsDescription}>
+                  {interpolate(
+                    t('meeting-recording.noResultsDescription', {
+                      query,
+                      defaultValue: '未找到与“{{query}}”匹配的标题或转写内容',
+                    }),
+                    { query }
+                  )}
+                </p>
+                <Button
+                  className={styles.noResultsAction}
+                  onClick={handleClearSearch}
+                  data-testid='recording-clear-search'
+                >
+                  {t('meeting-recording.clearSearch', { defaultValue: '清空搜索' })}
+                </Button>
+              </div>
+            ) : null
+          }
+        />
       </div>
 
       <footer className={styles.footer}>
         <AppIcon name='check' size={12} className={styles.footerIcon} />
-        {withCount(
+        {interpolate(
           t('meeting-recording.footerStatus', { count: recordings.length, defaultValue: '{{count}} 条录音 · 已同步' }),
-          recordings.length
+          { count: recordings.length }
         )}
       </footer>
     </div>

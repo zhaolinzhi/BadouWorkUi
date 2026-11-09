@@ -5,13 +5,13 @@
  */
 
 /**
- * 录音列表接入共享 `AsyncBoundary` / `EmptyState` 的回归测试。
+ * 录音列表接入共享 `AsyncBoundary` 的回归测试。
  *
  * 迁移前这里是「加载中转圈 / 空列表一行纯文本 / 有数据就渲染列表」的三段手写
  * 判断。接入共享层之后,状态分支各有稳定 testid:
  *
  *   1. 加载中只渲染 loading 分支,列表内容不露出来。
- *   2. 空列表渲染共享层的 `EmptyState`(有图标 + 标题),而不是一行纯文本。
+ *   2. 一条都没匹配上时**表头保留**,下面渲染调用方给的空结果块。
  *   3. 有录音时渲染列表。
  */
 import React from 'react';
@@ -47,18 +47,47 @@ describe('RecordingList 接入 AsyncBoundary', () => {
     expect(screen.queryByTestId('recording-rec-1')).toBeNull();
   });
 
-  it('没有录音时渲染共享层的 EmptyState', () => {
-    render(<RecordingList recordings={[]} loading={false} onDelete={vi.fn()} />);
+  it('一条都没匹配上时保留表头,下面渲染空结果块', () => {
+    render(
+      <RecordingList
+        recordings={[]}
+        loading={false}
+        onDelete={vi.fn()}
+        emptyContent={<div data-testid='no-results'>没有找到相关录音</div>}
+      />
+    );
 
-    expect(screen.getByTestId('empty-state')).toBeTruthy();
-    expect(screen.getByTestId('empty-state-title').textContent).toBe('暂无录音');
+    // 设计稿的空结果态是「表头 + 下面的空态块」,表头不能被一起换掉
+    expect(screen.getByText('录音名称')).toBeTruthy();
+    expect(screen.getByTestId('no-results')).toBeTruthy();
   });
 
-  it('有录音时渲染列表,不渲染空态', () => {
-    render(<RecordingList recordings={[recording]} loading={false} onDelete={vi.fn()} />);
+  it('空结果块挂在带布局类的容器里(高度由 flex 链分配,不撑破内容区)', () => {
+    render(
+      <RecordingList
+        recordings={[]}
+        loading={false}
+        onDelete={vi.fn()}
+        emptyContent={<div data-testid='no-results'>没有找到相关录音</div>}
+      />
+    );
+
+    expect(screen.getByTestId('recording-empty-body')).toBeTruthy();
+    expect(screen.getByTestId('no-results')).toBeTruthy();
+  });
+
+  it('有录音时渲染列表,不渲染空结果块', () => {
+    render(
+      <RecordingList
+        recordings={[recording]}
+        loading={false}
+        onDelete={vi.fn()}
+        emptyContent={<div data-testid='no-results'>没有找到相关录音</div>}
+      />
+    );
 
     expect(screen.getByTestId('recording-rec-1')).toBeTruthy();
-    expect(screen.queryByTestId('empty-state')).toBeNull();
+    expect(screen.queryByTestId('no-results')).toBeNull();
   });
 
   it('渲染设计稿要求的五列表头', () => {

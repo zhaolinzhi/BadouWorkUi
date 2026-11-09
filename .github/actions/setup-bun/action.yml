@@ -1,0 +1,118 @@
+name: 'Setup Bun'
+description: 'Install Bun, falling back to the npmmirror binary mirror when GitHub Releases is unreachable.'
+inputs:
+  bun-version:
+    description: 'Bun version to install. Keep in sync with the repo-root .bun-version file.'
+    required: false
+    default: ''
+  mirror:
+    description: 'npmmirror base URL used when the GitHub Releases download fails.'
+    required: false
+    default: 'https://registry.npmmirror.com/-/binary/bun'
+runs:
+  using: 'composite'
+  steps:
+    # Primary path: oven-sh/setup-bun, reading the pinned version from the
+    # repo-root .bun-version file.
+    #
+    # The version MUST be pinned (not "latest"): setup-bun only enables its
+    # built-in cache when the requested version is concrete
+    # (isCacheEnabled() in oven-sh/setup-bun src/action.ts rejects
+    # /latest|canary|action/). With a pinned version the binary is restored
+    # from the GitHub Actions cache and never re-downloaded, which removes the
+    # GitHub Releases dependency for every cached run.
+    - name: Install Bun (GitHub Releases, cached)
+      id: setup-bun-primary
+      uses: oven-sh/setup-bun@v2
+      with:
+        bun-version-file: .bun-version
+
+    # Fallback: GitHub Releases returned 504 Gateway Time-out on the CI
+    # runners, which kills the whole job before `bun install` even runs.
+    # npmmirror mirrors the same release assets under
+    # <mirror>/bun-v<version>/bun-<os>-<arch>.zip and is reachable from the
+    # runners, so use it when the primary download fails.
+    - name: Install Bun (npmmirror fallback)
+      if: ${{ steps.setup-bun-primary.outcome == 'failure' }}
+      shell: bash
+      env:
+        BUN_VERSION: ${{ inputs.bun-version != '' && inputs.bun-version || '' }}
+        BUN_MIRROR: ${{ inputs.mirror }}
+      run: |
+        set -euo pipefail
+
+        # Resolve the version from .bun-version when it was not passed in.
+        VERSION="${BUN_VERSION}"
+        if [ -z "$VERSION" ]; then
+          VERSION="$(tr -d '[:space:]' < .bun-version)"
+        fi
+
+        # Mirror the platform naming that Bun's release assets use.
+        case "${RUNNER_OS}" in
+          Linux)   OS=linux ;;
+          macOS)   OS=darwin ;;
+          Windows) OS=windows ;;
+          *) echo "::error::Unsupported RUNNER_OS: ${RUNNER_OS}"; exit 1 ;;
+        esac
+
+        ARCH="${RUNNER_ARCH}"
+        case "${RUNNER_ARCH}" in
+          X64)   ARCH=x64 ;;
+          ARM64) ARCH=aarch64 ;;
+        esac
+
+        ZIP_NAME="bun-${OS}-${ARCH}.zip"
+        URL="${BUN_MIRROR}/bun-v${VERSION}/${ZIP_NAME}"
+        TMP_DIR="${RUNNER_TEMP}/bun-fallback"
+        mkdir -p "$TMP_DIR"
+
+        echo "::warning::oven-sh/setup-bun failed (GitHub Releases unreachable). Falling back to npmmirror: ${URL}"
+
+        # Retry the mirror: cdn.npmmirror.com occasionally stalls on the first
+        # request from a cold runner.
+        ATTEMPT=1
+        MAX_ATTEMPTS=3
+        while true; do
+          echo "::group::Downloading Bun ${VERSION} from npmmirror (attempt ${ATTEMPT}/${MAX_ATTEMPTS})"
+          if curl --fail --location --retry 3 --retry-delay 5 --retry-all-errors \
+                  --connect-timeout 30 --max-time 600 \
+                  --output "${TMP_DIR}/${ZIP_NAME}" "$URL"; then
+            echo "::endgroup::"
+            break
+          fi
+          echo "::endgroup::"
+          if [ "$ATTEMPT" -ge "$MAX_ATTEMPTS" ]; then
+            echo "::error::Failed to download Bun from npmmirror after ${MAX_ATTEMPTS} attempts: ${URL}"
+            exit 1
+          fi
+          ATTEMPT=$((ATTEMPT + 1))
+          sleep 10
+        done
+
+        unzip -o -q "${TMP_DIR}/${ZIP_NAME}" -d "${TMP_DIR}/extracted"
+
+        BUN_BIN_DIR="${HOME}/.bun/bin"
+        mkdir -p "$BUN_BIN_DIR"
+
+        # The archive contains a single `bun` executable at its root.
+        BUN_SRC="$(find "${TMP_DIR}/extracted" -type f -name 'bun' | head -n 1)"
+        if [ -z "$BUN_SRC" ]; then
+          echo "::error::Could not find the bun executable inside ${ZIP_NAME}"
+          exit 1
+        fi
+
+        # Skip the version check when running as root (uid 0): chmod is a
+        # no-op for the owner there, and the check would report a false
+        # failure on self-hosted runners that run as root.
+        if [ "$(id -u)" -ne 0 ]; then
+          chmod +x "$BUN_SRC"
+        fi
+        mv "$BUN_SRC" "${BUN_BIN_DIR}/bun"
+
+        # `bunx` is normally a symlink to `bun`.
+        rm -f "${BUN_BIN_DIR}/bunx"
+        ln -s bun "${BUN_BIN_DIR}/bunx"
+
+        echo "${BUN_BIN_DIR}" >> "$GITHUB_PATH"
+        echo "BUN_INSTALL=${BUN_BIN_DIR}" >> "$GITHUB_ENV"
+        echo "Installed Bun $("${BUN_BIN_DIR}/bun" --version) from npmmirror"
