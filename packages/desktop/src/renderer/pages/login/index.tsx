@@ -91,7 +91,7 @@ const LoginPage: React.FC = () => {
   }, []);
 
   // Subscribe to the deep-link callback once on mount so the token arriving
-  // from the OS-routed `aionui://auth/callback` URL triggers login completion.
+  // from the OS-routed `badouwork://auth/callback` URL triggers login completion.
   useEffect(() => {
     let active = true;
 
