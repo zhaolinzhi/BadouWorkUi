@@ -1,6 +1,6 @@
-appId: com.badouwork.applocal
-productName: BadouWorklocal
-executableName: BadouWorklocal
+appId: com.badouwork.app
+productName: BadouWork
+executableName: BadouWork
 copyright: Copyright © 2024 BadouWork
 
 protocols:
