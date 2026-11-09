@@ -1,0 +1,247 @@
+/**
+ * 知识库首页 —— 对齐设计稿 BadouWork-Desktop-Handoff 的 `.kb-home`。
+ *
+ * 设计稿的几何:
+ *   .kb-home          宽 calc(100% - 48px),上下外边距 24px / 32px
+ *   .kb-title-row     页头:左标题 + 副标题,右「新建知识库」按钮,间距 32px
+ *   .kb-scope-row     胶囊范围切换 + 搜索框,底部 1px 分隔线
+ *   .kb-list-tools    「全部知识库」+ 统计,右侧排序下拉
+ *
+ * 颜色一律走 `--kb-*` 语义 token(浅色/暗色两套在 default-color-scheme.css 里)。
+ */
+
+.home {
+  width: calc(100% - 48px);
+  margin: 24px auto 32px;
+  min-width: 0;
+}
+
+/* ── 页头 ───────────────────────────────────────────── */
+.titleRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 32px;
+}
+
+.title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 28px;
+  color: var(--kb-heading);
+}
+
+.subtitle {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 22px;
+  color: var(--kb-muted);
+}
+
+/* 「新建知识库」:36px 高、8px 圆角、品牌蓝底白字 */
+.createButton {
+  height: 36px !important;
+  padding: 0 16px !important;
+  border-radius: 8px !important;
+  border-color: var(--kb-brand) !important;
+  background: var(--kb-brand) !important;
+  color: #fff !important;
+  font-size: 14px !important;
+  line-height: 22px !important;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.createButton:hover {
+  border-color: var(--kb-brand-hover) !important;
+  background: var(--kb-brand-hover) !important;
+}
+
+/* ── 范围切换 + 搜索 ────────────────────────────────── */
+.scopeRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  min-height: 36px;
+  margin: 24px 0 16px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--kb-border);
+}
+
+/* 胶囊形的范围切换:灰底容器 + 选中项白底浅蓝描边 */
+.scopeTabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 2px;
+  border-radius: 999px;
+  background: var(--kb-app-bg);
+  flex-shrink: 0;
+}
+
+.scopeTab {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 128px !important;
+  height: 32px !important;
+  padding: 0 12px !important;
+  border: 0.5px solid transparent !important;
+  border-radius: 999px !important;
+  background: transparent !important;
+  color: var(--kb-muted) !important;
+  font-size: 14px !important;
+  line-height: 22px !important;
+}
+
+.scopeTab:hover {
+  color: var(--kb-heading) !important;
+}
+
+.scopeTabActive {
+  background: var(--kb-surface) !important;
+  border-color: var(--kb-brand-border) !important;
+  color: var(--kb-brand) !important;
+}
+
+.scopeTabCount {
+  font-size: 12px;
+  color: var(--kb-muted);
+}
+
+/* ── 搜索框:240×36 的浅灰圆角框 ───────────────────── */
+.search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  width: 240px;
+  min-width: 0;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: var(--kb-app-bg);
+  color: var(--kb-muted);
+}
+
+.search:focus-within {
+  border-color: var(--kb-focus-ring);
+}
+
+.searchIcon {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 16px;
+  color: var(--kb-muted);
+}
+
+/*
+ * Arco 的输入链自带底色、描边与聚焦光影,而 shell 的 layout.css 又用
+ * `!important` 压了一层(var(--fill-0))—— 微应用要盖住它只能同样写
+ * `!important`(!important 之间不比优先级,只比选择器权重)。
+ */
+.search :global(.arco-input-group-wrapper) {
+  height: 100% !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.search :global(.arco-input-group),
+.search :global(.arco-input-inner-wrapper) {
+  height: 100% !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.search :global(.arco-input) {
+  height: 100% !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  color: var(--kb-heading) !important;
+  font-size: 12px !important;
+  line-height: 20px !important;
+}
+
+.search :global(.arco-input-inner-wrapper-focus),
+.search :global(.arco-input:focus) {
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.search :global(.arco-input::placeholder) {
+  color: var(--kb-placeholder) !important;
+}
+
+/* ── 列表工具行:标题 + 统计,右侧排序 ─────────────── */
+.listTools {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  align-items: center;
+  column-gap: 24px;
+  height: 36px;
+  margin-bottom: 16px;
+}
+
+.listCount {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  height: 36px;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+.listCountTitle {
+  flex-shrink: 0;
+  font-weight: 500;
+  color: var(--kb-heading);
+}
+
+.listCountMeta {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  color: var(--kb-muted);
+}
+
+/* 排序下拉:112×36 的浅灰圆角框 */
+.sortSelect {
+  width: 112px;
+}
+
+.sortSelect :global(.arco-select-view) {
+  height: 36px !important;
+  padding: 0 30px 0 10px !important;
+  border: 1px solid transparent !important;
+  border-radius: 8px !important;
+  background: var(--kb-app-bg) !important;
+  box-shadow: none !important;
+  color: var(--kb-muted) !important;
+  font-size: 12px !important;
+}
+
+.sortSelect :global(.arco-select-view:hover) {
+  border-color: var(--kb-brand-border) !important;
+}
+
+.sortSelect :global(.arco-select-view-value) {
+  color: var(--kb-muted) !important;
+  font-size: 12px !important;
+}

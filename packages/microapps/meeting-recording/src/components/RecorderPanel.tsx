@@ -7,7 +7,8 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { AppIcon } from '@aionui/ui';
 import { Button, Spin } from '@arco-design/web-react';
-import { useMeetingRecorder, type MeetingRecorderErrorCode } from '../hooks/useMeetingRecorder';
+import type { useMeetingRecorder } from '../hooks/useMeetingRecorder';
+import type { MeetingRecorderErrorCode } from '../hooks/useMeetingRecorder';
 import styles from './RecorderPanel.module.css';
 
 const formatMs = (ms: number): string => {
@@ -50,7 +51,17 @@ const ERROR_TEXT: Record<MeetingRecorderErrorCode, string> = {
   unknown: 'Unknown error',
 };
 
+/**
+ * 录音机状态 —— 由**页面**持有。
+ *
+ * 面板自己不创建录音机:录音设置弹窗的「开始录音」也要能开录,两处必须
+ * 共用同一个实例,否则弹窗开了录、面板却还显示「开始录音」。
+ */
+export type MeetingRecorder = ReturnType<typeof useMeetingRecorder>;
+
 interface RecorderPanelProps {
+  /** 页面持有的录音机实例。 */
+  recorder: MeetingRecorder;
   onRecorded?: (recordingId: string) => void;
 }
 
@@ -58,9 +69,9 @@ interface RecorderPanelProps {
  * 录音开关 —— 设计稿里是页头右上角的「开始录音」主按钮(36px 高、蓝底白字),
  * 录音中切成浅蓝底的「停止」,旁边跟一个计时。
  */
-const RecorderPanel: React.FC<RecorderPanelProps> = ({ onRecorded }) => {
+const RecorderPanel: React.FC<RecorderPanelProps> = ({ recorder, onRecorded }) => {
   const { t } = useTranslation();
-  const { status, durationMs, errorCode, start, stop } = useMeetingRecorder();
+  const { status, durationMs, errorCode, start, stop } = recorder;
 
   const handleClick = async () => {
     if (status === 'idle' || status === 'error') {

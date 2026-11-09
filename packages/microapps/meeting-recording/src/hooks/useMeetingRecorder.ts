@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ipcBridge } from '../__qiankun__/ipc';
 import type { MeetingRecording, SaveRecordingParams } from '../__qiankun__/ipc';
+import { useRecordingName } from './useRecordingName';
 
 export type MeetingRecorderStatus = 'idle' | 'requesting' | 'recording' | 'finalizing' | 'error';
 
@@ -43,9 +44,13 @@ const mapStartError = (error: unknown): MeetingRecorderErrorCode => {
   return 'unknown';
 };
 
-const formatDate = (timestamp: number): string => new Date(timestamp).toLocaleString();
+/**
+ * 录音的名字由**调用方**给出 —— 录音设置弹窗里用户填的名字;没给就用
+ * `useRecordingName` 的自动命名(「录音 · 10月26日 10:24」)。
+ */
 
 export const useMeetingRecorder = () => {
+  const { buildDefaultName } = useRecordingName();
   const [status, setStatus] = useState<MeetingRecorderStatus>('idle');
   const [errorCode, setErrorCode] = useState<MeetingRecorderErrorCode | undefined>(undefined);
   const [durationMs, setDurationMs] = useState(0);
@@ -75,6 +80,8 @@ export const useMeetingRecorder = () => {
   const chunksRef = useRef<Promise<ArrayBuffer>[]>([]);
   const startedAtRef = useRef(0);
   const mimeTypeRef = useRef<string>('');
+  // 本次录音的名字:录音设置弹窗里用户填的名字,没填就用自动命名。
+  const nameRef = useRef<string>('');
 
   useEffect(() => {
     return () => {
@@ -83,57 +90,61 @@ export const useMeetingRecorder = () => {
     };
   }, []);
 
-  const start = useCallback(async () => {
-    if (status === 'recording' || status === 'requesting') return;
-    setErrorCode(undefined);
-    setDurationMs(0);
-    setStatus('requesting');
+  const start = useCallback(
+    async (options?: { name?: string }) => {
+      if (status === 'recording' || status === 'requesting') return;
+      setErrorCode(undefined);
+      setDurationMs(0);
+      setStatus('requesting');
+      nameRef.current = options?.name?.trim() || buildDefaultName();
 
-    const mimeType = pickRecordingMimeType();
-    if (!mimeType) {
-      setErrorCode('recording-unsupported');
-      setStatus('error');
-      return;
-    }
-    mimeTypeRef.current = mimeType;
+      const mimeType = pickRecordingMimeType();
+      if (!mimeType) {
+        setErrorCode('recording-unsupported');
+        setStatus('error');
+        return;
+      }
+      mimeTypeRef.current = mimeType;
 
-    let stream: MediaStream;
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    } catch (error) {
-      setErrorCode(mapStartError(error));
-      setStatus('error');
-      return;
-    }
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch (error) {
+        setErrorCode(mapStartError(error));
+        setStatus('error');
+        return;
+      }
 
-    let recorder: MediaRecorder;
-    try {
-      recorder = new MediaRecorder(stream, { mimeType });
-    } catch (error) {
-      stream.getTracks().forEach((t) => t.stop());
-      setErrorCode(mapStartError(error));
-      setStatus('error');
-      return;
-    }
+      let recorder: MediaRecorder;
+      try {
+        recorder = new MediaRecorder(stream, { mimeType });
+      } catch (error) {
+        stream.getTracks().forEach((t) => t.stop());
+        setErrorCode(mapStartError(error));
+        setStatus('error');
+        return;
+      }
 
-    streamRef.current = stream;
-    recorderRef.current = recorder;
-    chunksRef.current = [];
-    startedAtRef.current = performance.now();
+      streamRef.current = stream;
+      recorderRef.current = recorder;
+      chunksRef.current = [];
+      startedAtRef.current = performance.now();
 
-    recorder.ondataavailable = (event) => {
-      if (event.data.size === 0) return;
-      // Store the promise itself, not a `.then(...)` push. The promise
-      // resolves asynchronously inside the browser's Blob implementation;
-      // if we awaited each one inside this callback the next timeslice
-      // (or the synchronous `stop` event) could be delayed. Collecting
-      // promises lets us fan out all the reads and join them at stop().
-      chunksRef.current.push(event.data.arrayBuffer());
-    };
+      recorder.ondataavailable = (event) => {
+        if (event.data.size === 0) return;
+        // Store the promise itself, not a `.then(...)` push. The promise
+        // resolves asynchronously inside the browser's Blob implementation;
+        // if we awaited each one inside this callback the next timeslice
+        // (or the synchronous `stop` event) could be delayed. Collecting
+        // promises lets us fan out all the reads and join them at stop().
+        chunksRef.current.push(event.data.arrayBuffer());
+      };
 
-    recorder.start(50_000); // ≤50 s per chunk
-    setStatus('recording');
-  }, [status]);
+      recorder.start(50_000); // ≤50 s per chunk
+      setStatus('recording');
+    },
+    [status, buildDefaultName]
+  );
 
   const stop = useCallback(async (): Promise<MeetingRecording | undefined> => {
     const recorder = recorderRef.current;
@@ -181,7 +192,7 @@ export const useMeetingRecorder = () => {
       const id = crypto.randomUUID();
       const params: SaveRecordingParams = {
         id,
-        name: formatDate(Date.now()),
+        name: nameRef.current || buildDefaultName(),
         mimeType: effectiveMimeType,
         chunks: chunksPayload,
       };
@@ -198,7 +209,7 @@ export const useMeetingRecorder = () => {
     setStatus('idle');
     setDurationMs(0);
     return saved;
-  }, []);
+  }, [buildDefaultName]);
 
   useEffect(() => {
     if (status !== 'recording') return;

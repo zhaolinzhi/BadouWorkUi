@@ -29,15 +29,18 @@ import {
   Book,
   BookOne,
   Check,
+  CloseSmall,
   Delete,
   Download,
   Down,
   FileText,
   FolderOpen,
   Info,
+  Lock,
   Microphone,
   MoreOne,
   Notes,
+  Peoples,
   Play,
   Plus,
   Record,
@@ -46,6 +49,8 @@ import {
   Search,
   Star,
   Tips,
+  Upload,
+  VolumeNotice,
 } from '@icon-park/react';
 import type React from 'react';
 
@@ -75,6 +80,7 @@ export const ICON_PARK_MAP = {
   book: Book,
   'book-one': BookOne,
   check: Check,
+  'close-small': CloseSmall,
   delete: Delete,
   download: Download,
   down: Down,
@@ -82,6 +88,8 @@ export const ICON_PARK_MAP = {
   'folder-open': FolderOpen,
   info: Info,
   'more-one': MoreOne,
+  lock: Lock,
+  peoples: Peoples,
   play: Play,
   plus: Plus,
   refresh: Refresh,
@@ -89,6 +97,8 @@ export const ICON_PARK_MAP = {
   search: Search,
   star: Star,
   tips: Tips,
+  upload: Upload,
+  'volume-notice': VolumeNotice,
 
   // —— 产品语义别名 ——
   notes: Notes,

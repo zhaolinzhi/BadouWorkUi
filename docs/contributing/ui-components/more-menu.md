@@ -2,7 +2,7 @@
 
 「更多」菜单。
 
-收拢 notes 的 `NoteItem` / `NotebookItem` 与 knowledge-base 的 `KnowledgeBaseRow` 各写一份的「⋮ → Arco Dropdown → Menu」组合 —— 连触发按钮的 class 都一样。
+收拢 notes 的 `NoteItem` / `NotebookItem` 与 knowledge-base 的 `KnowledgeBaseCard` 各写一份的「⋮ → Arco Dropdown → Menu」组合 —— 连触发按钮的 class 都一样。
 
 - 源码：[`packages/ui/src/components/MoreMenu.tsx`](../../../packages/ui/src/components/MoreMenu.tsx)
 - 测试：[测试文件 `MoreMenu.dom.test.tsx`](../../../packages/ui/src/components/__tests__/MoreMenu.dom.test.tsx)

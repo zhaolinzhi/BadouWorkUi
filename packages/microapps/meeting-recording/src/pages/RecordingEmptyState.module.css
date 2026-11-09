@@ -1,0 +1,116 @@
+/**
+ * 录音空态的样式 —— 对齐设计稿 BadouWork-Desktop-Handoff 的
+ * `.rec-empty-home` / `.rec-button` / `.rec-link`。
+ *
+ * 设计稿的关键几何:
+ *   .rec-empty-home   居中一列,底部留 120px,行间距 20px
+ *   .rec-actions      两个按钮并排,间距 12px
+ *   .rec-settings-link 灰字 + 蓝色链接,间距 16px
+ */
+
+/* 空态主体:占满页头以下的剩余高度,内容整体居中 */
+.emptyHome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-height: 0;
+  padding-bottom: 120px;
+  gap: 20px;
+}
+
+/* 麦克风插画:设计稿用 48px 的槽位居中放一张 29.78×38.67 的图 */
+.illustration {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  color: var(--rec-brand);
+}
+
+.title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 28px;
+  color: var(--rec-heading);
+}
+
+.description {
+  margin: 0;
+  font-size: 12px;
+  line-height: 22px;
+  color: var(--rec-muted);
+}
+
+/* 「开始录音」+「导入已有音频」 */
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* 次要按钮:白底描边,36px 高、8px 圆角 */
+.secondaryButton {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+  height: 36px !important;
+  padding: 0 16px !important;
+  border-radius: 8px !important;
+  border: 1px solid var(--rec-border) !important;
+  background: var(--rec-surface) !important;
+  color: var(--rec-heading) !important;
+  font-size: 14px !important;
+  line-height: 22px !important;
+}
+
+/* 置灰态:导入功能尚未上线 */
+.secondaryButton:disabled {
+  border-color: var(--rec-disabled-bg) !important;
+  background: var(--rec-disabled-bg) !important;
+  color: var(--rec-disabled-text) !important;
+  cursor: default;
+}
+
+/* 「默认麦克风 · 中文普通话」+「录音设置」 */
+.settingsRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.settingsHint {
+  font-size: 12px;
+  line-height: 22px;
+  color: var(--rec-muted);
+}
+
+/* 文字链接:12px、4px 圆角 */
+.settingsLink {
+  height: auto !important;
+  padding: 0 4px !important;
+  border-radius: 4px !important;
+  background: transparent !important;
+  color: var(--rec-brand) !important;
+  font-size: 12px !important;
+  line-height: 22px !important;
+}
+
+/* 置灰态:录音设置尚未上线 */
+.settingsLink:disabled {
+  background: transparent !important;
+  color: var(--rec-disabled-text) !important;
+  cursor: default;
+}
+
+/*
+ * Tooltip 必须挂在可接收事件的元素上 —— disabled 的按钮不派发鼠标事件,
+ * 提示永远不会出现。用一层 span 把 Tooltip 与按钮隔开。
+ */
+.tooltipTarget {
+  display: inline-flex;
+}
