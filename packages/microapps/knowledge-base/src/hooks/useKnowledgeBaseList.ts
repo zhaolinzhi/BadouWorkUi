@@ -62,6 +62,7 @@ const mapSharedRemoteRowToItem = (row: SharedKnowledgeBaseRemoteRow): KnowledgeB
   owner: row.shareObject,
   documentCount: typeof row.fileCount === 'number' ? row.fileCount : undefined,
   createdAt: row.createTime,
+  updatedAt: row.createTime,
 });
 
 const mapPersonalRemoteRowToItem = (row: PersonalKnowledgeBaseRemoteRow): KnowledgeBaseItem => ({
@@ -73,6 +74,7 @@ const mapPersonalRemoteRowToItem = (row: PersonalKnowledgeBaseRemoteRow): Knowle
   owner: row.shareObject,
   documentCount: typeof row.fileCount === 'number' ? row.fileCount : undefined,
   createdAt: row.createTime,
+  updatedAt: row.createTime,
 });
 
 /**

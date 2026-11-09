@@ -10,6 +10,7 @@ import { useLayoutContext } from '@renderer/hooks/context/LayoutContext';
 import '../services/expose-ipc-bridge';
 import '../services/expose-i18n';
 import { getEventBus } from '../services/event-bus';
+import { resolveBaseApi } from '../services/micro-apps';
 import type { MicroAppProps } from '../types';
 
 export interface MicroAppHostProps {
@@ -96,7 +97,14 @@ export const MicroAppHost: React.FC<MicroAppHostProps> = ({ name, entry, contain
       token: token ?? snapshot?.token ?? '',
       userInfo: userInfo ?? snapshot?.userInfo ?? { id: '', username: '', permissions: [], tenantId: '' },
       systemCode: systemCode ?? 'aionui',
-      baseApi: baseApi ?? '/api',
+      /*
+       * baseApi 必须是**能打到后端的绝对地址**(Electron 下是
+       * `http://127.0.0.1:<__backendPort>/api`)。这里原来是相对路径 `/api`,
+       * 于是子应用自己发的请求(例如笔记编辑器粘贴图片时 Vditor 的
+       * `/api/fs/upload`)会打到 renderer 自己的源 —— dev 下是 Vite dev
+       * server(404),打包后是 file:// 相对路径(直接失败)。
+       */
+      baseApi: baseApi ?? resolveBaseApi(),
       shellVersion: shellVersion ?? '0.0.0',
       theme: theme ?? snapshot?.theme ?? 'light',
       locale: locale ?? snapshot?.locale ?? 'zh-CN',

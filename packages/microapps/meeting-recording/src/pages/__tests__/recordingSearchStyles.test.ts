@@ -61,4 +61,26 @@ describe('录音列表搜索框样式', () => {
   it('占位符用设计稿的浅灰', () => {
     expect(pageCss).toMatch(/placeholder\)\s*\{[^}]*color:\s*var\(--rec-placeholder\)/);
   });
+
+  it('清除搜索是 16px 的圆形叉号,常显在输入框右侧', () => {
+    const clear = rule('.searchClear {');
+    expect(clear).toMatch(/width:\s*16px/);
+    expect(clear).toMatch(/height:\s*16px/);
+    expect(clear).toMatch(/border-radius:\s*50%/);
+    expect(clear).toMatch(/background:\s*var\(--rec-border\)/);
+  });
+
+  it('搜索无结果的空态块:最多 540px 高、随可用高度收缩,插画 144×108', () => {
+    const noResults = rule('.noResults {');
+    // 写死 540px 会在矮窗口里撑破内容区、逼出一条纵向滚动条,
+    // 所以是「最多 540px + 吃掉剩余高度」。
+    expect(noResults).toMatch(/max-height:\s*540px/);
+    expect(noResults).toMatch(/flex:\s*1 1 auto/);
+    expect(noResults).toMatch(/min-height:\s*0/);
+    expect(noResults).not.toMatch(/^\s*height:\s*540px/m);
+    expect(noResults).toMatch(/justify-content:\s*center/);
+    const image = rule('.noResultsImage {');
+    expect(image).toMatch(/width:\s*144px/);
+    expect(image).toMatch(/height:\s*108px/);
+  });
 });

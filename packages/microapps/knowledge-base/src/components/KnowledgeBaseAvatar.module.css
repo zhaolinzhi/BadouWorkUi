@@ -1,0 +1,24 @@
+/**
+ * 知识库图标方块 —— 对齐设计稿 BadouWork-Desktop-Handoff 的 `.kb-card-symbol`。
+ *
+ * 设计稿里是一个 32×32 的浅灰圆角方块,里面放知识库自己的图标(默认是文件夹
+ * 图案)。这里沿用同一个几何:浅灰底、8px 圆角、居中。
+ */
+
+.symbol {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--kb-app-bg);
+  color: var(--kb-muted);
+}
+
+.image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}

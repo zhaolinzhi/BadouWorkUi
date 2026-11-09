@@ -7,7 +7,7 @@
 /**
  * `MoreMenu` 的行为测试。
  *
- * notes 的 `NoteItem` / `NotebookItem` 与 knowledge-base 的 `KnowledgeBaseRow`
+ * notes 的 `NoteItem` / `NotebookItem` 与 knowledge-base 的 `KnowledgeBaseCard`
  * 各写了一份「⋮ → Arco Dropdown → Menu」的组合,连触发按钮的 class 都一样。
  *
  * 关键约束:

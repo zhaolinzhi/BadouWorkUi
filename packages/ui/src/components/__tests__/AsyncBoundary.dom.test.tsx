@@ -7,8 +7,8 @@
 /**
  * `AsyncBoundary` 的行为测试。
  *
- * 它收拢三个微应用各写一遍的三态渲染 —— KB 的 `PersonalKnowledgeBaseList` 与
- * `SharedKnowledgeBaseGrid` 里那两段几乎逐字相同的 class 串就是典型。
+ * 它收拢三个微应用各写一遍的三态渲染 —— KB 的 `KnowledgeBaseGrid` 里那两段
+ * 几乎逐字相同的 class 串就是典型。
  *
  * 关键约束:
  *   - **状态优先级固定**:loading > error > empty > content。

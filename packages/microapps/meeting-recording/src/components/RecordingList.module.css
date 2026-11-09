@@ -11,10 +11,34 @@
   flex-direction: column;
   min-height: 0;
   /*
+   * 表格**不参与收缩** —— 它是 `.content` 的 flex 子项,默认 `flex-shrink: 1`
+   * 会在内容超出时先被压扁;压扁的是表头(表头是表格里第一个可缩的子项),
+   * 表现就是「表头高度异常」(36px 被压成文字高度 18px)。
+   * 让表格保持内容高度,超出部分交给 `.content` 的滚动条处理。
+   */
+  flex-shrink: 0;
+  /*
    * 再窄也得让列有地方摆 —— 低于这个宽度就横向滚动,而不是把名称列压没
    * (表头文字会被挤成竖排)。
    */
   min-width: 640px;
+}
+
+/*
+ * 空结果态:表格占满内容区的剩余高度,空态块再吃掉表格里的剩余高度。
+ * 这样无论窗口多矮,页面都不会出现纵向滚动条(空态块会自己缩到可用高度)。
+ */
+.tableEmpty {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+/* 空态块的容器 —— 承接表格分配下来的高度,让里面的空态块按它来定位。 */
+.emptyBody {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-height: 0;
 }
 
 /*
@@ -28,6 +52,7 @@
   column-gap: var(--rec-col-gap);
   align-items: center;
   height: 36px;
+  flex-shrink: 0;
   padding: 0 16px;
   border-radius: 8px;
   background: var(--rec-app-bg);
@@ -42,13 +67,4 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  padding: 120px 0;
 }

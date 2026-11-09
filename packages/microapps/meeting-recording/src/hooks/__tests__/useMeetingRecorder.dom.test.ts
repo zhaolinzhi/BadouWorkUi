@@ -70,6 +70,14 @@ vi.mock('../../__qiankun__/ipc', () => ({
   },
 }));
 
+// 录音机用 `useRecordingName` 生成兜底的自动名字,这里给一个确定的 i18n。
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (k: string, opts?: Record<string, unknown>) => (typeof opts?.defaultValue === 'string' ? opts.defaultValue : k),
+    i18n: { language: 'zh-CN' },
+  }),
+}));
+
 Object.defineProperty(global.navigator, 'mediaDevices', {
   value: { getUserMedia: mocks.getUserMedia },
   configurable: true,

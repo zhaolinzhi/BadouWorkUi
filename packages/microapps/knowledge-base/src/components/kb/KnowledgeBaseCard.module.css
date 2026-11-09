@@ -1,0 +1,122 @@
+/**
+ * 知识库卡片 —— 对齐设计稿 BadouWork-Desktop-Handoff 的 `.kb-card`。
+ *
+ * 设计稿的几何:
+ *   .kb-card            1px 描边、8px 圆角、16px 内边距、固定 184px 高
+ *   .kb-card-top        32px 高的一行:左侧 32×32 图标方块,右侧可见范围 + 更多菜单
+ *   .kb-card h2         14px/500,距上 12px,距下 6px,超长省略
+ *   .kb-card p          14px 次要文字,最多两行
+ *   .kb-card-footer     贴底一行:文档数 + 更新时间
+ */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 184px;
+  padding: 16px;
+  box-sizing: border-box;
+  min-width: 0;
+  cursor: pointer;
+  border: 1px solid var(--kb-border);
+  border-radius: 8px;
+  background: var(--kb-surface);
+}
+
+.card:hover {
+  border-color: var(--kb-brand-border);
+  background: var(--kb-app-bg);
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  height: 32px;
+}
+
+.range {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* 可见范围:锁 / 成员 图标 + 文案 */
+.scope {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  color: var(--kb-muted);
+  font-size: 12px;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+.scopeIcon {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 16px;
+  color: var(--kb-muted);
+}
+
+/* 「···」更多菜单按钮 */
+.moreButton {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 32px !important;
+  height: 32px !important;
+  padding: 0 !important;
+  border-radius: 6px !important;
+  background: transparent !important;
+  color: var(--kb-muted) !important;
+}
+
+.moreButton:hover {
+  background: var(--kb-hover) !important;
+  color: var(--kb-heading) !important;
+}
+
+.name {
+  margin: 12px 0 6px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 22px;
+  color: var(--kb-heading);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.description {
+  margin: 0;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--kb-muted);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--kb-muted);
+  white-space: nowrap;
+}
+
+.footerItem {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

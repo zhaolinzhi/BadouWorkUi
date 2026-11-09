@@ -151,7 +151,11 @@ const VditorEditor: React.FC<VditorEditorProps> = ({
         fieldName: 'file',
         accept: 'image/*',
         headers: token ? { Authorization: `Bearer ${token}` } : {},
-        success: async (_editorElement: HTMLElement, responseText: string) => {
+        success: async (editorElement: HTMLElement, responseText: string) => {
+          const editor = vditorRef.current;
+          // 「上传中...」的提示是 Vditor 自己弹的(`validateFile`),自定义
+          // success 回调不会替它收起 —— 不收的话它会一直挂在屏幕上。
+          editor?.vditor?.tip.hide();
           try {
             const response = JSON.parse(responseText) as {
               success: boolean;
@@ -186,10 +190,32 @@ const VditorEditor: React.FC<VditorEditorProps> = ({
             });
             if (!base64Url) return;
             const fileName = response.data.split(/[\\/]/).pop() || 'image';
-            vditorRef.current?.insertValue(`![${fileName}](${base64Url})`);
+            /*
+             * 上传是异步的,等回调跑完时编辑器可能已经失焦、光标也跑掉了。
+             * Vditor 在发起上传时把光标位置存进了 `upload.range`,默认的
+             * success 回调会用 `setSelectionFocus` 把它恢复回去 —— 自定义
+             * 回调得自己做这一步,否则图片会插到别处(或者干脆插不进去)。
+             */
+            const range = editor?.vditor?.upload?.range;
+            if (range) {
+              editorElement.focus();
+              const selection = window.getSelection();
+              selection?.removeAllRanges();
+              selection?.addRange(range);
+            }
+            editor?.insertValue(`![${fileName}](${base64Url})`);
           } catch (error) {
             console.error('[Vditor] Upload error:', error);
           }
+        },
+        error: (responseText: string) => {
+          const editor = vditorRef.current;
+          editor?.vditor?.tip.hide();
+          console.error('[Vditor] Upload failed:', responseText);
+          // 没有作者撰写的文案可展示(i18n 词条里没有这条),把后端返回的
+          // 状态片段透给用户 —— 至少能看出是 401 还是 404。
+          const detail = (responseText || '').trim().slice(0, 120);
+          if (detail) editor?.vditor?.tip.show(detail);
         },
       },
       input: (newValue: string) => {

@@ -53,13 +53,16 @@ import { IconApps } from '@icon-park/react';
 | `book`                | `Book`                  |                                                                                                    |
 | `book-one`            | `BookOne`               |                                                                                                    |
 | `check`               | `Check`                 | 录音列表底部的「已同步」标记                                                                       |
+| `close-small`         | `CloseSmall`            | 录音列表搜索框里的「清除搜索」                                                                     |
 | `delete`              | `Delete`                |                                                                                                    |
 | `download`            | `Download`              |                                                                                                    |
 | `down`                | `Down`                  |                                                                                                    |
 | `file-text`           | `FileText`              |                                                                                                    |
 | `folder-open`         | `FolderOpen`            |                                                                                                    |
 | `info`                | `Info`                  |                                                                                                    |
+| `lock`                | `Lock`                  | 知识库卡片的「仅自己可见」标记                                                                     |
 | `more-one`            | `MoreOne`               | 「更多」菜单                                                                                       |
+| `peoples`             | `Peoples`               | 知识库卡片的「团队共享」标记                                                                       |
 | `play`                | `Play`                  | 录音列表行左侧的播放方块                                                                           |
 | `plus`                | `Plus`                  |                                                                                                    |
 | `refresh`             | `Refresh`               |                                                                                                    |
@@ -67,6 +70,8 @@ import { IconApps } from '@icon-park/react';
 | `search`              | `Search`                | 笔记列表面板的搜索框                                                                               |
 | `star`                | `Star`                  | 笔记的「收藏」标记                                                                                 |
 | `tips`                | `Tips`                  |                                                                                                    |
+| `upload`              | `Upload`                | 录音空态的「导入已有音频」入口                                                                     |
+| `volume-notice`       | `VolumeNotice`          | 录音设置弹窗里的「系统声音」来源                                                                   |
 | `notes`               | `Notes`                 | 笔记（产品语义别名）                                                                               |
 | `knowledge-base`      | `Book`                  | 知识库（产品语义别名）                                                                             |
 | `recording`           | `Microphone`            | 录音（产品语义别名）                                                                               |
@@ -76,7 +81,7 @@ import { IconApps } from '@icon-park/react';
 | `nav-task`            | `NavTaskIcon`           | 定制图标（`svg/nav-task.svg`）：侧栏「任务」入口；填充型图标，`fill` 为 `currentColor`             |
 | `nav-workbench`       | `NavWorkbenchIcon`      | 定制图标（`svg/nav-workbench.svg`）：侧栏「工作台」入口；描边型图标，粗细按设计稿比例换算          |
 | `nav-note`            | `NavNoteIcon`           | 定制图标（`svg/nav-note.svg`）：侧栏「笔记」入口；图形在 SVG 内已按设计稿旋转 180°                 |
-| `nav-recording`       | `NavRecordingIcon`      | 定制图标（`svg/nav-recording.svg`）：侧栏「会议录音」入口；描边型图标                              |
+| `nav-recording`       | `NavRecordingIcon`      | 定制图标（`svg/nav-recording.svg`）：侧栏「会议录音」入口，也用作录音空态的插画；描边型图标        |
 | `nav-knowledge`       | `NavKnowledgeIcon`      | 定制图标（`svg/nav-knowledge.svg`）：侧栏「知识库」入口；书本为描边、星芒为填充                    |
 | `nav-app-market`      | `NavAppMarketIcon`      | 定制图标（`svg/nav-app-market.svg`）：侧栏「应用市场」入口                                         |
 | `sider-settings`      | `SiderSettingsIcon`     | 定制图标（`svg/sider-settings.svg`）：侧栏底部设置齿轮；填充型图标                                 |

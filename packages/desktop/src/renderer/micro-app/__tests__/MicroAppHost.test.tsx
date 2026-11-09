@@ -102,4 +102,28 @@ describe('MicroAppHost', () => {
   it('shares one event bus between props and the shell subscription point', () => {
     expect(getEventBus()).toBe(getEventBus());
   });
+
+  /**
+   * Electron 下微应用是 `MicroAppHost` 挂载的(不是 `startMicroApps`),
+   * 这里的 baseApi 曾经硬编码成相对路径 `/api` —— 子应用自己发的请求
+   * (笔记编辑器粘贴图片的 `/api/fs/upload`)会打到 renderer 自己的源:
+   * dev 下是 Vite dev server(404),打包后是 file:// 相对路径(直接失败)。
+   */
+  it('gives the micro app an absolute baseApi in Electron mode', async () => {
+    const win = window as Window & { __backendPort?: number };
+    win['__backendPort'] = 50548;
+    try {
+      renderHost(
+        <MicroAppHost name='notes' entry='//localhost:7992' container='#notes-container' activeRule='/notes' />
+      );
+
+      await waitFor(() => {
+        expect(loadMicroApp).toHaveBeenCalled();
+      });
+
+      expect(lastProps().baseApi).toBe('http://127.0.0.1:50548/api');
+    } finally {
+      delete win['__backendPort'];
+    }
+  });
 });

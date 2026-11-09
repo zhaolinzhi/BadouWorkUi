@@ -6,9 +6,9 @@
 
 import type { KnowledgeBaseListItem } from '../types';
 import { AppIcon } from '@aionui/ui';
-import { Avatar } from '@arco-design/web-react';
 import React from 'react';
 import { isEmoji, resolveIconImageSrc } from '../utils/knowledgeBaseUtils';
+import styles from './KnowledgeBaseAvatar.module.css';
 
 type KnowledgeBaseAvatarProps = {
   knowledgeBase: KnowledgeBaseListItem;
@@ -23,22 +23,15 @@ const KnowledgeBaseAvatar: React.FC<KnowledgeBaseAvatarProps> = ({ knowledgeBase
   const emojiSize = Math.floor(size * 0.6);
 
   return (
-    <Avatar.Group size={size}>
-      <Avatar className='border-none' shape='square' style={{ backgroundColor: 'var(--color-fill-2)', border: 'none' }}>
-        {iconImage ? (
-          <img
-            src={iconImage}
-            alt=''
-            className='h-full w-full rounded-inherit object-cover'
-            style={{ display: 'block' }}
-          />
-        ) : hasEmojiIcon ? (
-          <span style={{ fontSize: emojiSize }}>{resolvedIcon}</span>
-        ) : (
-          <AppIcon name='book' size={iconSize} />
-        )}
-      </Avatar>
-    </Avatar.Group>
+    <div className={styles.symbol} style={{ width: size, height: size }}>
+      {iconImage ? (
+        <img src={iconImage} alt='' className={styles.image} />
+      ) : hasEmojiIcon ? (
+        <span style={{ fontSize: emojiSize, lineHeight: 1 }}>{resolvedIcon}</span>
+      ) : (
+        <AppIcon name='book' size={iconSize} />
+      )}
+    </div>
   );
 };
 

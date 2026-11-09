@@ -20,8 +20,12 @@ import { getEventBus, type MicroAppEventBus } from './event-bus';
  * Without this, a sub-app's `fetch('/api/notebooks')` would resolve to the
  * renderer's own origin (the Vite dev server in dev, or the webui host in
  * prod) and 404 because neither proxies `/api/*` to aioncore automatically.
+ *
+ * `MicroAppHost` 也用这个函数兜底 —— Electron 下微应用是由 `MicroAppHost`
+ * 挂载的(不是 `startMicroApps`),那里曾经硬编码相对路径 `/api`,于是
+ * 子应用自己发的请求全部打到 renderer 自己的源(dev 下是 Vite dev server)。
  */
-function resolveBaseApi(): string {
+export function resolveBaseApi(): string {
   const base = getBaseUrl();
   return `${base}/api`;
 }
