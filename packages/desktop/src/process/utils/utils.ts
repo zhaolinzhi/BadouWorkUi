@@ -83,6 +83,15 @@ const ensureCliSafeSymlink = (targetPath: string, symlinkName: string): string =
     if (!existsSync(targetPath)) {
       mkdirSync(targetPath, { recursive: true });
     }
+    // The symlink may live in a subdirectory of the home directory — the
+    // per-account names are `.aionui-accounts/<key>`. `symlinkSync` does not
+    // create missing parents, so it fails with ENOENT and the account's data
+    // path would keep the spaces in "Application Support" that this symlink
+    // exists to avoid.
+    const symlinkParent = path.dirname(symlinkPath);
+    if (!existsSync(symlinkParent)) {
+      mkdirSync(symlinkParent, { recursive: true });
+    }
     symlinkSync(targetPath, symlinkPath);
     return symlinkPath;
   } catch (error) {

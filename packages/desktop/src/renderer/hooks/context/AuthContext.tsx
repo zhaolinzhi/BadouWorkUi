@@ -6,7 +6,7 @@ import { AIPAAS_BASE_URL } from '@/renderer/api';
 import { ensureKnowledgeServerMcp } from '@/renderer/hooks/mcp/ensureDefaultMcpServers';
 import { runNewapiPostLogin } from '@/renderer/services/newapi';
 import { ipcBridge } from '@/common';
-import { resetWsForBackendRestart } from '@/common/adapter/httpBridge';
+import { resetWsForBackendRestart, setBackendPort } from '@/common/adapter/httpBridge';
 
 const LOGOUT_ENDPOINT = `${AIPAAS_BASE_URL}/system/security/logout/logout`;
 
@@ -19,12 +19,21 @@ const LOGOUT_ENDPOINT = `${AIPAAS_BASE_URL}/system/security/logout/logout`;
  *
  * Errors are re-thrown so the caller can surface them with the translation
  * function, which is only available inside the React component.
+ *
+ * @returns True when the backend was restarted on a new port.
  */
-async function activateAccount(userId: string, username: string): Promise<void> {
+async function activateAccount(userId: string, username: string): Promise<boolean> {
   const result = await ipcBridge.account.setActive.invoke({ userId, username });
   if (result.restarted) {
-    window.__backendPort = result.backendPort;
+    // Drop the old socket FIRST. `window.__backendPort` is installed by the
+    // preload with `contextBridge.exposeInMainWorld`, which freezes it — so
+    // it cannot be written to, and any attempt to do so throws. Resetting the
+    // socket first keeps that from skipping the reset, and the socket has to
+    // be dropped anyway because it points at the backend that just stopped.
     resetWsForBackendRestart();
+    // The bridge keeps its own mutable copy of the port, because the frozen
+    // `window.__backendPort` can only ever hold the value from preload time.
+    setBackendPort(result.backendPort);
   }
   // The in-app browser partition holds site cookies that may be logged in.
   // Clear it so accounts cannot see each other's sessions.
@@ -35,6 +44,7 @@ async function activateAccount(userId: string, username: string): Promise<void> 
   void ipcBridge.application.clearBrowserData.invoke().catch((error: unknown) => {
     console.warn('Failed to clear the browser session on account switch:', error);
   });
+  return result.restarted;
 }
 
 type AuthStatus = 'checking' | 'authenticated' | 'unauthenticated';
@@ -149,8 +159,9 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       // Switch the backend to this account's data directory before anything
       // talks to it — the backend may have been serving another account's
       // database.
+      let backendRestarted = false;
       try {
-        await activateAccount(payload.id, payload.username);
+        backendRestarted = await activateAccount(payload.id, payload.username);
       } catch (error) {
         console.error('Failed to activate the account scope:', error);
         // The app is now signed in but pointing at the previous account's
@@ -164,6 +175,19 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       void runNewapiPostLogin(token);
       // Fire-and-forget: ensure the default knowledge-base MCP server exists after login.
       void ensureKnowledgeServerMcp();
+
+      if (backendRestarted) {
+        // The backend now serves a different account's data, so everything the
+        // renderer cached for the previous account is wrong: the conversation
+        // list, the project tree, the assistants, the providers, the settings —
+        // roughly fifteen module-level singletons and thirty SWR keys, each
+        // with its own bespoke store contract and several with no reset API
+        // at all. Reloading is the only way to be sure none of them survives.
+        //
+        // The auth record was written to localStorage before the switch, so
+        // the fresh renderer comes back signed in as the new account.
+        window.location.reload();
+      }
     },
     [t]
   );
@@ -192,6 +216,10 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     setUser(null);
     setStatus('unauthenticated');
     clearAuthCache();
+    // The renderer holds the signed-out account's data in memory — the
+    // conversation list, the project tree, the assistants, the providers.
+    // Reload so none of it is left behind for whoever signs in next.
+    window.location.reload();
   }, []);
 
   const notifyTokenExpired = useCallback(

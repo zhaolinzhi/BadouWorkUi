@@ -9,7 +9,7 @@
  */
 
 import { type ChildProcess, spawn } from 'node:child_process';
-import { mkdirSync, statSync } from 'node:fs';
+import { lstatSync, mkdirSync, readlinkSync, statSync, unlinkSync } from 'node:fs';
 import { connect, createServer, type Socket } from 'node:net';
 import { cleanupRegisteredAgentProcesses } from './agent-process-registry.js';
 import type { AppMetadata, BackendBinaryResolver } from './types.js';
@@ -405,6 +405,23 @@ function ensureBackendStartupDirectory(dir: string | undefined): void {
   // EPERM even with `recursive: true` and even though the directory is fully
   // usable — deterministically failing every backend startup (ELECTRON-3S4).
   if (statSync(dir, { throwIfNoEntry: false })?.isDirectory()) return;
+
+  // A dangling symlink is not a usable directory: `statSync` follows the link
+  // and reports "not found", and `mkdirSync` on the link path fails with
+  // ENOENT rather than creating the target. The CLI-safe symlink in the home
+  // directory goes dangling whenever its target directory is removed — the
+  // account-directory adoption deletes the legacy one — and that used to abort
+  // every backend start with "directory preparation failed".
+  //
+  // Remove the dangling link and recreate the directory it pointed at.
+  const linkStats = lstatSync(dir, { throwIfNoEntry: false });
+  if (linkStats?.isSymbolicLink()) {
+    const target = readlinkSync(dir);
+    unlinkSync(dir);
+    mkdirSync(target, { recursive: true });
+    return;
+  }
+
   mkdirSync(dir, { recursive: true });
 }
 

@@ -15,6 +15,7 @@
 import type { IConfirmation } from '@/common/chat/chatLib';
 import type { AcpSlashCommandApiItem } from '@/common/chat/slash/types';
 import { bridge } from '@/common/platform/bridge';
+import { ACCOUNT_PORT_CHANGED_EVENT } from './constant';
 import { buildListTasksPath } from './teamTaskPath';
 import type { OpenDialogOptions } from 'electron';
 import type {
@@ -222,7 +223,7 @@ export const account = {
   /** Any window → main: read the active account scope (null in local mode). */
   getActive: bridge.buildProvider<{ userId: string; username: string } | null, void>('account:get-active'),
   /** Main → renderer: the backend was restarted and now listens on a new port. */
-  portChanged: bridge.buildEmitter<{ backendPort: number }>('account:port-changed'),
+  portChanged: bridge.buildEmitter<{ backendPort: number }>(ACCOUNT_PORT_CHANGED_EVENT),
 };
 
 // ---------------------------------------------------------------------------

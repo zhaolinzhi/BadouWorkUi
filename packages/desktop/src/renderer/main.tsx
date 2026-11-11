@@ -112,6 +112,7 @@ import {
   showInstallationIntegrityModal,
 } from './components/layout/InstallationIntegrityDialog';
 import { createRuntimeInstallationReconciler } from './services/runtime/runtimeInstallationReconciler';
+import { subscribeToBackendPortChanges } from '@/common/adapter/httpBridge';
 
 // Patch Korean locale with missing properties from English locale
 const koKRComplete = {
@@ -320,6 +321,12 @@ const Main = () => {
     if (!ready) return;
     void repairAllCronJobTimeZonesOnce();
   }, [ready]);
+
+  // The backend listens on an ephemeral port, so a restart moves it. The
+  // renderer's `window.__backendPort` is frozen by contextBridge and can only
+  // hold the value from preload time, so the bridge keeps its own copy and
+  // follows the port the main process publishes.
+  useEffect(() => subscribeToBackendPortChanges(), []);
 
   if (!ready || !configReady) {
     return null;

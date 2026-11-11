@@ -41,10 +41,13 @@ vi.mock('@/renderer/hooks/mcp/ensureDefaultMcpServers', () => ({
 
 vi.mock('@/common/adapter/httpBridge', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/common/adapter/httpBridge')>();
+  // `setBackendPort` stays real: the account switch must be able to move the
+  // renderer onto the new backend port.
   return { ...actual, resetWsForBackendRestart: resetWs };
 });
 
 import { AuthProvider, useAuth } from '@/renderer/hooks/context/AuthContext';
+import { getBaseUrl } from '@/common/adapter/httpBridge';
 
 function Probe() {
   const ctx = useAuth();
@@ -76,10 +79,20 @@ describe('account switch wiring', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    // The real preload installs the port with `contextBridge.exposeInMainWorld`,
+    // which freezes primitives across the context isolation boundary. Mirror
+    // that here, otherwise the test would pass against an implementation that
+    // throws in the real app.
+    Object.defineProperty(window, '__backendPort', {
+      value: 13400,
+      writable: false,
+      configurable: true,
+    });
   });
 
   afterEach(() => {
     localStorage.clear();
+    delete (window as Window & { __backendPort?: number }).__backendPort;
   });
 
   it('activates the account in the main process on login', async () => {
@@ -104,9 +117,25 @@ describe('account switch wiring', () => {
     });
 
     await waitFor(() => {
-      expect((window as Window & { __backendPort?: number }).__backendPort).toBe(4321);
+      expect(getBaseUrl()).toBe('http://127.0.0.1:4321');
     });
     expect(resetWs).toHaveBeenCalled();
+  });
+
+  it('resets the websocket even when the port cannot be applied', async () => {
+    // `window.__backendPort` is frozen by contextBridge in the real app, so
+    // writing to it throws. The websocket reset must not be skipped by that
+    // failure — otherwise the renderer keeps retrying the dead backend.
+    renderProbe();
+    await waitFor(() => expect(screen.getByTestId('status').textContent).toBe('unauthenticated'));
+
+    await act(async () => {
+      screen.getByTestId('complete').click();
+    });
+
+    await waitFor(() => {
+      expect(resetWs).toHaveBeenCalled();
+    });
   });
 
   it('clears the active account on logout', async () => {

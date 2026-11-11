@@ -54,6 +54,16 @@ export async function setActiveAccount(
   // copied database.
   await adoptLegacyDataIfNeeded(scope);
 
+  // Activate the scope BEFORE the backend starts.
+  //
+  // The backend is started with the account's cache/work directories, and
+  // those are resolved from the active scope (`getSystemDir()` →
+  // `getDataPath()` → `getActiveScope()`). Applying the scope afterwards
+  // would start the new backend against the PREVIOUS account's directories:
+  // on the first sign-in that means the legacy shared directory, and on a
+  // switch it means the other account's tree — a cross-account leak.
+  setActiveScope(scope);
+
   const currentDataDir = getCurrentBackendDataDir();
   let restarted = false;
   let backendPort = 0;
@@ -68,7 +78,6 @@ export async function setActiveAccount(
     backendPort = getRunningBackendPort();
   }
 
-  setActiveScope(scope);
   writeActiveAccount({ userId, username });
 
   return { backendPort, restarted };

@@ -82,6 +82,37 @@ describe('accountBridge', () => {
     expect(result.backendPort).toBe(45678);
   });
 
+  it('activates the account scope before the backend starts', async () => {
+    // The backend is started with the account's cache/work directories, which
+    // are resolved from the active scope. If the scope is applied after the
+    // start, the backend runs against the PREVIOUS account's directories.
+    let scopeAtStart: string | null | undefined;
+    startBackend.mockImplementationOnce(async (dataDir: string) => {
+      scopeAtStart = getActiveScope()?.userId;
+      currentDataDirRef.value = dataDir;
+      return 45678;
+    });
+
+    await setActiveAccount('u1', 'Alice');
+
+    expect(scopeAtStart).toBe('u1');
+  });
+
+  it('activates the account scope before the backend starts when switching accounts', async () => {
+    await setActiveAccount('u1', 'Alice');
+
+    let scopeAtStart: string | null | undefined;
+    startBackend.mockImplementationOnce(async (dataDir: string) => {
+      scopeAtStart = getActiveScope()?.userId;
+      currentDataDirRef.value = dataDir;
+      return 45678;
+    });
+
+    await setActiveAccount('u2', 'Bob');
+
+    expect(scopeAtStart).toBe('u2');
+  });
+
   it('sets the active scope after switching', async () => {
     await setActiveAccount('u1', 'Alice');
 

@@ -22,6 +22,7 @@ import { ipcBridge } from './common';
 import { initializeProcess } from './process';
 import { startBackendOrExit } from './process/startup/backendStartup';
 import { registerBackendControl } from './process/account/backendControl';
+import { publishBackendPort } from './process/account/backendPortChange';
 import { assertStartupArchitectureCompatible } from './process/startup/architectureCompatibility';
 import { classifyBackendStartupFailure } from './process/startup/backendStartupFailure';
 import { installQuitCleanup } from './process/startup/quitCleanup';
@@ -401,7 +402,11 @@ function exposeBackendPort(backendPort: number): void {
   // one-shot assistant migration hook below). Must land BEFORE any
   // ipcBridge.* invoke from the main process — the renderer side reads
   // window.__backendPort via preload, but main has no `window`.
-  (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort = backendPort;
+  //
+  // The renderer is notified too: its `window.__backendPort` is frozen by
+  // contextBridge and can only hold the value from preload time, so it needs
+  // the new port pushed to it.
+  publishBackendPort(backendPort);
 }
 
 function ensureAdminUserOnce(backendPort: number): Promise<void> {
@@ -419,9 +424,13 @@ function ensureAdminUserOnce(backendPort: number): Promise<void> {
 }
 
 function markBackendReady(backendPort: number, source: string): void {
+  // A restart on another port (the account switch restarts the backend against
+  // another account's data directory) must still publish the new port — the
+  // renderer has to follow it, and so does every main-process caller. Only
+  // the one-time startup bookkeeping below is skipped.
+  exposeBackendPort(backendPort);
   if (backendStartedOk) return;
   console.log(`[AionUi] ${source} ready (port=${backendPort})`);
-  exposeBackendPort(backendPort);
   registerCronResumeBridge(backendPort);
   backendStartedOk = true;
   backendStartupFailed = false;
@@ -748,6 +757,21 @@ const handleAppReady = async (): Promise<void> => {
     app.exit(1);
     return;
   }
+
+  // In development the renderer loads the Vite dev server over HTTP. Vite
+  // re-bundles its optimized dependencies with new content hashes on every
+  // restart, so a cached module graph from the previous run keeps importing a
+  // chunk that no longer exists — the import fails, the module graph never
+  // finishes loading, and the window stays blank. Drop the cache before the
+  // window is created. Production loads the built files from disk and is
+  // unaffected.
+  try {
+    const { disableRendererHttpCacheInDev } = await import('./process/startup/devRendererCache');
+    await disableRendererHttpCacheInDev();
+  } catch (error) {
+    console.warn('[AionUi] Failed to disable the renderer HTTP cache in development:', error);
+  }
+  mark('disableRendererHttpCacheInDev');
 
   /**
    * 启动单目标 CDP 通道，并把端口/口令写进自己的 env。

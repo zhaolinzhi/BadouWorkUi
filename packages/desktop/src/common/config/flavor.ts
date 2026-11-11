@@ -15,4 +15,4 @@
  *
  * Flip this constant and rebuild to switch the shipped flavor.
  */
-export const FLAVOR: 'public' | 'enterprise' = 'enterprise';
+export const FLAVOR: 'public' | 'enterprise' = 'public';

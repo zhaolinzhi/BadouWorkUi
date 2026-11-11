@@ -17,6 +17,9 @@ vi.mock('node:child_process', () => ({
 vi.mock('node:fs', () => ({
   mkdirSync: vi.fn(),
   statSync: vi.fn(),
+  lstatSync: vi.fn(),
+  readlinkSync: vi.fn(),
+  unlinkSync: vi.fn(),
 }));
 
 vi.mock('node:net', () => ({
@@ -29,7 +32,7 @@ vi.mock('./agent-process-registry.js', () => ({
 }));
 
 import { spawn } from 'node:child_process';
-import { mkdirSync, statSync } from 'node:fs';
+import { lstatSync, mkdirSync, readlinkSync, statSync, unlinkSync } from 'node:fs';
 import { connect, createServer } from 'node:net';
 import { cleanupRegisteredAgentProcesses } from './agent-process-registry.js';
 import {
@@ -455,6 +458,61 @@ describe('BackendLifecycleManager.start (health timeout)', () => {
 
     expect(spawn).not.toHaveBeenCalled();
     expect(mgr.status).toBe('error');
+  });
+
+  it('recreates a broken symlink work dir instead of failing startup', async () => {
+    // The CLI-safe symlink in the home directory points at the account's data
+    // directory. When that directory is removed (the legacy-directory
+    // adoption deletes it), the symlink is left dangling. `statSync` follows
+    // the link and reports "not found", and `mkdirSync` on the dangling link
+    // path fails with ENOENT — which used to abort every backend start.
+    const brokenLink = '/home/.aionui-accounts/abc123';
+    const brokenTarget = '/home/.aionui-accounts/real-target';
+    vi.mocked(statSync).mockImplementation(((p: unknown) => {
+      // The link itself exists (lstat semantics), but its target does not.
+      if (p === brokenLink) return { isDirectory: () => false, isSymbolicLink: () => true };
+      return undefined;
+    }) as unknown as typeof statSync);
+    vi.mocked(lstatSync).mockImplementation(((p: unknown) => {
+      if (p === brokenLink) return { isDirectory: () => false, isSymbolicLink: () => true };
+      return undefined;
+    }) as unknown as typeof lstatSync);
+    vi.mocked(readlinkSync).mockImplementation(((p: unknown) => {
+      if (p === brokenLink) return brokenTarget;
+      return '';
+    }) as unknown as typeof readlinkSync);
+    vi.mocked(unlinkSync).mockImplementation((() => undefined) as unknown as typeof unlinkSync);
+    vi.mocked(mkdirSync).mockImplementation(((p: unknown) => {
+      if (p === brokenLink) throw new Error(`ENOENT: no such file or directory, mkdir '${p}'`);
+      return undefined;
+    }) as unknown as typeof mkdirSync);
+    // Halt startup deterministically right after directory preparation: a
+    // spawn that throws proves preparation passed without hanging on health.
+    vi.mocked(spawn).mockImplementationOnce(() => {
+      throw new Error('halted by test after directory preparation');
+    });
+
+    try {
+      const mgr = new BackendLifecycleManager(APP_META_PACKAGED, () => '/abs/path/aioncore');
+      const error = await mgr
+        .start('/db/path', '/log/dir', { cacheDir: '/cache', workDir: brokenLink, logDir: '/log' })
+        .catch((e: unknown) => e as Error);
+
+      // Startup got PAST directory preparation and reached spawn.
+      expect((error as Error).message).toContain('spawn threw before startup');
+      expect((error as Error).message).not.toContain('directory preparation failed');
+      expect(spawn).toHaveBeenCalled();
+      // The dangling link was removed and its target recreated.
+      expect(unlinkSync).toHaveBeenCalledWith(brokenLink);
+      expect(mkdirSync).toHaveBeenCalledWith(brokenTarget, { recursive: true });
+    } finally {
+      vi.mocked(statSync).mockReset();
+      vi.mocked(mkdirSync).mockReset();
+      vi.mocked(lstatSync).mockReset();
+      vi.mocked(readlinkSync).mockReset();
+      vi.mocked(unlinkSync).mockReset();
+      vi.mocked(spawn).mockReset();
+    }
   });
 
   it('skips mkdir for a pre-existing work dir so a Windows drive root can start (ELECTRON-3S4)', async () => {
