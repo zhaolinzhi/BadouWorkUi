@@ -12,8 +12,20 @@ import React from 'react';
 const renderMock = vi.fn();
 const unmountMock = vi.fn();
 vi.mock('react-dom/client', () => ({
-  createRoot: vi.fn(() => ({
-    render: renderMock,
+  createRoot: vi.fn((container: Element) => ({
+    /*
+     * 模拟 React 首次提交的行为:清空容器。
+     * 普通元素容器走 `root.textContent = ''`,里面已有的子节点**全部**删掉
+     * (react-dom 的 clearContainerSparingly 只对 HTML/HEAD/BODY 容器保留
+     * style/script/link,对普通 div 不适用)。
+     *
+     * 这段模拟是必需的:坑五的回归测试要验证的正是「React 清空容器之后
+     * `<qiankun-head>` 还在不在」,不模拟的话断言恒真,测不出问题。
+     */
+    render: (node: React.ReactElement) => {
+      container.textContent = '';
+      renderMock(node, container);
+    },
     unmount: unmountMock,
   })),
 }));
@@ -151,9 +163,12 @@ describe('createMicroAppRenderer', () => {
 
     renderer.render({ ...baseProps, container: wrapper });
 
-    // createRoot 必须接到 wrapper 这个真实元素(不是 selector)。
+    // createRoot 必须接到真实元素(不是 selector),且那个元素在 wrapper 内部 ——
+    // React 不能直接挂在 wrapper 上,否则首次提交会把 `<qiankun-head>` 一起抹掉。
     const { createRoot } = await import('react-dom/client');
-    expect(createRoot).toHaveBeenCalledWith(wrapper);
+    expect(createRoot).toHaveBeenCalledTimes(1);
+    const mountNode = vi.mocked(createRoot).mock.calls[0][0] as HTMLElement;
+    expect(mountNode.parentElement).toBe(wrapper);
     expect(renderMock).toHaveBeenCalledTimes(1);
     expect(onContextCreated).toHaveBeenCalledTimes(1);
   });
@@ -309,6 +324,98 @@ describe('createMicroAppRenderer —— 样式节点搬运', () => {
 
     renderer.unmount({ ...baseProps, container: wrapper });
     expect(headStyles()).toHaveLength(0);
+  });
+});
+
+/**
+ * 打包态「动态加载的脚本全部失败」的回归测试(坑五)。
+ *
+ * qiankun 追加动态资源时,落点是从 wrapper 里 `querySelector('qiankun-head')`
+ * 找出来的;找不到就是 `null`,紧接着的 `null.contains(refChild)` 会抛
+ * TypeError,脚本根本不会加载。React 首次提交会清空自己的容器,所以容器里
+ * 的 `<qiankun-head>` 必须**不是** React 的挂载点。
+ */
+describe('createMicroAppRenderer —— 保住 <qiankun-head>', () => {
+  beforeEach(() => {
+    document.body.innerHTML = '';
+    renderMock.mockClear();
+    unmountMock.mockClear();
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+    vi.restoreAllMocks();
+  });
+
+  it('render 之后 <qiankun-head> 仍在 wrapper 里(React 清不掉它)', () => {
+    const wrapper = buildWrapper(`<qiankun-head></qiankun-head><div id="notes-root"></div>`);
+
+    const renderer = createMicroAppRenderer({
+      name: 'notes',
+      renderApp: () => React.createElement('div'),
+    });
+    renderer.render({ ...baseProps, container: wrapper });
+
+    // React 的挂载节点是 wrapper 的**子节点**,所以清空它不会波及 wrapper。
+    expect(wrapper.querySelector('qiankun-head')).not.toBeNull();
+  });
+
+  it('qiankun 的动态追加落点拿得到 —— 不会踩到 null.contains', () => {
+    const wrapper = buildWrapper(`<qiankun-head></qiankun-head><div id="notes-root"></div>`);
+
+    const renderer = createMicroAppRenderer({
+      name: 'notes',
+      renderApp: () => React.createElement('div'),
+    });
+    renderer.render({ ...baseProps, container: wrapper });
+
+    // 复刻 qiankun dynamicAppend 的第一行:
+    //   var _mountDOM = getAppWrapperHeadElement(appWrapper);
+    const mountDOM = wrapper.querySelector('qiankun-head');
+    expect(mountDOM).not.toBeNull();
+    expect(() => mountDOM?.contains(document.createElement('div'))).not.toThrow();
+  });
+
+  it('模板自带的根节点被清掉 —— 不会把挂载节点顶出可视区', () => {
+    const wrapper = buildWrapper(`<qiankun-head></qiankun-head><div id="notes-root"></div>`);
+
+    const renderer = createMicroAppRenderer({
+      name: 'notes',
+      renderApp: () => React.createElement('div'),
+    });
+    renderer.render({ ...baseProps, container: wrapper });
+
+    // 模板根节点带着 `height:100%`,留着就会把挂载节点挤到可视区之外。
+    expect(wrapper.querySelector('#notes-root')).toBeNull();
+  });
+
+  it('挂载节点在 wrapper 内,高度链不断', () => {
+    const wrapper = buildWrapper(`<qiankun-head></qiankun-head>`);
+
+    const renderer = createMicroAppRenderer({
+      name: 'notes',
+      renderApp: () => React.createElement('div'),
+    });
+    renderer.render({ ...baseProps, container: wrapper });
+
+    const mountNode = wrapper.querySelector<HTMLElement>('#__aionui_microapp_mount_notes__');
+    expect(mountNode).not.toBeNull();
+    // 百分比高度链:container → wrapper(h-full)→ 挂载节点 → React 根节点(h-full)
+    expect(mountNode?.style.height).toBe('100%');
+  });
+
+  it('unmount 之后 <qiankun-head> 依然在(remount 还要用它)', () => {
+    const wrapper = buildWrapper(`<qiankun-head></qiankun-head><div id="notes-root"></div>`);
+
+    const renderer = createMicroAppRenderer({
+      name: 'notes',
+      renderApp: () => React.createElement('div'),
+    });
+    renderer.render({ ...baseProps, container: wrapper });
+    renderer.unmount({ ...baseProps, container: wrapper });
+
+    expect(wrapper.querySelector('qiankun-head')).not.toBeNull();
+    expect(wrapper.querySelector('#__aionui_microapp_mount_notes__')).toBeNull();
   });
 });
 
