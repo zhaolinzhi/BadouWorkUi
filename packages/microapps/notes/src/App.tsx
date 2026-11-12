@@ -1,7 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ConfigProvider } from '@arco-design/web-react';
 import enUS from '@arco-design/web-react/es/locale/en-US';
 import zhCN from '@arco-design/web-react/es/locale/zh-CN';
+import { useRouter } from '@aionui/microapp-shared';
 import { AppContext, type AppContextValue } from './AppContext';
 import { createRouter, RouterProvider } from './router';
 
@@ -47,7 +48,22 @@ const App: React.FC<AppProps> = ({ context, routerBase }) => {
     };
   }, [theme]);
 
-  const router = useMemo(() => createRouter(routerBase), [routerBase]);
+  /*
+   * Router 用**按 base 缓存的单例**拿,不在 render 阶段反复创建。
+   *
+   * 原来这里是 `useMemo(() => createRouter(routerBase), [routerBase])` ——
+   * useMemo 的工厂在 React render 阶段执行,`createMemoryRouter()` 会在
+   * 渲染过程中跑。子应用**第二次打开**时,react-router 内部的
+   * `new DataRoutes()`(私有字段走 WeakMap)会抛:
+   *
+   *   TypeError: r.has is not a function
+   *
+   * `useRouter` 内部用 `useState` 的惰性初值(只在首次渲染求值)取 router,
+   * 并按 `routerBase` 缓存 —— 第二次打开时 `createRouter` 根本不会被调用,
+   * 崩溃的那句也就不会执行第二次。详见 @aionui/microapp-shared 的
+   * qiankun/router.ts。
+   */
+  const router = useRouter(routerBase, createRouter);
   const arcoLocale = ARCO_LOCALES[locale] ?? zhCN;
 
   return (
