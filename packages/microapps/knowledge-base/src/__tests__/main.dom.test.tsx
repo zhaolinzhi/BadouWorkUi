@@ -77,7 +77,15 @@ describe('knowledge-base micro-app lifecycle', () => {
     await mod.mount({ ...baseProps, container: '#knowledge-base-container' });
 
     const { createRoot } = await import('react-dom/client');
-    expect(createRoot).toHaveBeenCalledWith(container);
+    expect(createRoot).toHaveBeenCalledTimes(1);
+    /*
+     * React 挂在容器**内部的专属节点**上,不是容器本身 ——
+     * 容器(qiankun wrapper)里住着 `<qiankun-head>`,React 直接挂上去会在
+     * 首次提交时把它清空,子应用里任何运行时加载脚本的地方都会炸。
+     * 详见 `@aionui/microapp-shared` 的 `qiankun/mount.ts`。
+     */
+    const mountNode = vi.mocked(createRoot).mock.calls[0][0] as HTMLElement;
+    expect(mountNode.parentElement).toBe(container);
   });
 
   /**

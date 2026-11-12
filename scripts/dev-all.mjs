@@ -13,8 +13,8 @@
  * 每路输出加彩色前缀,Ctrl-C 一次全停;任何一路非零退出会把其它几路一起收掉,
  * 避免留下孤儿 vite 进程占着 7991/7992/7993。
  *
- * 启动前有两道预检:后端整包在不在(缺了后端起不来)、子应用端口空不空
- * (被占的话 vite 会先成功起两个再报一个)。
+ * 启动前有三道预检:node 版本合不合规(过低时 vite 会秒崩)、后端整包在不在
+ * (缺了后端起不来)、子应用端口空不空(被占的话 vite 会先成功起两个再报一个)。
  *
  * 只想起主应用(调试 qiankun 之外的东西)用 `bun run dev`。
  *
@@ -27,6 +27,11 @@ import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { discoverMicroApps } from './build-micro-apps.mjs';
+import nodeVersionGate from '../packages/shared-scripts/src/assert-node-version.js';
+import diagnostics from '../packages/shared-scripts/src/dev-all-diagnostics.js';
+
+const { assertNodeVersion } = nodeVersionGate;
+const { formatExitDiagnosis, formatMissingPortWarning } = diagnostics;
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const MICROAPPS_DIR = path.join(ROOT, 'packages', 'microapps');
@@ -215,7 +220,7 @@ function stopAll(signal = 'SIGTERM') {
   }, 2000).unref();
 }
 
-function start(label, color, cwd, args) {
+function start(label, color, cwd, args, kind) {
   const child = spawn('bun', args, {
     cwd,
     env: process.env,
@@ -234,8 +239,10 @@ function start(label, color, cwd, args) {
 
   child.on('exit', (code, signal) => {
     if (shuttingDown) return;
-    const reason = signal ? `信号 ${signal}` : `退出码 ${code}`;
-    process.stderr.write(`${prefix} 已退出(${reason}),正在关闭其余进程...\n`);
+    // 退出诊断:「已退出(退出码 1)」这行字本身说明不了任何事,
+    // 把最可能的原因(尤其是 node 版本过低 → vite 秒崩 → 连带关掉其它几路)
+    // 直接写出来,免得对着白屏猜。
+    process.stderr.write(`${paint(COLOR.red, formatExitDiagnosis({ kind, label, code, signal }))}\n`);
     stopAll();
     // Ctrl-C(SIGINT/SIGTERM)不算失败,退出码交给上层决定
     process.exit(signal ? 130 : (code ?? 0));
@@ -245,8 +252,46 @@ function start(label, color, cwd, args) {
   return child;
 }
 
+/**
+ * 启动后复核:每个子应用的端口真的在监听吗?
+ *
+ * 启动前的端口检查只管「有没有冲突」,管不了「服务起没起来」——
+ * node 版本过低时 vite 会秒崩,端口从一开始就没出现过,而日志里只有一行
+ * 「已退出」。这里在启动几秒后回查一次,没人监听的端口单独点名。
+ *
+ * 首次启动还要预构建依赖,vite 可能慢一点,所以先查一轮、没监听的再等一轮才报。
+ */
+function verifyMicroAppPorts(microApps, { final = true } = {}) {
+  const missing = [];
+  for (const name of microApps) {
+    const port = readDevServerPort(name);
+    if (port === null) continue;
+    if (pidsOnPort(port).length > 0) continue;
+    missing.push({ name, port });
+  }
+  if (missing.length === 0) return;
+  if (!final) {
+    setTimeout(() => verifyMicroAppPorts(microApps, { final: true }), 9000).unref();
+    return;
+  }
+  for (const { name, port } of missing) {
+    process.stderr.write(`${paint(COLOR.yellow, formatMissingPortWarning({ name, port }))}\n`);
+  }
+}
+
 function main() {
   const microApps = discoverMicroApps('dev');
+
+  // node 版本闸门:版本过低时子应用的 vite 会以 `SyntaxError: Unexpected token '||='`
+  // 秒崩,而 dev-all 会连带把其它几路一起收掉 —— 最终只剩主应用活着、三个端口全空,
+  // 界面上是微应用白屏,日志里只有一行「已退出」。在这里就卡掉,报错直指版本。
+  try {
+    assertNodeVersion();
+  } catch (error) {
+    process.stderr.write(`${paint(COLOR.red, `[dev] ${error instanceof Error ? error.message : String(error)}`)}\n\n`);
+    process.exit(1);
+  }
+
   assertBackendBundleReady();
   assertPortsFree(microApps);
 
@@ -256,14 +301,20 @@ function main() {
 
   const startMicroApp = (name) => {
     console.log(paint(COLOR.dim, `→ ${name}  ${path.relative(ROOT, path.join(MICROAPPS_DIR, name))}`));
-    start(`app:${name}`.padEnd(labelWidth), COLOR.cyan, path.join(MICROAPPS_DIR, name), ['run', 'dev']);
+    start(`app:${name}`.padEnd(labelWidth), COLOR.cyan, path.join(MICROAPPS_DIR, name), ['run', 'dev'], 'microapp');
   };
 
   console.log(paint(COLOR.green, `[dev] 启动主应用 + ${microApps.length} 个子应用`));
   console.log(paint(COLOR.dim, '     Ctrl-C 一次全部停止'));
 
-  start('shell'.padEnd(labelWidth), COLOR.blue, ROOT, ['run', 'dev']);
+  start('shell'.padEnd(labelWidth), COLOR.blue, ROOT, ['run', 'dev'], 'shell');
   microApps.forEach(startMicroApp);
+
+  // 给 vite 几秒时间起服务(首次启动还要预构建依赖),再回查端口。
+  setTimeout(() => {
+    if (shuttingDown) return;
+    verifyMicroAppPorts(microApps, { final: false });
+  }, 6000).unref();
 }
 
 for (const signal of ['SIGINT', 'SIGTERM']) {
