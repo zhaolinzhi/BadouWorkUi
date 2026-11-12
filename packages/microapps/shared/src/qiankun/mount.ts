@@ -86,6 +86,49 @@
  * qiankun 的 dynamicAppend patcher —— 它会覆盖
  * `HTMLHeadElement.prototype.appendChild`,把样式重新塞回 wrapper 内的
  * `<qiankun-head>`,那样照样会被 React 清掉(见下方注释)。
+ *
+ * 坑五:打包后子应用里**动态加载的脚本**全部失败(编辑器一片空白)
+ * ==========================================================
+ * 这条同样只在**打包产物**里出现,dev 一切正常。
+ *
+ * dev 与 prod 的关键差别不在 Vditor,而在**代码跑在哪个 realm**:
+ *
+ * - dev:入口被 `vite-plugin-qiankun` 改写成 inline `import()`,子应用代码
+ *   以**原生 ESM** 身份运行,`window` 是真 window。于是 Vditor 追加
+ *   `<script src=".../vditor/dist/js/i18n/zh_CN.js">` 时,qiankun 的
+ *   dynamicAppend patcher 判定「不是微应用自己追加的」(沙箱 proxy 没被
+ *   访问过,`currentRunningApp` 为空),脚本走**浏览器原生加载**。
+ * - prod:子应用整包被 qiankun 用 `eval` 塞进沙箱(`with(window){...}`,
+ *   `window` 是 proxy)。Vditor 一读 `window.xxx`,proxy 的 get trap 就
+ *   把 `currentRunningApp` 设成当前应用,之后 `document.createElement('script')`
+ *   创建的元素被标记成「微应用追加」→ qiankun 劫持这次 appendChild。
+ *
+ * 劫持的代码在 `sandbox/patchers/dynamicAppend/common.js`:
+ *
+ * ```js
+ * var _mountDOM = target === 'head' ? getAppWrapperHeadElement(_appWrapper) : _appWrapper;
+ * var _referenceNode = _mountDOM.contains(refChild) ? refChild : null;   // ← 这里炸
+ * ```
+ *
+ * `getAppWrapperHeadElement` 就是 `appWrapper.querySelector('qiankun-head')`。
+ * 而坑四的修法(样式搬家)并没有保住 `<qiankun-head>` 本身 —— React 的
+ * `createRoot(wrapper).render()` 首次提交时 `root.textContent = ''`,
+ * 把 wrapper 里的 `<qiankun-head>` 一起抹了。于是:
+ *
+ * ```
+ * querySelector('qiankun-head') → null
+ * null.contains(refChild)      → TypeError: Cannot read properties of null
+ * ```
+ *
+ * 异常从 `appendChild` 里抛出来,脚本**根本没被加载**,Vditor 的语言包
+ * promise 随之 reject,`init()` 永远不执行 —— 编辑器 DOM 一片空白。
+ * 控制台上只有 Vditor 自己写死的一句假提示
+ * (`GET .../vditor/dist/js/i18n/zh_CN.js net::ERR_ABORTED 404 (Not Found)`),
+ * 真实原因(TypeError)被它吞掉了。
+ *
+ * 修法:**别让 React 拥有那个装着 `<qiankun-head>` 的容器**。
+ * React 改挂到容器里一个专属的子节点上,`<qiankun-head>` 作为兄弟节点
+ * 原封不动地活着,qiankun 的 `getAppWrapperHeadElement()` 就永远拿得到它。
  */
 import React from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -157,6 +200,59 @@ function removeStyleNodes(nodes: HTMLElement[]): void {
   }
 }
 
+/**
+ * qiankun 把子应用模板的 `<head>` 改名后的标签名。
+ *
+ * 它既是 import-html-entry 内联样式的落脚点,也是 qiankun 动态追加
+ * script/link 时的目标节点(`getAppWrapperHeadElement` 就是找它)。
+ * 一旦它从 wrapper 里消失,qiankun 后续的动态追加会直接抛 TypeError。
+ */
+const QIANKUN_HEAD_TAG_NAME = 'QIANKUN-HEAD';
+
+/**
+ * React 挂载节点在容器里的 id。
+ *
+ * 每个子应用一个,避免多实例互相踩。
+ */
+function mountNodeId(name: string): string {
+  return `__aionui_microapp_mount_${name}__`;
+}
+
+/**
+ * 清空容器,但**保留 `<qiankun-head>`**。
+ *
+ * 其余内容(模板自带的根节点、上一轮挂载的残留)一律清掉 —— 留着的话,
+ * 模板根节点(`height:100%`)会把新的挂载节点顶到可视区之外。
+ *
+ * `<qiankun-head>` 必须留下:它是 qiankun 动态追加资源的落点,删掉之后
+ * 子应用里任何「运行时再加载脚本/样式」的地方都会炸(见文件头坑五)。
+ */
+function clearContainerKeepingQiankunHead(container: HTMLElement): void {
+  // 先取快照:边遍历边删会让索引错位。
+  for (const child of Array.from(container.children)) {
+    if (child.tagName === QIANKUN_HEAD_TAG_NAME) continue;
+    container.removeChild(child);
+  }
+}
+
+/**
+ * 在容器里造一个专供 React 用的挂载节点。
+ *
+ * React 挂在这里而不是挂在容器本身,容器里的 `<qiankun-head>` 就能活下来
+ * (React 首次提交会清空自己那个容器)。
+ *
+ * 高度用内联 `height:100%`:这条链是
+ * 「shell 的 `#<name>-container` → qiankun wrapper(`h-full`)→ 挂载节点」,
+ * 全是百分比高度,内联样式不依赖 UnoCSS 扫描到这段 imperative 代码。
+ */
+function createMountNode(container: HTMLElement, name: string): HTMLElement {
+  const node = document.createElement('div');
+  node.id = mountNodeId(name);
+  node.style.height = '100%';
+  container.appendChild(node);
+  return node;
+}
+
 export interface MicroAppRendererOptions<TContext> {
   /** 子应用名,用于错误信息,如 `'notes'`。 */
   name: string;
@@ -226,7 +322,21 @@ export function createMicroAppRenderer<TContext = undefined>(
       const context = options.createContext ? options.createContext(props) : (undefined as TContext);
       options.onContextCreated?.(context, props);
 
-      rootInstance = createRoot(container);
+      /*
+       * React 挂到容器里的**子节点**上,而不是容器本身。
+       *
+       * 容器(qiankun wrapper)里住着 `<qiankun-head>` —— qiankun 动态追加
+       * script/link 时的落点。React 挂到容器上会在首次提交时
+       * `textContent = ''` 把它一起抹掉,之后子应用里任何运行时加载资源的
+       * 地方都会抛 `Cannot read properties of null (reading 'contains')`,
+       * 表现为「编辑器一片空白」(见文件头坑五)。
+       *
+       * 挂到子节点上,`<qiankun-head>` 就作为兄弟节点原封不动地活着。
+       */
+      clearContainerKeepingQiankunHead(container);
+      const mountNode = createMountNode(container, options.name);
+
+      rootInstance = createRoot(mountNode);
       rootInstance.render(options.renderApp(props, context));
     },
 
@@ -236,10 +346,11 @@ export function createMicroAppRenderer<TContext = undefined>(
         rootInstance = null;
       }
       options.onContextCleared?.(props);
-      // 只清 qiankun 自己建的 wrapper 内容;standalone 的容器由 Vite HMR 复用,
-      // 这里顺手清空以免下次 mount 看到旧 DOM。
+      // 清掉容器里的内容,但**保留 `<qiankun-head>`** —— 它是 qiankun 动态追加
+      // 资源的落点,删了会让子应用 remount 时的动态加载再次炸掉。
+      // standalone 的容器由 Vite HMR 复用,这里顺手清空以免下次 mount 看到旧 DOM。
       const container = resolveMountContainer(props.container);
-      if (container) container.innerHTML = '';
+      if (container) clearContainerKeepingQiankunHead(container);
       // 样式也一并带走:子应用已经不在了,它的全局类名(UnoCSS 工具类之类)
       // 不该继续影响 shell 的其它页面。重新挂载时会重新搬进来。
       removeStyleNodes(hoistedStyleNodes);

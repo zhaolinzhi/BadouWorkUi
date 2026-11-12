@@ -13,6 +13,40 @@ import { getEventBus } from '../services/event-bus';
 import { resolveBaseApi } from '../services/micro-apps';
 import type { MicroAppProps } from '../types';
 
+/** 把任意异常压成一行可读文本(控制台输出用)。 */
+function toErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'string') return err;
+  try {
+    return JSON.stringify(err);
+  } catch {
+    return String(err);
+  }
+}
+
+/** 把任意异常统一成 Error(状态上报用,保证外层拿得到 message)。 */
+function toError(err: unknown): Error {
+  return err instanceof Error ? err : new Error(toErrorMessage(err));
+}
+
+/**
+ * 子应用挂载状态。
+ *
+ * `loading` — 正在加载 / 挂载(此时容器还是空的,界面上是白屏);
+ * `mounted` — 挂载完成,容器里已经有子应用内容;
+ * `failed`  — 加载或挂载失败,容器永远不会有内容。
+ */
+export type MicroAppMountState = 'loading' | 'mounted' | 'failed';
+
+/**
+ * mountPromise resolve 之后再多等这么久才判定「挂载完成」。
+ *
+ * 子应用的 mount 里一般是 `createRoot(container).render(...)`,React 的首次
+ * 提交是异步的 —— mountPromise resolve 时内容还没画出来。立刻撤掉 loading
+ * 会闪一下空白,等一小段时间让内容先落地。
+ */
+const MOUNT_SETTLE_DELAY_MS = 120;
+
 export interface MicroAppHostProps {
   name: string;
   entry: string;
@@ -20,15 +54,39 @@ export interface MicroAppHostProps {
   activeRule: string;
   /** 显式覆盖。留空则从 shell 的 React Context 快照当前用户态 / 主题 / 语言。 */
   props?: Partial<MicroAppProps>;
+  /**
+   * 挂载状态回调,供外层显示 loading / 错误遮罩。
+   *
+   * 刻意**不进 useEffect 依赖**:调用方通常传内联箭头函数,进依赖会导致
+   * 每次父组件渲染都重挂子应用(丢掉子应用内部状态)。这里用 ref 转发最新值。
+   */
+  onMountStateChange?: (state: MicroAppMountState, error?: Error) => void;
 }
 
 /**
  * 真正驱动 qiankun loadMicroApp 的组件。
  * MicroAppPlaceholder 渲染容器节点后，MicroAppHost 加载子应用。
  */
-export const MicroAppHost: React.FC<MicroAppHostProps> = ({ name, entry, container, activeRule, props }) => {
+export const MicroAppHost: React.FC<MicroAppHostProps> = ({
+  name,
+  entry,
+  container,
+  activeRule,
+  props,
+  onMountStateChange,
+}) => {
   const microAppRef = useRef<MicroApp | null>(null);
   const navigate = useNavigate();
+
+  /*
+   * 状态回调走 ref 转发,而不是直接进 useEffect 依赖:
+   * 调用方传的是内联箭头函数,进依赖会让每次父组件渲染都重挂子应用。
+   * 这个 effect 不带依赖,每次渲染后把最新回调写进 ref。
+   */
+  const onMountStateChangeRef = useRef(onMountStateChange);
+  useEffect(() => {
+    onMountStateChangeRef.current = onMountStateChange;
+  });
 
   /*
    * 直接读裸 Context 而不是 useAuth() / useThemeContext():后两者在缺少
@@ -91,8 +149,18 @@ export const MicroAppHost: React.FC<MicroAppHostProps> = ({ name, entry, contain
 
   useEffect(() => {
     let cancelled = false;
+    let mountedTimer: ReturnType<typeof setTimeout> | undefined;
     const snapshot = snapshotRef.current;
     const bus = getEventBus();
+    /** 把挂载状态报给外层(loading 覆盖层 / 失败提示)。卸载后不再上报。 */
+    const report = (state: MicroAppMountState, error?: Error) => {
+      if (cancelled) return;
+      const notify = onMountStateChangeRef.current;
+      if (!notify) return;
+      // 没有错误时只传状态:调用方按参数个数断言时不会因为多一个 undefined 而失配。
+      if (error) notify(state, error);
+      else notify(state);
+    };
     const microAppProps: MicroAppProps = {
       token: token ?? snapshot?.token ?? '',
       userInfo: userInfo ?? snapshot?.userInfo ?? { id: '', username: '', permissions: [], tenantId: '' },
@@ -118,6 +186,8 @@ export const MicroAppHost: React.FC<MicroAppHostProps> = ({ name, entry, contain
     };
 
     try {
+      report('loading');
+
       const app = loadMicroApp(
         {
           name,
@@ -132,13 +202,54 @@ export const MicroAppHost: React.FC<MicroAppHostProps> = ({ name, entry, contain
         return;
       }
       microAppRef.current = app;
+
+      /*
+       * 子应用加载/挂载失败全是**异步**的:`loadMicroApp` 本身不抛,entry 拉不到、
+       * 生命周期超时都发生在它返回之后。而 qiankun 这条链路上 mount 超时默认
+       * `dieOnTimeout: false` —— 失败只是让容器一直空着,界面上就是一个白屏,
+       * 控制台除了 single-spa 的超时警告之外没有任何线索(警告里只有
+       * "minified message #31" 这种编号,查不到是哪一步断的)。
+       *
+       * 这里把两段 promise 的失败原因都打出来:白屏时能直接看出是「entry 拉不到」
+       * 还是「挂载超时」,以及是哪个应用、entry 指向哪里。
+       *
+       * 同时把状态报给外层:挂载期间容器是空的(只有 qiankun 的空 wrapper),
+       * 不给反馈就是白屏;挂载完成后才把 loading 收掉。
+       */
+      app.loadPromise?.catch((err: unknown) => {
+        console.error(`[MicroAppHost] "${name}" 加载失败(entry: ${entry}):`, toErrorMessage(err));
+        report('failed', toError(err));
+      });
+      app.mountPromise?.then(
+        () => {
+          /*
+           * 子应用的 `mount` 里通常是 `createRoot(container).render(...)`:
+           * React 的首次提交是**异步**的,mountPromise resolve 时容器里可能
+           * 还没画出内容。立刻撤掉 loading 会闪一下空白,所以多等一小段,
+           * 让子应用先把内容画出来。
+           */
+          mountedTimer = setTimeout(() => {
+            mountedTimer = undefined;
+            report('mounted');
+          }, MOUNT_SETTLE_DELAY_MS);
+        },
+        (err: unknown) => {
+          console.error(`[MicroAppHost] "${name}" 挂载失败:`, toErrorMessage(err));
+          report('failed', toError(err));
+        }
+      );
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       console.error(`[MicroAppHost] failed to load "${name}":`, message);
+      report('failed', toError(err));
     }
 
     return () => {
       cancelled = true;
+      if (mountedTimer !== undefined) {
+        clearTimeout(mountedTimer);
+        mountedTimer = undefined;
+      }
       if (microAppRef.current) {
         try {
           void microAppRef.current.unmount();
