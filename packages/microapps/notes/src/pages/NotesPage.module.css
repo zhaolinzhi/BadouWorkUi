@@ -26,6 +26,13 @@
 
 .editorContainer :global(.vditor) {
   /*
+   * 去掉 Vditor 自带的外框(`border: 1px solid var(--border-color)` +
+   * `border-radius: 3px`):设计稿的笔记编辑区是**无框**的,只有工具栏下方
+   * 一条 1px 分隔线。这圈自带边框会让整个编辑器看起来像一张卡片。
+   */
+  border: none;
+  border-radius: 0;
+  /*
    * `position: relative` 把下拉面板(标题/更多)的**包含块**上移到 `.vditor`。
    *
    * 为什么要上移:面板是绝对定位的,默认包含块是工具栏项
