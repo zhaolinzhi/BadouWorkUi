@@ -42,6 +42,7 @@ export interface NotebookListHook {
   deleteNote(id: string): Promise<void>;
   toggleNoteStar(id: string): Promise<boolean>;
   setNoteStar(id: string, star: boolean): Promise<void>;
+  moveNoteToNotebook(id: string, notebookId: string): Promise<void>;
 }
 
 export function useNotebookList(): NotebookListHook {
@@ -211,6 +212,22 @@ export function useNotebookList(): NotebookListHook {
     [api.notes]
   );
 
+  /**
+   * 把笔记挪到另一个笔记本(右键菜单「移动到笔记本」)。
+   *
+   * `PUT /api/notes/{id}` 的 `notebook_id` 是三态:省略=保持、null=清空归属、
+   * 字符串=设为该 id。这里只传 id,其余字段(标题 / 正文)不动。
+   *
+   * 后端返回的 note 不带正文,合并时保留本地已加载的正文,免得编辑器内容被清空。
+   */
+  const moveNoteToNotebook = useCallback(
+    async (id: string, notebookId: string): Promise<void> => {
+      const updated = await api.notes.update(id, { notebook_id: notebookId });
+      setNotes((prev) => prev.map((n) => (n.id === id ? { ...updated, title: n.title, content: n.content } : n)));
+    },
+    [api.notes]
+  );
+
   return {
     notebooks,
     notes,
@@ -229,5 +246,6 @@ export function useNotebookList(): NotebookListHook {
     deleteNote,
     toggleNoteStar,
     setNoteStar,
+    moveNoteToNotebook,
   };
 }

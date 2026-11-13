@@ -20,12 +20,13 @@
  * - 收藏用 `note.star`,筛选「收藏 N」直接数 `star` 为真的条目。
  * - 分类(元信息里的「产品设计」那一段)优先取标签,没有标签时退到笔记本名。
  */
-import { AppIcon, MoreMenu, cx } from '@aionui/ui';
-import { Button, Input } from '@arco-design/web-react';
+import { AppIcon, cx } from '@aionui/ui';
+import { Button, Input, Modal } from '@arco-design/web-react';
 import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { NoteItem, Notebook } from '../api/types';
+import NoteContextMenu from './NoteContextMenu';
 import styles from './NotesListPanel.module.css';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -46,6 +47,10 @@ type NotesListPanelProps = {
   onToggleStar: (id: string) => void;
   onRenameNote: (id: string, title: string) => void;
   onDeleteNote: (id: string) => void;
+  /** 右键菜单「移动到笔记本」:把笔记挪到另一个分组。 */
+  onMoveNoteToNotebook: (id: string, notebookId: string) => void;
+  /** 右键菜单「新建笔记本」:建好分组并把笔记挪进去。 */
+  onCreateNotebookAndMove: (id: string, name: string) => Promise<void>;
 };
 
 const startOfToday = (now: number): number => {
@@ -96,6 +101,8 @@ const NotesListPanel: React.FC<NotesListPanelProps> = ({
   onToggleStar,
   onRenameNote,
   onDeleteNote,
+  onMoveNoteToNotebook,
+  onCreateNotebookAndMove,
 }) => {
   const { t, i18n } = useTranslation();
   const [keyword, setKeyword] = useState('');
@@ -103,6 +110,9 @@ const NotesListPanel: React.FC<NotesListPanelProps> = ({
   const [ascending, setAscending] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftTitle, setDraftTitle] = useState('');
+  /** 右键菜单「新建笔记本」:记住是给哪条笔记建分组。 */
+  const [createNotebookNoteId, setCreateNotebookNoteId] = useState<string | null>(null);
+  const [draftNotebookName, setDraftNotebookName] = useState('');
   const inputRef = useRef<RefInputType | null>(null);
 
   useEffect(() => {
@@ -196,6 +206,25 @@ const NotesListPanel: React.FC<NotesListPanelProps> = ({
     setEditingId(null);
   }, []);
 
+  const startCreateNotebook = useCallback((noteId: string) => {
+    setCreateNotebookNoteId(noteId);
+    setDraftNotebookName('');
+  }, []);
+
+  const cancelCreateNotebook = useCallback(() => {
+    setCreateNotebookNoteId(null);
+    setDraftNotebookName('');
+  }, []);
+
+  const commitCreateNotebook = useCallback(async () => {
+    const noteId = createNotebookNoteId;
+    const name = draftNotebookName.trim();
+    if (!noteId || !name) return;
+    setCreateNotebookNoteId(null);
+    setDraftNotebookName('');
+    await onCreateNotebookAndMove(noteId, name);
+  }, [createNotebookNoteId, draftNotebookName, onCreateNotebookAndMove]);
+
   const renderMeta = (note: NoteItem) => {
     const time = metaTime(note);
     const category = metaCategory(note);
@@ -232,45 +261,46 @@ const NotesListPanel: React.FC<NotesListPanelProps> = ({
       );
     }
     return (
-      <div key={note.id} className={cx(styles.item, isActive && styles.itemActive)}>
-        <Button type='text' aria-current={isActive} onClick={() => onSelectNote(note.id)} className={styles.itemMain}>
-          <span className={styles.itemTitle}>
-            {note.title || t('settings.notesUntitled', { defaultValue: 'Untitled note' })}
-          </span>
-          <span className={styles.itemSummary}>{note.summary ?? ''}</span>
-          {renderMeta(note)}
-        </Button>
-        <MoreMenu
-          className={styles.itemMenu}
-          label={t('settings.notesMoreActions', { defaultValue: 'More actions' })}
-          onClick={(event) => event.stopPropagation()}
-          onSelect={(key) => {
-            if (key === 'star') onToggleStar(note.id);
-            if (key === 'rename') startRename(note);
-            if (key === 'delete') onDeleteNote(note.id);
-          }}
-          items={[
-            {
-              key: 'star',
-              label: note.star
-                ? t('settings.notesUnstar', { defaultValue: 'Remove from favorites' })
-                : t('settings.notesStar', { defaultValue: 'Favorite' }),
-              icon: <AppIcon name='star' size={14} />,
-            },
-            {
-              key: 'rename',
-              label: t('settings.notesRename', { defaultValue: 'Rename' }),
-              icon: <AppIcon name='file-text' size={14} />,
-            },
-            {
-              key: 'delete',
-              label: t('settings.notesDeleteNote', { defaultValue: 'Delete note' }),
-              icon: <AppIcon name='delete' size={14} />,
-              danger: true,
-            },
-          ]}
-        />
-      </div>
+      <NoteContextMenu
+        key={note.id}
+        note={note}
+        notebooks={notebooks}
+        onDelete={() => onDeleteNote(note.id)}
+        onMoveToNotebook={(notebookId) => onMoveNoteToNotebook(note.id, notebookId)}
+        onCreateNotebook={() => startCreateNotebook(note.id)}
+        onToggleStar={() => onToggleStar(note.id)}
+        onRename={() => startRename(note)}
+      >
+        <div className={cx(styles.item, isActive && styles.itemActive)}>
+          <Button
+            type='text'
+            aria-current={isActive}
+            onClick={(event) => {
+              // 点笔记本身只是选中,不能顺手把操作菜单弹出来(菜单的触发器是整行)。
+              event.stopPropagation();
+              onSelectNote(note.id);
+            }}
+            className={styles.itemMain}
+          >
+            <span className={styles.itemTitle}>
+              {note.title || t('settings.notesUntitled', { defaultValue: 'Untitled note' })}
+            </span>
+            <span className={styles.itemSummary}>{note.summary ?? ''}</span>
+            {renderMeta(note)}
+          </Button>
+          {/*
+            行尾「⋯」:和右键是**同一个菜单**。
+            这里不能 `stopPropagation` —— 点击要冒泡到整行的触发器,菜单才会弹出来。
+          */}
+          <Button
+            type='text'
+            size='small'
+            icon={<AppIcon name='more-one' />}
+            aria-label={t('settings.notesMoreActions', { defaultValue: 'More actions' })}
+            className={cx(styles.itemMenu, '!rounded-8px !p-0 !text-t-tertiary hover:!bg-fill-2 hover:!text-t-primary')}
+          />
+        </div>
+      </NoteContextMenu>
     );
   };
 
@@ -363,6 +393,32 @@ const NotesListPanel: React.FC<NotesListPanelProps> = ({
           notes.length
         )}
       </p>
+
+      {/*
+        右键菜单「移动到笔记本 › 新建笔记本」的落地弹窗。
+        弹窗挂在 document.body —— qiankun 容器有 overflow,留在容器里会被裁掉。
+      */}
+      <Modal
+        visible={createNotebookNoteId !== null}
+        title={t('settings.notesCreateNotebook', { defaultValue: 'New notebook' })}
+        okText={t('common.create', { defaultValue: 'Create' })}
+        cancelText={t('common.cancel', { defaultValue: 'Cancel' })}
+        okButtonProps={{ disabled: draftNotebookName.trim().length === 0 }}
+        onOk={() => void commitCreateNotebook()}
+        onCancel={cancelCreateNotebook}
+        getPopupContainer={() => document.body}
+        wrapStyle={{ zIndex: 10000 }}
+        maskStyle={{ zIndex: 9999 }}
+      >
+        <Input
+          autoFocus
+          value={draftNotebookName}
+          onChange={setDraftNotebookName}
+          onPressEnter={() => void commitCreateNotebook()}
+          placeholder={t('settings.notesNotebookPlaceholder', { defaultValue: 'Notebook name' })}
+          data-testid='notes-new-notebook-input'
+        />
+      </Modal>
     </aside>
   );
 };

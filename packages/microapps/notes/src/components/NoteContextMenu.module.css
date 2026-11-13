@@ -1,0 +1,114 @@
+/**
+ * 笔记右键菜单的样式。
+ *
+ * Arco 的 `Menu` 落在 `Dropdown` 里时会被换成 `arco-dropdown-menu` 前缀
+ * (紧凑的 36px 行高),二级菜单则是独立的 `Menu`,行高 40px 且带层级缩进 ——
+ * 两层节奏不一致,这里统一按设计稿的尺寸收口:
+ *   - 菜单项 36px 高、12px 左右内边距;
+ *   - 图标 16px,与文案之间 8px;
+ *   - 二级菜单(笔记本列表)去掉层级缩进,与一级菜单对齐。
+ *
+ * Arco 的下拉菜单有运行时样式,同优先级下会盖掉这里的声明,
+ * 所以关键尺寸都带 `!important`。
+ */
+
+.menu {
+  min-width: 176px;
+  padding: 4px 0;
+  /*
+   * Arco 给下拉菜单封了 200px 的高度上限(超了就出滚动条),而这个菜单是固定
+   * 几项,加上分隔线刚好超一点 —— 放开高度,免得最后一项被切掉。
+   */
+  max-height: none !important;
+}
+
+/* 菜单项: Arco 的行高/内边距按二级菜单(40px + 层级缩进)算,统一收成 36px。 */
+.item {
+  height: 36px !important;
+  padding: 0 12px !important;
+  line-height: 36px !important;
+  text-indent: 0 !important;
+}
+
+/* 二级菜单里的笔记本项: Arco 会按层级加缩进,这里去掉,跟一级菜单左对齐。 */
+.item :global(.arco-menu-indent) {
+  display: none;
+}
+
+/* 禁用项(接口未就绪的菜单项)不参与交互。 */
+.hint {
+  height: 32px !important;
+  padding: 0 12px !important;
+  line-height: 32px !important;
+  cursor: default;
+}
+
+/*
+ * 占位文案:Arco 只给禁用项的**文案**上灰,图标和占位文案都是我们自己的元素,
+ * 得自己上色(颜色写在子元素上,才能压过 Arco 的 `.arco-dropdown-menu-item`)。
+ */
+.hintText {
+  font-size: 12px;
+  color: var(--text-disabled);
+}
+
+/* 一行:左图标 + 文案 + 尾部标记(当前分组的勾)。 */
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
+
+.rowIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 16px;
+  color: var(--text-secondary);
+}
+
+/* 禁用项的图标跟着文案一起变灰。 */
+:global(.arco-dropdown-menu-disabled) .rowIcon {
+  color: var(--text-disabled);
+}
+
+.rowLabel {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowTrailing {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 16px;
+  color: var(--notes-brand);
+}
+
+/*
+ * 分隔线: Arco 的 `Menu` 没有分隔线,拿一个禁用的空项充当。
+ * Arco 给菜单项(含禁用态)写了 `background-color: transparent`,选择器还更具体,
+ * 所以这里必须 `!important` 才能显形。
+ */
+.divider {
+  height: 1px !important;
+  margin: 4px 0 !important;
+  padding: 0 !important;
+  line-height: 0 !important;
+  border-radius: 0;
+  background-color: var(--border-base) !important;
+  pointer-events: none;
+}
+
+/*
+ * 危险项(删除):Arco 的菜单项自带 `color`,选择器比我们这条规则具体,
+ * 所以颜色挂在**子元素**上(`.rowLabel` / `.rowIcon`),压得住 Arco。
+ */
+.danger .rowLabel,
+.danger .rowIcon {
+  color: var(--danger);
+}

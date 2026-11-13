@@ -54,9 +54,11 @@ import { IconApps } from '@icon-park/react';
 | `book-one`            | `BookOne`               |                                                                                                    |
 | `check`               | `Check`                 | 录音列表底部的「已同步」标记                                                                       |
 | `close-small`         | `CloseSmall`            | 录音列表搜索框里的「清除搜索」                                                                     |
+| `copy`                | `Copy`                  | 笔记右键菜单的「创建副本」                                                                         |
 | `delete`              | `Delete`                |                                                                                                    |
 | `download`            | `Download`              |                                                                                                    |
 | `down`                | `Down`                  |                                                                                                    |
+| `extend`              | `Extend`                | 笔记右键菜单的「独立窗口打开」                                                                     |
 | `file-text`           | `FileText`              |                                                                                                    |
 | `folder-open`         | `FolderOpen`            |                                                                                                    |
 | `info`                | `Info`                  |                                                                                                    |

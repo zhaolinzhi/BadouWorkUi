@@ -100,6 +100,27 @@ const NotesPage: React.FC = () => {
 
   const handleDeleteCancel = useCallback(() => setDeleteNoteId(null), []);
 
+  /** 右键菜单「移动到笔记本」—— 把笔记挪到另一个分组。 */
+  const handleMoveNoteToNotebook = useCallback(
+    (id: string, notebookId: string) => {
+      void list.moveNoteToNotebook(id, notebookId);
+    },
+    [list]
+  );
+
+  /** 右键菜单「移动到笔记本 › 新建笔记本」—— 建好分组并把笔记挪进去。 */
+  const handleCreateNotebookAndMove = useCallback(
+    async (id: string, name: string) => {
+      try {
+        const notebook = await list.createNotebook(name);
+        await list.moveNoteToNotebook(id, notebook.id);
+      } catch (error) {
+        console.error('[NotesPage] create notebook and move note failed', error);
+      }
+    },
+    [list]
+  );
+
   return (
     /*
      * 根节点是**列**:最上面是独立运行模式的「演示数据」提示条(被 shell 托管时
@@ -129,6 +150,8 @@ const NotesPage: React.FC = () => {
             onToggleStar={(id) => void list.toggleNoteStar(id)}
             onRenameNote={list.renameNote}
             onDeleteNote={requestDeleteNote}
+            onMoveNoteToNotebook={handleMoveNoteToNotebook}
+            onCreateNotebookAndMove={handleCreateNotebookAndMove}
           />
           <div className='flex min-w-0 flex-1 flex-col'>
             <AppHeader

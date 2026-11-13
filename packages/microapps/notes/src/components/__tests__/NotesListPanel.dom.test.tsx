@@ -97,6 +97,8 @@ const renderPanel = (props: Partial<React.ComponentProps<typeof NotesListPanel>>
       onToggleStar={vi.fn()}
       onRenameNote={vi.fn()}
       onDeleteNote={vi.fn()}
+      onMoveNoteToNotebook={vi.fn()}
+      onCreateNotebookAndMove={vi.fn()}
       {...props}
     />
   );
@@ -162,5 +164,25 @@ describe('笔记列表面板', () => {
     fireEvent.click(screen.getByTestId('notes-create'));
 
     expect(onCreateNote).toHaveBeenCalled();
+  });
+
+  it('行尾「⋯」弹出的就是右键菜单', async () => {
+    renderPanel();
+
+    fireEvent.click(screen.getAllByLabelText('More actions')[0]);
+
+    expect(await screen.findByText('Move to notebook')).toBeTruthy();
+    // 第一条笔记是收藏过的,所以菜单项是「取消收藏」
+    expect(screen.getByText('Remove from favorites')).toBeTruthy();
+    expect(screen.getByText('Rename')).toBeTruthy();
+    expect(screen.getByText('Delete')).toBeTruthy();
+  });
+
+  it('点笔记标题只是选中,不弹菜单', () => {
+    renderPanel();
+
+    fireEvent.click(screen.getByText('竞品体验观察'));
+
+    expect(screen.queryByText('Move to notebook')).toBeNull();
   });
 });
