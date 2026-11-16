@@ -406,7 +406,7 @@ const NotesListPanel: React.FC<NotesListPanelProps> = ({
         onToggleStar={() => onToggleStar(note.id)}
         onRename={() => startRename(note)}
       >
-        <div className={cx(styles.item, isActive && styles.itemActive)}>
+        <div className={cx(styles.item, isActive && styles.itemActive, note.star && styles.itemStarred)}>
           <Button
             type='text'
             aria-current={isActive}
@@ -418,21 +418,11 @@ const NotesListPanel: React.FC<NotesListPanelProps> = ({
             className={styles.itemMain}
           >
             {/*
-              标题行。收藏过的笔记在标题前面挂一颗黄色星星 ——
-              星星只挤在标题行里,摘要 / 元信息那一列不受影响;
-              没收藏的条目不渲染它,标题直接从左边起。
+              标题行。收藏过的笔记,标题前面给星星留出位置 ——
+              星星是绝对定位在行上的独立按钮(见下面的 itemStar),
+              所以这里只挪标题文字,摘要 / 元信息那一列不受影响。
             */}
             <span className={styles.itemTitle}>
-              {note.star && (
-                <span
-                  className={styles.itemStar}
-                  role='img'
-                  aria-label={t('settings.notesFavorited', { defaultValue: 'Favorited' })}
-                  data-testid={`notes-item-star-${note.id}`}
-                >
-                  <AppIcon name='star' size={14} />
-                </span>
-              )}
               <span className={styles.itemTitleText}>
                 {note.title || t('settings.notesUntitled', { defaultValue: 'Untitled note' })}
               </span>
@@ -440,6 +430,27 @@ const NotesListPanel: React.FC<NotesListPanelProps> = ({
             <span className={styles.itemSummary}>{note.summary ?? ''}</span>
             {renderMeta(note)}
           </Button>
+          {/*
+            收藏标记 —— 标题行最左边的黄色星星,点它取消收藏。
+            它是**独立按钮**,不是整行按钮的一部分:整行本身就是个 button,
+            button 里不能再塞 button。点星星只切换收藏,不会顺手把笔记选中。
+            还要 `stopPropagation`:整行的操作菜单监听的是 click,
+            不拦住的话点星星会连菜单一起弹出来。
+          */}
+          {note.star && (
+            <Button
+              type='text'
+              size='mini'
+              icon={<AppIcon name='star' size={14} />}
+              aria-label={t('settings.notesUnstar', { defaultValue: 'Remove from favorites' })}
+              onClick={(event) => {
+                event.stopPropagation();
+                onToggleStar(note.id);
+              }}
+              className={styles.itemStar}
+              data-testid={`notes-item-star-${note.id}`}
+            />
+          )}
           {/*
             行尾「⋯」:和右键是**同一个菜单**。
             这里不能 `stopPropagation` —— 点击要冒泡到整行的触发器,菜单才会弹出来。

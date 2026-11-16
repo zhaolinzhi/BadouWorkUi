@@ -160,14 +160,26 @@ describe('笔记列表面板', () => {
     // 第一条是收藏过的(notes 里的 note-today:star = true)
     const star = screen.getByTestId('notes-item-star-note-today');
     expect(star).toBeTruthy();
-    expect(star.getAttribute('aria-label')).toBe('Favorited');
-
-    // 星星在标题行里 —— 跟标题挤在同一行,摘要 / 元信息那一列不受影响
-    expect(star.parentElement?.textContent).toContain('知识库与笔记协同设计');
+    // 星星是独立按钮 —— 整行本身就是个 button,里面不能再塞 button
+    expect(star.tagName).toBe('BUTTON');
+    expect(star.getAttribute('aria-label')).toBe('Remove from favorites');
 
     // 没收藏的两条没有星星
     expect(screen.queryByTestId('notes-item-star-note-yesterday')).toBeNull();
     expect(screen.queryByTestId('notes-item-star-note-old')).toBeNull();
+  });
+
+  it('点星星只切换收藏,不会顺手把笔记选中', () => {
+    const onToggleStar = vi.fn();
+    const onSelectNote = vi.fn();
+    renderPanel({ onToggleStar, onSelectNote });
+
+    fireEvent.click(screen.getByTestId('notes-item-star-note-today'));
+
+    expect(onToggleStar).toHaveBeenCalledWith('note-today');
+    expect(onSelectNote).not.toHaveBeenCalled();
+    // 也不会顺手把整行的操作菜单弹出来
+    expect(screen.queryByText('Move to group')).toBeNull();
   });
 
   it('底部状态行给出笔记总数', () => {

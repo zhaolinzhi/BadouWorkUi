@@ -244,20 +244,37 @@
 }
 
 /*
- * 收藏标记 —— 标题前面的黄色星星。
+ * 收藏标记 —— 标题行最左边的黄色星星,点它取消收藏。
  *
- * 它只占**标题行**的位置(高度 22px,跟标题文字平齐),
- * 摘要 / 元信息那一列不受它的影响;没收藏的条目根本不渲染它,
- * 标题也就不会被顶开。
+ * 整行本身就是个 button(button 里不能再塞 button),所以星星是**独立按钮**,
+ * 绝对定位在行上:按钮盒子 24×24,里面的星星 14px 居中 ——
+ * 于是星星正好落在标题行(22px 高)的垂直中点上,左边贴着标题文字的起点。
+ *
+ * 标题文字用 padding 给它让位(见 .itemStarred),摘要 / 元信息那一列不受影响;
+ * 没收藏的条目不渲染它,标题直接从左边起。
  */
 .itemStar {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 14px;
-  width: 14px;
-  height: 14px;
-  color: var(--notes-star);
+  /*
+   * `position` 必须带 !important —— Arco 的 `.arco-btn` 自带
+   * `position: relative`,同优先级下会盖掉这里的 `absolute`,
+   * 星星就会掉进 flex 流里、把整行挤窄。
+   */
+  position: absolute !important;
+  top: 9px;
+  left: 7px;
+  width: 24px !important;
+  height: 24px !important;
+  padding: 0 !important;
+  border-radius: 6px !important;
+  background: transparent !important;
+  color: var(--notes-star) !important;
+}
+
+/* 悬停别把星星染成品牌蓝 —— Arco 的 text 按钮悬停会改色。 */
+.itemStar:hover,
+.itemStar:active {
+  background: var(--bg-hover) !important;
+  color: var(--notes-star) !important;
 }
 
 /*
@@ -267,6 +284,11 @@
  */
 .itemStar svg path {
   fill: currentColor;
+}
+
+/* 收藏过的条目:标题文字给星星让出位置(星星 14px + 4px 间距)。 */
+.itemStarred .itemTitleText {
+  padding-left: 18px;
 }
 
 .itemMain:hover {

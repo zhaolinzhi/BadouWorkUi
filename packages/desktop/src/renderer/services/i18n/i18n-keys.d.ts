@@ -2170,7 +2170,6 @@ export type I18nKey =
   | 'settings.notesDeleteNotebookConfirm'
   | 'settings.notesEmpty'
   | 'settings.notesExport'
-  | 'settings.notesFavorited'
   | 'settings.notesFilterAll'
   | 'settings.notesFilterFavorites'
   | 'settings.notesGroupLast7Days'
