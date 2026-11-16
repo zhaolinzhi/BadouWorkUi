@@ -68,6 +68,7 @@ import { IconApps } from '@icon-park/react';
 | `play`                | `Play`                  | 录音列表行左侧的播放方块                                                                           |
 | `plus`                | `Plus`                  |                                                                                                    |
 | `refresh`             | `Refresh`               |                                                                                                    |
+| `right`               | `Right`                 | 笔记「笔记分组」区折叠时的箭头                                                                     |
 | `robot`               | `Robot`                 |                                                                                                    |
 | `search`              | `Search`                | 笔记列表面板的搜索框                                                                               |
 | `star`                | `Star`                  | 笔记的「收藏」标记                                                                                 |

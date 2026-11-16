@@ -146,14 +146,14 @@ const NoteContextMenu: React.FC<NoteContextMenuProps> = ({
         title={
           <MenuRow
             icon={<AppIcon name='folder-open' size={16} />}
-            label={t('settings.notesContextMenuMoveToNotebook', { defaultValue: 'Move to notebook' })}
+            label={t('settings.notesContextMenuMoveToNotebook', { defaultValue: 'Move to group' })}
           />
         }
       >
         <Menu.Item key='createNotebook' className={styles.item}>
           <MenuRow
             icon={<AppIcon name='plus' size={16} />}
-            label={t('settings.notesCreateNotebook', { defaultValue: 'New notebook' })}
+            label={t('settings.notesCreateNotebook', { defaultValue: 'New group' })}
           />
         </Menu.Item>
         {notebooks.length > 0 ? <Menu.Item key='divider-notebooks' disabled className={styles.divider} /> : null}

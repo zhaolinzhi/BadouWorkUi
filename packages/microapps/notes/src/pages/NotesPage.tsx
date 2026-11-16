@@ -108,14 +108,43 @@ const NotesPage: React.FC = () => {
     [list]
   );
 
-  /** 右键菜单「移动到笔记本 › 新建笔记本」—— 建好分组并把笔记挪进去。 */
-  const handleCreateNotebookAndMove = useCallback(
-    async (id: string, name: string) => {
+  /**
+   * 新建分组。
+   *
+   * `moveNoteId` 不为空时(右键菜单「移动到笔记本 › 新建笔记本」),建好把这条
+   * 笔记挪进新分组;分组区的「+」新建出来的是空分组。
+   */
+  const handleCreateNotebook = useCallback(
+    async (name: string, moveNoteId: string | null) => {
       try {
         const notebook = await list.createNotebook(name);
-        await list.moveNoteToNotebook(id, notebook.id);
+        if (moveNoteId) await list.moveNoteToNotebook(moveNoteId, notebook.id);
       } catch (error) {
-        console.error('[NotesPage] create notebook and move note failed', error);
+        console.error('[NotesPage] create notebook failed', error);
+      }
+    },
+    [list]
+  );
+
+  /** 重命名分组。 */
+  const handleRenameNotebook = useCallback(
+    async (id: string, name: string) => {
+      try {
+        await list.renameNotebook(id, name);
+      } catch (error) {
+        console.error('[NotesPage] rename notebook failed', error);
+      }
+    },
+    [list]
+  );
+
+  /** 删除分组 —— 连同组里的笔记一起没了。 */
+  const handleDeleteNotebook = useCallback(
+    async (id: string) => {
+      try {
+        await list.deleteNotebook(id);
+      } catch (error) {
+        console.error('[NotesPage] delete notebook failed', error);
       }
     },
     [list]
@@ -151,7 +180,9 @@ const NotesPage: React.FC = () => {
             onRenameNote={list.renameNote}
             onDeleteNote={requestDeleteNote}
             onMoveNoteToNotebook={handleMoveNoteToNotebook}
-            onCreateNotebookAndMove={handleCreateNotebookAndMove}
+            onCreateNotebook={handleCreateNotebook}
+            onRenameNotebook={handleRenameNotebook}
+            onDeleteNotebook={handleDeleteNotebook}
           />
           <div className='flex min-w-0 flex-1 flex-col'>
             <AppHeader

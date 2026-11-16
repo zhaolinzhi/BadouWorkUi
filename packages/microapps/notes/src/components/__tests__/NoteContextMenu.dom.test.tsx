@@ -68,7 +68,7 @@ const renderMenu = (props: Partial<Props> = {}) =>
 /** 右键笔记条目,等菜单弹出来。 */
 const openContextMenu = async () => {
   fireEvent.contextMenu(screen.getByTestId('note-item'));
-  return screen.findByText('Move to notebook');
+  return screen.findByText('Move to group');
 };
 
 /** 悬停某个二级菜单的标题,等它展开。 */
@@ -79,7 +79,7 @@ const hoverSubmenu = async (title: string) => {
 
 /** 悬停「移动到笔记本」,等二级菜单展开。 */
 const openNotebookSubmenu = async () => {
-  await hoverSubmenu('Move to notebook');
+  await hoverSubmenu('Move to group');
   return screen.findByText('工作笔记');
 };
 
@@ -95,7 +95,7 @@ describe('笔记右键菜单', () => {
     await openContextMenu();
 
     expect(screen.getByText('Add to knowledge base')).toBeTruthy();
-    expect(screen.getByText('Move to notebook')).toBeTruthy();
+    expect(screen.getByText('Move to group')).toBeTruthy();
     expect(screen.getByText('Favorite')).toBeTruthy();
     expect(screen.getByText('Rename')).toBeTruthy();
     expect(screen.getByText('Create a copy')).toBeTruthy();
@@ -130,7 +130,7 @@ describe('笔记右键菜单', () => {
 
     expect(screen.getByText('工作笔记')).toBeTruthy();
     expect(screen.getByText('AI 项目组')).toBeTruthy();
-    expect(screen.getByText('New notebook')).toBeTruthy();
+    expect(screen.getByText('New group')).toBeTruthy();
     // 当前所属的分组带一个勾
     const current = screen.getByText('工作笔记').closest('.arco-dropdown-menu-item');
     expect(current?.querySelector('.i-icon-check')).toBeTruthy();
@@ -174,7 +174,7 @@ describe('笔记右键菜单', () => {
     renderMenu({ onCreateNotebook });
 
     await openNotebookSubmenu();
-    fireEvent.click(screen.getByText('New notebook'));
+    fireEvent.click(screen.getByText('New group'));
 
     expect(onCreateNotebook).toHaveBeenCalled();
   });

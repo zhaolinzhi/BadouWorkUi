@@ -12,6 +12,12 @@
  * 「时间 · 分类」)、底部「N 篇笔记 · 已同步」。**没有笔记本树** ——
  * 新建笔记落到默认笔记本,所以这里不再渲染 notebook 层级的入口。
  *
+ * 列表**下方**另有一块「笔记分组」区(旧版的分类文件夹能力):列出所有笔记本,
+ * 点一行按该分组筛上面的列表,「⋯」里是重命名 / 删除,标题右侧的「+」新建分组。
+ * 分组区的增删改与右键菜单「移动到笔记本」共用同一套后端接口
+ * (notebooks.list/create/update/delete + notes.update 的 notebook_id)。
+ * 标题行兼折叠开关:点标题把分组列表收起来,只留标题这一行。
+ *
  * 数据来源
  * ========
  * - `notes.list()` 不带 notebook_id 时返回全部笔记,正好对应设计稿的扁平列表。
@@ -20,8 +26,8 @@
  * - 收藏用 `note.star`,筛选「收藏 N」直接数 `star` 为真的条目。
  * - 分类(元信息里的「产品设计」那一段)优先取标签,没有标签时退到笔记本名。
  */
-import { AppIcon, cx } from '@aionui/ui';
-import { Button, Input, Modal } from '@arco-design/web-react';
+import { AppIcon, ConfirmModal, IconButton, MoreMenu, cx } from '@aionui/ui';
+import { Button, Input } from '@arco-design/web-react';
 import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -49,8 +55,17 @@ type NotesListPanelProps = {
   onDeleteNote: (id: string) => void;
   /** 右键菜单「移动到笔记本」:把笔记挪到另一个分组。 */
   onMoveNoteToNotebook: (id: string, notebookId: string) => void;
-  /** 右键菜单「新建笔记本」:建好分组并把笔记挪进去。 */
-  onCreateNotebookAndMove: (id: string, name: string) => Promise<void>;
+  /**
+   * 新建分组。
+   *
+   * `moveNoteId` 不为空时,建好把这条笔记挪进新分组 —— 右键菜单
+   * 「移动到笔记本 › 新建笔记本」走的就是这条路径,和分组区的「+」共用一套表单。
+   */
+  onCreateNotebook: (name: string, moveNoteId: string | null) => Promise<void>;
+  /** 重命名分组。 */
+  onRenameNotebook: (id: string, name: string) => Promise<void>;
+  /** 删除分组(连同组里的笔记)。 */
+  onDeleteNotebook: (id: string) => Promise<void>;
 };
 
 const startOfToday = (now: number): number => {
@@ -102,7 +117,9 @@ const NotesListPanel: React.FC<NotesListPanelProps> = ({
   onRenameNote,
   onDeleteNote,
   onMoveNoteToNotebook,
-  onCreateNotebookAndMove,
+  onCreateNotebook,
+  onRenameNotebook,
+  onDeleteNotebook,
 }) => {
   const { t, i18n } = useTranslation();
   const [keyword, setKeyword] = useState('');
@@ -110,10 +127,25 @@ const NotesListPanel: React.FC<NotesListPanelProps> = ({
   const [ascending, setAscending] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftTitle, setDraftTitle] = useState('');
-  /** 右键菜单「新建笔记本」:记住是给哪条笔记建分组。 */
-  const [createNotebookNoteId, setCreateNotebookNoteId] = useState<string | null>(null);
+  /** 分组区:选中的分组 —— 上面的笔记列表按它筛。 */
+  const [activeNotebookId, setActiveNotebookId] = useState<string | null>(null);
+  /** 分组区:标题是不是收起来了(收起 = 只留标题行,给上面的笔记列表让出高度)。 */
+  const [groupsCollapsed, setGroupsCollapsed] = useState(false);
+  /** 分组区:行内新建 / 重命名。 */
+  const [creatingNotebook, setCreatingNotebook] = useState(false);
+  const [renamingNotebookId, setRenamingNotebookId] = useState<string | null>(null);
+  /** 新建分组时,要挪进新分组的笔记(右键菜单「新建笔记本」带来的)。 */
+  const [pendingMoveNoteId, setPendingMoveNoteId] = useState<string | null>(null);
   const [draftNotebookName, setDraftNotebookName] = useState('');
+  /** 待删的分组 —— 走共享层的二次确认弹窗。 */
+  const [deleteNotebookId, setDeleteNotebookId] = useState<string | null>(null);
   const inputRef = useRef<RefInputType | null>(null);
+  const groupInputRef = useRef<RefInputType | null>(null);
+  /**
+   * 行内编辑的提交去重 —— 回车提交后输入框会卸载,别把同一次提交做两遍
+   * (新建两次分组 / 改名两次)。
+   */
+  const groupSubmitRef = useRef(false);
 
   useEffect(() => {
     if (!editingId) return;
@@ -124,6 +156,17 @@ const NotesListPanel: React.FC<NotesListPanelProps> = ({
     }, 0);
     return () => window.clearTimeout(handle);
   }, [editingId]);
+
+  /** 分组区的新建 / 重命名输入框:出现后自动聚焦并全选。 */
+  useEffect(() => {
+    if (!creatingNotebook && !renamingNotebookId) return;
+    const handle = window.setTimeout(() => {
+      const dom = groupInputRef.current?.dom as HTMLInputElement | undefined;
+      groupInputRef.current?.focus();
+      dom?.select();
+    }, 0);
+    return () => window.clearTimeout(handle);
+  }, [creatingNotebook, renamingNotebookId]);
 
   const notebookNames = useMemo(() => {
     const map = new Map<string, string>();
@@ -138,10 +181,22 @@ const NotesListPanel: React.FC<NotesListPanelProps> = ({
     const query = keyword.trim().toLowerCase();
     return notes.filter((note) => {
       if (filter === 'favorites' && !note.star) return false;
+      // 分组区选中的分组:列表只留这一组(没选就全留)。
+      if (activeNotebookId !== null && note.notebookId !== activeNotebookId) return false;
       if (!query) return true;
       return [note.title, note.summary ?? '', note.content ?? ''].some((field) => field.toLowerCase().includes(query));
     });
-  }, [notes, keyword, filter]);
+  }, [notes, keyword, filter, activeNotebookId]);
+
+  /** 每个分组里的笔记数 —— 分组行右侧的计数。 */
+  const noteCountByNotebook = useMemo(() => {
+    const counts = new Map<string, number>();
+    notes.forEach((note) => {
+      if (!note.notebookId) return;
+      counts.set(note.notebookId, (counts.get(note.notebookId) ?? 0) + 1);
+    });
+    return counts;
+  }, [notes]);
 
   const groups = useMemo(() => {
     const now = Date.now();
@@ -206,24 +261,104 @@ const NotesListPanel: React.FC<NotesListPanelProps> = ({
     setEditingId(null);
   }, []);
 
-  const startCreateNotebook = useCallback((noteId: string) => {
-    setCreateNotebookNoteId(noteId);
+  /*
+   * 分组区(旧版的分类文件夹)
+   * ========================
+   * 新建 / 重命名都是**行内输入**:输入框直接出现在分组区里,回车提交、ESC 取消。
+   * 删除走共享层的二次确认弹窗 —— 分组连同组里的笔记一起没了,得先问一句。
+   */
+
+  /** 开始新建分组。`moveNoteId` 不为空 = 右键菜单「新建笔记本」,建好要把笔记挪进去。 */
+  const startCreateNotebook = useCallback((moveNoteId: string | null) => {
+    groupSubmitRef.current = false;
+    setCreatingNotebook(true);
+    setRenamingNotebookId(null);
+    setPendingMoveNoteId(moveNoteId);
     setDraftNotebookName('');
+    // 分组区收着的时候建分组,得展开 —— 否则建完看不见。
+    setGroupsCollapsed(false);
   }, []);
 
   const cancelCreateNotebook = useCallback(() => {
-    setCreateNotebookNoteId(null);
+    setCreatingNotebook(false);
+    setPendingMoveNoteId(null);
     setDraftNotebookName('');
   }, []);
 
   const commitCreateNotebook = useCallback(async () => {
-    const noteId = createNotebookNoteId;
+    if (groupSubmitRef.current) return;
+    groupSubmitRef.current = true;
     const name = draftNotebookName.trim();
-    if (!noteId || !name) return;
-    setCreateNotebookNoteId(null);
+    const moveNoteId = pendingMoveNoteId;
+    setCreatingNotebook(false);
+    setPendingMoveNoteId(null);
     setDraftNotebookName('');
-    await onCreateNotebookAndMove(noteId, name);
-  }, [createNotebookNoteId, draftNotebookName, onCreateNotebookAndMove]);
+    if (!name) return;
+    try {
+      await onCreateNotebook(name, moveNoteId);
+    } catch (error) {
+      console.error('[NotesListPanel] create notebook failed', error);
+    }
+  }, [draftNotebookName, onCreateNotebook, pendingMoveNoteId]);
+
+  const startRenameNotebook = useCallback((id: string, name: string) => {
+    groupSubmitRef.current = false;
+    setRenamingNotebookId(id);
+    setCreatingNotebook(false);
+    setPendingMoveNoteId(null);
+    setDraftNotebookName(name);
+  }, []);
+
+  const cancelRenameNotebook = useCallback(() => {
+    setRenamingNotebookId(null);
+    setDraftNotebookName('');
+  }, []);
+
+  const commitRenameNotebook = useCallback(async () => {
+    if (groupSubmitRef.current) return;
+    groupSubmitRef.current = true;
+    const id = renamingNotebookId;
+    const name = draftNotebookName.trim();
+    setRenamingNotebookId(null);
+    setDraftNotebookName('');
+    if (!id || !name) return;
+    try {
+      await onRenameNotebook(id, name);
+    } catch (error) {
+      console.error('[NotesListPanel] rename notebook failed', error);
+    }
+  }, [draftNotebookName, onRenameNotebook, renamingNotebookId]);
+
+  const requestDeleteNotebook = useCallback((id: string) => {
+    setDeleteNotebookId(id);
+  }, []);
+
+  const cancelDeleteNotebook = useCallback(() => {
+    setDeleteNotebookId(null);
+  }, []);
+
+  const confirmDeleteNotebook = useCallback(async () => {
+    const id = deleteNotebookId;
+    setDeleteNotebookId(null);
+    if (!id) return;
+    // 正在看的分组被删了 —— 筛选得跟着取消,否则列表会空着。
+    setActiveNotebookId((current) => (current === id ? null : current));
+    try {
+      await onDeleteNotebook(id);
+    } catch (error) {
+      console.error('[NotesListPanel] delete notebook failed', error);
+    }
+  }, [deleteNotebookId, onDeleteNotebook]);
+
+  /** 点分组行:按这个分组筛列表;点已选中的同一个 → 取消筛选。 */
+  const toggleNotebookFilter = useCallback((id: string) => {
+    setActiveNotebookId((current) => (current === id ? null : id));
+  }, []);
+
+  /** 取消分组筛选 —— 分组行上的「✕」和顶部「全部」都走它。 */
+  const clearNotebookFilter = useCallback(() => {
+    setActiveNotebookId(null);
+  }, []);
 
   const renderMeta = (note: NoteItem) => {
     const time = metaTime(note);
@@ -341,9 +476,13 @@ const NotesListPanel: React.FC<NotesListPanelProps> = ({
       <div className={styles.filters}>
         <Button
           type='text'
-          aria-pressed={filter === 'all'}
-          onClick={() => setFilter('all')}
-          className={cx(styles.filter, filter === 'all' && styles.filterActive)}
+          aria-pressed={filter === 'all' && activeNotebookId === null}
+          onClick={() => {
+            // 「全部」= 什么都不筛:收藏筛选和分组筛选一起清掉。
+            setFilter('all');
+            clearNotebookFilter();
+          }}
+          className={cx(styles.filter, filter === 'all' && activeNotebookId === null && styles.filterActive)}
           data-testid='notes-filter-all'
         >
           {withCount(
@@ -387,6 +526,141 @@ const NotesListPanel: React.FC<NotesListPanelProps> = ({
         )}
       </div>
 
+      {/*
+        分组区 —— 笔记列表下方的「分类文件夹」。
+        点一行 = 上面的笔记列表只留这一组;「⋯」里是重命名 / 删除;
+        标题右侧的「+」是新建分组(右键菜单「新建笔记本」也走这一行的输入框)。
+        标题本身是折叠开关:点一下把分组列表收起来,只留这一行标题。
+      */}
+      <section className={styles.groups} aria-label={t('settings.notesGroupsTitle', { defaultValue: 'Note Groups' })}>
+        <div className={styles.groupsHead}>
+          <h3 className={styles.groupsTitle}>
+            <Button
+              type='text'
+              onClick={() => setGroupsCollapsed((collapsed) => !collapsed)}
+              aria-expanded={!groupsCollapsed}
+              className={styles.groupsToggle}
+              data-testid='notes-groups-toggle'
+            >
+              <AppIcon name={groupsCollapsed ? 'right' : 'down'} size={12} className={styles.groupsChevron} />
+              <span>{t('settings.notesGroupsTitle', { defaultValue: 'Note Groups' })}</span>
+            </Button>
+          </h3>
+          <IconButton
+            icon={<AppIcon name='plus' size={14} />}
+            label={t('settings.notesCreateNotebook', { defaultValue: 'New group' })}
+            onClick={() => startCreateNotebook(null)}
+            className={styles.groupsCreate}
+            data-testid='notes-create-notebook'
+          />
+        </div>
+
+        {/*
+          折叠动画:外层是 grid,行高在 `0fr` / `1fr` 之间过渡,高度跟着内容平滑变化。
+          内容始终留在 DOM 里 —— 卸载了就量不到高度,动画会变成「啪」的一下;
+          收起时用 `visibility: hidden` 把它从焦点顺序和读屏里摘掉。
+        */}
+        <div
+          className={cx(styles.groupsCollapse, groupsCollapsed && styles.groupsCollapseClosed)}
+          aria-hidden={groupsCollapsed}
+          data-testid='notes-groups-collapse'
+        >
+          <div className={styles.groupsCollapseInner}>
+            {creatingNotebook && (
+              <Input
+                ref={groupInputRef}
+                size='mini'
+                value={draftNotebookName}
+                onChange={setDraftNotebookName}
+                onPressEnter={() => void commitCreateNotebook()}
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape') cancelCreateNotebook();
+                }}
+                placeholder={t('settings.notesNotebookPlaceholder', { defaultValue: 'Group name' })}
+                className={styles.groupInput}
+                data-testid='notes-notebook-name-input'
+              />
+            )}
+
+            {notebooks.length === 0 && !creatingNotebook ? (
+              <p className={styles.groupsEmpty}>{t('settings.notesNoGroups', { defaultValue: 'No groups yet' })}</p>
+            ) : (
+              <div className={styles.groupsList}>
+                {notebooks.map((notebook) => (
+                  <div
+                    key={notebook.id}
+                    className={cx(styles.groupRow, activeNotebookId === notebook.id && styles.groupRowActive)}
+                  >
+                    {renamingNotebookId === notebook.id ? (
+                      <Input
+                        ref={groupInputRef}
+                        size='mini'
+                        value={draftNotebookName}
+                        onChange={setDraftNotebookName}
+                        onPressEnter={() => void commitRenameNotebook()}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Escape') cancelRenameNotebook();
+                        }}
+                        placeholder={t('settings.notesNotebookPlaceholder', { defaultValue: 'Group name' })}
+                        className={styles.groupInput}
+                        data-testid='notes-notebook-rename-input'
+                      />
+                    ) : (
+                      <>
+                        <Button
+                          type='text'
+                          aria-pressed={activeNotebookId === notebook.id}
+                          onClick={() => toggleNotebookFilter(notebook.id)}
+                          className={styles.groupRowMain}
+                          data-testid={`notes-notebook-${notebook.id}`}
+                        >
+                          <AppIcon name='folder-open' size={14} className={styles.groupRowIcon} />
+                          <span className={styles.groupRowName}>{notebook.name}</span>
+                        </Button>
+                        {/*
+                          被选中的分组,名字后面跟一个「✕」——「取消这一组的筛选」的明确入口。
+                          (再点一次分组行也能取消,但那不明显)
+                          悬停整行才显形 —— 平时列表是干净的。
+                        */}
+                        {activeNotebookId === notebook.id && (
+                          <IconButton
+                            icon={<AppIcon name='close-small' size={12} />}
+                            label={t('settings.notesClearNotebookFilter', { defaultValue: 'Clear group filter' })}
+                            onClick={clearNotebookFilter}
+                            className={styles.groupRowClear}
+                            data-testid={`notes-notebook-clear-${notebook.id}`}
+                          />
+                        )}
+                        <span className={styles.groupRowCount} data-testid={`notes-notebook-count-${notebook.id}`}>
+                          {noteCountByNotebook.get(notebook.id) ?? 0}
+                        </span>
+                        <MoreMenu
+                          items={[
+                            { key: 'rename', label: t('settings.notesRename', { defaultValue: 'Rename' }) },
+                            {
+                              key: 'delete',
+                              label: t('settings.notesDeleteNotebook', { defaultValue: 'Delete group' }),
+                              danger: true,
+                            },
+                          ]}
+                          label={t('settings.notesMoreActions', { defaultValue: 'More actions' })}
+                          onSelect={(key) => {
+                            if (key === 'rename') startRenameNotebook(notebook.id, notebook.name);
+                            else requestDeleteNotebook(notebook.id);
+                          }}
+                          className={styles.groupRowMenu}
+                          data-testid={`notes-notebook-menu-${notebook.id}`}
+                        />
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
       <p className={styles.status}>
         {withCount(
           t('settings.notesListStatus', { count: notes.length, defaultValue: '{{count}} notes · Synced' }),
@@ -394,31 +668,19 @@ const NotesListPanel: React.FC<NotesListPanelProps> = ({
         )}
       </p>
 
-      {/*
-        右键菜单「移动到笔记本 › 新建笔记本」的落地弹窗。
-        弹窗挂在 document.body —— qiankun 容器有 overflow,留在容器里会被裁掉。
-      */}
-      <Modal
-        visible={createNotebookNoteId !== null}
-        title={t('settings.notesCreateNotebook', { defaultValue: 'New notebook' })}
-        okText={t('common.create', { defaultValue: 'Create' })}
+      {/* 删分组:连同组里的笔记一起没了,先问一句。 */}
+      <ConfirmModal
+        visible={deleteNotebookId !== null}
+        title={t('settings.notesDeleteNotebook', { defaultValue: 'Delete group' })}
+        description={t('settings.notesDeleteNotebookConfirm', {
+          defaultValue: 'Are you sure you want to delete this group and all its notes?',
+        })}
+        okText={t('common.delete', { defaultValue: 'Delete' })}
         cancelText={t('common.cancel', { defaultValue: 'Cancel' })}
-        okButtonProps={{ disabled: draftNotebookName.trim().length === 0 }}
-        onOk={() => void commitCreateNotebook()}
-        onCancel={cancelCreateNotebook}
-        getPopupContainer={() => document.body}
-        wrapStyle={{ zIndex: 10000 }}
-        maskStyle={{ zIndex: 9999 }}
-      >
-        <Input
-          autoFocus
-          value={draftNotebookName}
-          onChange={setDraftNotebookName}
-          onPressEnter={() => void commitCreateNotebook()}
-          placeholder={t('settings.notesNotebookPlaceholder', { defaultValue: 'Notebook name' })}
-          data-testid='notes-new-notebook-input'
-        />
-      </Modal>
+        danger
+        onCancel={cancelDeleteNotebook}
+        onOk={() => void confirmDeleteNotebook()}
+      />
     </aside>
   );
 };
