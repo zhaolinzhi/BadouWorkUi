@@ -80,7 +80,7 @@ import { IconApps } from '@icon-park/react';
 | `recording`           | `Microphone`            | 录音（产品语义别名）                                                                               |
 | `record`              | `Record`                |                                                                                                    |
 | `microphone`          | `Microphone`            |                                                                                                    |
-| `new-chat`            | `NewChatIcon`           | 定制图标（`svg/new-chat.svg`）：「新会话」按钮；气泡与加号都是 `currentColor`，颜色跟随主题与样式  |
+| `new-chat`            | `NewChatIcon`           | 定制图标（`svg/new-chat.svg`）：「新会话」按钮；气泡描边、加号品牌蓝（`var(--primary)`）           |
 | `nav-task`            | `NavTaskIcon`           | 定制图标（`svg/nav-task.svg`）：侧栏「任务」入口；填充型图标，`fill` 为 `currentColor`             |
 | `nav-workbench`       | `NavWorkbenchIcon`      | 定制图标（`svg/nav-workbench.svg`）：侧栏「工作台」入口；描边型图标，粗细按设计稿比例换算          |
 | `nav-note`            | `NavNoteIcon`           | 定制图标（`svg/nav-note.svg`）：侧栏「笔记」入口；图形在 SVG 内已按设计稿旋转 180°                 |
