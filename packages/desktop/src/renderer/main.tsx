@@ -90,6 +90,7 @@ import { repairAllCronJobTimeZonesOnce } from '@renderer/pages/cron/repairCronJo
 import { bootstrapRendererConfig } from '@renderer/services/bootstrapRenderer';
 
 // Components and utilities
+import AppLoader from './components/layout/AppLoader';
 import BackendStartingView from './components/layout/BackendStartingView';
 import BackendStartupGate from './components/layout/BackendStartupGate';
 import GpuAutoDisableNotice from './components/layout/GpuAutoDisableNotice';
@@ -113,6 +114,7 @@ import {
 } from './components/layout/InstallationIntegrityDialog';
 import { createRuntimeInstallationReconciler } from './services/runtime/runtimeInstallationReconciler';
 import { subscribeToBackendPortChanges } from '@/common/adapter/httpBridge';
+import { BootSplashHandoff } from './utils/ui/bootSplash';
 
 // Patch Korean locale with missing properties from English locale
 const koKRComplete = {
@@ -329,7 +331,10 @@ const Main = () => {
   useEffect(() => subscribeToBackendPortChanges(), []);
 
   if (!ready || !configReady) {
-    return null;
+    // Render a loader rather than `null`: the app is not ready yet, but the
+    // window must not be blank while it waits. A blank window is
+    // indistinguishable from a crash.
+    return <AppLoader fullScreen />;
   }
 
   return (
@@ -482,5 +487,8 @@ root.render(
         <App />
       </AppProviders>
     )}
-  />
+  >
+    {/* Hand the window over from the static boot splash to the React app. */}
+    <BootSplashHandoff />
+  </BackendStartupGate>
 );
