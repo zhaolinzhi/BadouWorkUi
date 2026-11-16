@@ -229,6 +229,7 @@
 
 .itemMain {
   display: flex !important;
+  /* 标题 / 摘要 / 元信息竖着排 */
   flex-direction: column;
   align-items: stretch;
   gap: 6px;
@@ -242,6 +243,32 @@
   text-align: left !important;
 }
 
+/*
+ * 收藏标记 —— 标题前面的黄色星星。
+ *
+ * 它只占**标题行**的位置(高度 22px,跟标题文字平齐),
+ * 摘要 / 元信息那一列不受它的影响;没收藏的条目根本不渲染它,
+ * 标题也就不会被顶开。
+ */
+.itemStar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 14px;
+  width: 14px;
+  height: 14px;
+  color: var(--notes-star);
+}
+
+/*
+ * icon-park 的 Star 在 outline 主题下是描边的,这里要的是**实心**星星。
+ * path 上的 fill="none" 是表现属性,CSS 的 fill 能盖掉它 —— 于是同一枚星星
+ * 变成实心的,形状还是 icon-park 那一份(和右键菜单里的「收藏」一致)。
+ */
+.itemStar svg path {
+  fill: currentColor;
+}
+
 .itemMain:hover {
   background: var(--bg-hover) !important;
 }
@@ -251,12 +278,22 @@
   background: var(--notes-selected-bg) !important;
 }
 
+/* 标题行:可选的星星 + 标题文字 */
 .itemTitle {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 4px;
   height: 22px;
+  min-width: 0;
   font-size: 14px;
   font-weight: 500;
   line-height: 22px;
+}
+
+/* 标题文字自己负责省略号 —— 标题行是 flex,省略得落在文字这一层。 */
+.itemTitleText {
+  flex: 1;
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

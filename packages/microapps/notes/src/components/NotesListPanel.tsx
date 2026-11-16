@@ -417,8 +417,25 @@ const NotesListPanel: React.FC<NotesListPanelProps> = ({
             }}
             className={styles.itemMain}
           >
+            {/*
+              标题行。收藏过的笔记在标题前面挂一颗黄色星星 ——
+              星星只挤在标题行里,摘要 / 元信息那一列不受影响;
+              没收藏的条目不渲染它,标题直接从左边起。
+            */}
             <span className={styles.itemTitle}>
-              {note.title || t('settings.notesUntitled', { defaultValue: 'Untitled note' })}
+              {note.star && (
+                <span
+                  className={styles.itemStar}
+                  role='img'
+                  aria-label={t('settings.notesFavorited', { defaultValue: 'Favorited' })}
+                  data-testid={`notes-item-star-${note.id}`}
+                >
+                  <AppIcon name='star' size={14} />
+                </span>
+              )}
+              <span className={styles.itemTitleText}>
+                {note.title || t('settings.notesUntitled', { defaultValue: 'Untitled note' })}
+              </span>
             </span>
             <span className={styles.itemSummary}>{note.summary ?? ''}</span>
             {renderMeta(note)}
