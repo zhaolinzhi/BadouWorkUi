@@ -32,6 +32,8 @@ import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { NoteItem, Notebook } from '../api/types';
+import type { KnowledgeBaseOption } from '../api/knowledgeBases';
+import type { KnowledgeBaseMenuState } from '../hooks/useKnowledgeBaseOptions';
 import NoteContextMenu from './NoteContextMenu';
 import styles from './NotesListPanel.module.css';
 
@@ -66,6 +68,12 @@ type NotesListPanelProps = {
   onRenameNotebook: (id: string, name: string) => Promise<void>;
   /** 删除分组(连同组里的笔记)。 */
   onDeleteNotebook: (id: string) => Promise<void>;
+  /** 「添加到知识库」下拉里的知识库列表(页级状态,透传给右键菜单)。 */
+  knowledgeBaseMenu?: KnowledgeBaseMenuState;
+  /** 打开右键菜单时拉知识库列表(懒加载,列表没拉过才发请求)。 */
+  onRequestKnowledgeBases?: () => void;
+  /** 右键菜单里选中了一个知识库。 */
+  onAddToKnowledgeBase?: (knowledgeBase: KnowledgeBaseOption) => void;
 };
 
 const startOfToday = (now: number): number => {
@@ -120,6 +128,9 @@ const NotesListPanel: React.FC<NotesListPanelProps> = ({
   onCreateNotebook,
   onRenameNotebook,
   onDeleteNotebook,
+  knowledgeBaseMenu,
+  onRequestKnowledgeBases,
+  onAddToKnowledgeBase,
 }) => {
   const { t, i18n } = useTranslation();
   const [keyword, setKeyword] = useState('');
@@ -405,6 +416,9 @@ const NotesListPanel: React.FC<NotesListPanelProps> = ({
         onCreateNotebook={() => startCreateNotebook(note.id)}
         onToggleStar={() => onToggleStar(note.id)}
         onRename={() => startRename(note)}
+        knowledgeBaseMenu={knowledgeBaseMenu}
+        onRequestKnowledgeBases={onRequestKnowledgeBases}
+        onAddToKnowledgeBase={onAddToKnowledgeBase}
       >
         <div className={cx(styles.item, isActive && styles.itemActive, note.star && styles.itemStarred)}>
           <Button

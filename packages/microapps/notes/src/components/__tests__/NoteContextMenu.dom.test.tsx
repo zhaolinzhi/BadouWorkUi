@@ -7,11 +7,12 @@
 /**
  * 笔记右键菜单的行为测试。
  *
- * 锁四件事:
+ * 锁五件事:
  *   1. 右键笔记条目弹出菜单,菜单项与设计稿一致。
  *   2. 「移动到笔记本」二级菜单列的是**具体的分组名**(笔记本名),当前分组打勾。
  *   3. 菜单项回调正确:删除 / 移动 / 新建笔记本 / 收藏 / 重命名。
- *   4. 接口未就绪的项(添加到知识库 / 创建副本 / 独立窗口打开)是禁用的。
+ *   4. 接口未就绪的项(创建副本 / 独立窗口打开)是禁用的。
+ *   5. 「添加到知识库」二级菜单列的是真实知识库,底下有「加载更多」。
  */
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
@@ -26,6 +27,8 @@ vi.mock('react-i18next', () => ({
 }));
 
 import NoteContextMenu from '../NoteContextMenu';
+import type { KnowledgeBaseOption } from '../../api/knowledgeBases';
+import type { KnowledgeBaseMenuState } from '../../hooks/useKnowledgeBaseOptions';
 import type { NoteItem, Notebook } from '../../api/types';
 
 const now = new Date().toISOString();
@@ -87,6 +90,21 @@ const openNotebookSubmenu = async () => {
 const isDisabled = (label: string): boolean =>
   screen.getByText(label).closest('.arco-dropdown-menu-item')?.className.includes('arco-dropdown-menu-disabled') ??
   false;
+
+const personalKnowledgeBase: KnowledgeBaseOption = { id: 'kb-1', name: '产品文档库', scope: 'personal' };
+const sharedKnowledgeBase: KnowledgeBaseOption = { id: 'kb-2', name: '团队共享库', scope: 'shared' };
+
+/** 造一份「添加到知识库」下拉的列表状态。 */
+const knowledgeBaseMenu = (overrides: Partial<KnowledgeBaseMenuState> = {}): KnowledgeBaseMenuState => ({
+  personalItems: [personalKnowledgeBase],
+  sharedItems: [sharedKnowledgeBase],
+  loading: false,
+  error: null,
+  hasMore: false,
+  loadMore: vi.fn(),
+  ensureLoaded: vi.fn(),
+  ...overrides,
+});
 
 describe('笔记右键菜单', () => {
   it('右键笔记条目弹出菜单,菜单项与设计稿一致', async () => {
@@ -199,5 +217,76 @@ describe('笔记右键菜单', () => {
 
     const empty = await screen.findByText('No knowledge base available');
     expect(empty.closest('.arco-dropdown-menu-item')?.className).toContain('arco-dropdown-menu-disabled');
+  });
+
+  it('列表还在加载时给的是「加载中」', async () => {
+    renderMenu({ knowledgeBaseMenu: knowledgeBaseMenu({ personalItems: [], sharedItems: [], loading: true }) });
+
+    await hoverSubmenu('Add to knowledge base');
+
+    expect(await screen.findByText('Loading…')).toBeTruthy();
+  });
+
+  it('列表加载失败时给的是「加载失败」', async () => {
+    renderMenu({
+      knowledgeBaseMenu: knowledgeBaseMenu({ personalItems: [], sharedItems: [], error: 'network down' }),
+    });
+
+    await hoverSubmenu('Add to knowledge base');
+
+    expect(await screen.findByText('Failed to load')).toBeTruthy();
+  });
+
+  it('菜单打开时请求一次知识库列表', async () => {
+    const onRequestKnowledgeBases = vi.fn();
+    renderMenu({ onRequestKnowledgeBases });
+
+    await openContextMenu();
+
+    expect(onRequestKnowledgeBases).toHaveBeenCalled();
+  });
+
+  it('「添加到知识库」二级菜单按个人 / 共享分组列出知识库', async () => {
+    renderMenu({ knowledgeBaseMenu: knowledgeBaseMenu() });
+
+    await hoverSubmenu('Add to knowledge base');
+
+    expect(await screen.findByText('产品文档库')).toBeTruthy();
+    expect(screen.getByText('团队共享库')).toBeTruthy();
+    expect(screen.getByText('Personal knowledge bases')).toBeTruthy();
+    expect(screen.getByText('Shared knowledge bases')).toBeTruthy();
+  });
+
+  it('点知识库把选择抛给上层', async () => {
+    const onAddToKnowledgeBase = vi.fn();
+    renderMenu({ knowledgeBaseMenu: knowledgeBaseMenu(), onAddToKnowledgeBase });
+
+    await hoverSubmenu('Add to knowledge base');
+    fireEvent.click(await screen.findByText('团队共享库'));
+
+    expect(onAddToKnowledgeBase).toHaveBeenCalledWith(sharedKnowledgeBase);
+  });
+
+  it('还有下一页时给一个「加载更多」,点了调 loadMore', async () => {
+    const loadMore = vi.fn();
+    renderMenu({ knowledgeBaseMenu: knowledgeBaseMenu({ hasMore: true, loadMore }) });
+
+    await hoverSubmenu('Add to knowledge base');
+
+    const button = await screen.findByTestId('notes-kb-load-more');
+    // 刻意不做成菜单项 —— 菜单项点一下菜单就收了,这里要留着让人接着看新条目
+    expect(button.closest('.arco-dropdown-menu-item')).toBeNull();
+
+    fireEvent.click(button);
+    expect(loadMore).toHaveBeenCalled();
+  });
+
+  it('全部加载完了就没有「加载更多」', async () => {
+    renderMenu({ knowledgeBaseMenu: knowledgeBaseMenu({ hasMore: false }) });
+
+    await hoverSubmenu('Add to knowledge base');
+
+    expect(await screen.findByText('产品文档库')).toBeTruthy();
+    expect(screen.queryByTestId('notes-kb-load-more')).toBeNull();
   });
 });

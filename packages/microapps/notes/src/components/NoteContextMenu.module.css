@@ -112,3 +112,52 @@
 .danger .rowIcon {
   color: var(--danger);
 }
+
+/*
+ * 「添加到知识库」二级菜单:知识库一多,Arco 默认 200px 的高度上限只露四五行,
+ * 列表基本没法看 —— 这里放开到 360px。
+ *
+ * 选择器用 `:has(.notes-kb-group)` 限定:`.notes-kb-group` 是这个菜单里才有的
+ * 标记类(不是 CSS Module 的哈希类),shell 里其它下拉菜单不含它,不受影响。
+ */
+:global(.arco-dropdown-menu:has(.notes-kb-group)) {
+  max-height: 360px !important;
+}
+
+/*
+ * 「加载更多」—— 追加式翻页。
+ *
+ * 刻意不做成菜单项:菜单项点一下菜单就收了,而这里点完还得让人接着看新条目。
+ * 所以它是一个普通元素(普通元素不会触发菜单项那条收起逻辑),居中放一个
+ * text 按钮。
+ */
+.loadMore {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 12px 6px;
+  border-top: 1px solid var(--border-base);
+  /*
+   * 粘在弹层底部:「加载更多」在列表末尾,而列表可能很长 —— 不粘住的话用户得
+   * 一路滚到底才找得到它。背景用弹层自己的底色,滚动时条目从底下过去不会透出来。
+   */
+  position: sticky;
+  bottom: 0;
+  background: var(--color-bg-popup);
+}
+
+.loadMoreButton {
+  height: 28px !important;
+  padding: 0 12px !important;
+  border-radius: 6px !important;
+  background: transparent !important;
+  color: var(--notes-brand) !important;
+  font-size: 12px !important;
+  line-height: 28px !important;
+}
+
+.loadMoreButton:hover,
+.loadMoreButton:active {
+  background: var(--bg-hover) !important;
+  color: var(--notes-brand) !important;
+}

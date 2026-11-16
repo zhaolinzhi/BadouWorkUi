@@ -4,13 +4,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Button } from '@arco-design/web-react';
+import { Button, Message } from '@arco-design/web-react';
 import { AppHeader, AppIcon, AsyncBoundary, ConfirmModal, EmptyState } from '@aionui/ui';
 import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../AppContext';
+import { useKnowledgeBaseOptions } from '../hooks/useKnowledgeBaseOptions';
 import { useNotebookList } from '../hooks/useNotebookList';
 import { useNotesEditor } from '../hooks/useNotesEditor';
+import type { KnowledgeBaseOption } from '../api/knowledgeBases';
 import NotesListPanel from '../components/NotesListPanel';
 import NotesHint from '../components/NotesHint';
 import StandaloneMockNotice from '../components/StandaloneMockNotice';
@@ -22,8 +24,14 @@ const NotesPage: React.FC = () => {
   const ctx = useAppContext();
   const [clearModalVisible, setClearModalVisible] = useState(false);
   const [deleteNoteId, setDeleteNoteId] = useState<string | null>(null);
+  // Arco 把 useMessage 的返回方法标成可选(见知识库微应用 useKnowledgeBaseEditor
+  // 里的同一个处理),这里统一当成必选来用。
+  const [messageApi, messageContext] = Message.useMessage({ maxCount: 3 });
+  const message = messageApi as Required<typeof messageApi>;
 
   const list = useNotebookList();
+  // 「添加到知识库」下拉里的知识库列表:页面级状态,菜单只负责渲染。
+  const knowledgeBases = useKnowledgeBaseOptions();
   const editor = useNotesEditor({
     notes: list.notes,
     updateNoteContent: list.updateNoteContent,
@@ -150,6 +158,23 @@ const NotesPage: React.FC = () => {
     [list]
   );
 
+  /**
+   * 右键菜单「添加到知识库 › 某个知识库」。
+   *
+   * 列表是真的(与知识库微应用同一套接口),但「把笔记写进知识库」的接口还没就绪 ——
+   * 先提示一句,别让人以为笔记已经进去了。接口到位后把这里换成真正的写入。
+   */
+  const handleAddToKnowledgeBase = useCallback(
+    (_knowledgeBase: KnowledgeBaseOption) => {
+      message.info(
+        t('settings.notesContextMenuKnowledgeBaseAddNotReady', {
+          defaultValue: '添加到知识库的写入接口还没就绪',
+        })
+      );
+    },
+    [message, t]
+  );
+
   return (
     /*
      * 根节点是**列**:最上面是独立运行模式的「演示数据」提示条(被 shell 托管时
@@ -169,6 +194,7 @@ const NotesPage: React.FC = () => {
     >
       <div className='flex h-full min-h-0 flex-col overflow-hidden bg-transparent'>
         <StandaloneMockNotice />
+        {messageContext}
         <div className='flex min-h-0 flex-1 overflow-hidden'>
           <NotesListPanel
             notes={list.notes}
@@ -183,6 +209,9 @@ const NotesPage: React.FC = () => {
             onCreateNotebook={handleCreateNotebook}
             onRenameNotebook={handleRenameNotebook}
             onDeleteNotebook={handleDeleteNotebook}
+            knowledgeBaseMenu={knowledgeBases}
+            onRequestKnowledgeBases={knowledgeBases.ensureLoaded}
+            onAddToKnowledgeBase={handleAddToKnowledgeBase}
           />
           <div className='flex min-w-0 flex-1 flex-col'>
             <AppHeader
