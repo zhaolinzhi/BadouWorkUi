@@ -148,6 +148,19 @@ export function createStandaloneMockKnowledgeBasePage(params: {
   return { items: all.slice(start, start + params.perPageSize), total: all.length };
 }
 
+/**
+ * 独立运行模式下的「上传文档」—— 没有后端,直接当作成功。
+ *
+ * 只打一行日志(知识库名、文件名、字节数),让人看得出传了什么。
+ */
+export function mockUploadDocumentToKnowledgeBase(params: {
+  knowledgeBaseId: string;
+  fileName: string;
+  bytes: number;
+}): void {
+  console.info('[notes standalone mock] uploadDocument', params);
+}
+
 const now = (): string => new Date().toISOString();
 
 /**

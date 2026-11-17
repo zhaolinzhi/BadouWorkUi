@@ -257,14 +257,14 @@ describe('笔记右键菜单', () => {
     expect(screen.getByText('Shared knowledge bases')).toBeTruthy();
   });
 
-  it('点知识库把选择抛给上层', async () => {
+  it('点知识库把选择抛给上层(连同这条笔记 —— 加入知识库要它的正文)', async () => {
     const onAddToKnowledgeBase = vi.fn();
     renderMenu({ knowledgeBaseMenu: knowledgeBaseMenu(), onAddToKnowledgeBase });
 
     await hoverSubmenu('Add to knowledge base');
     fireEvent.click(await screen.findByText('团队共享库'));
 
-    expect(onAddToKnowledgeBase).toHaveBeenCalledWith(sharedKnowledgeBase);
+    expect(onAddToKnowledgeBase).toHaveBeenCalledWith(sharedKnowledgeBase, note);
   });
 
   it('还有下一页时给一个「加载更多」,点了调 loadMore', async () => {

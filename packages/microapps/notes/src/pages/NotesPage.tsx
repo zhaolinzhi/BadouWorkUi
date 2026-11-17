@@ -12,10 +12,13 @@ import { useAppContext } from '../AppContext';
 import { useKnowledgeBaseOptions } from '../hooks/useKnowledgeBaseOptions';
 import { useNotebookList } from '../hooks/useNotebookList';
 import { useNotesEditor } from '../hooks/useNotesEditor';
-import type { KnowledgeBaseOption } from '../api/knowledgeBases';
+import { uploadDocumentToKnowledgeBase, type KnowledgeBaseOption } from '../api/knowledgeBases';
+import type { NoteItem } from '../api/types';
+import { isStandaloneMockActive, mockUploadDocumentToKnowledgeBase } from '../__qiankun__/standaloneMock';
 import NotesListPanel from '../components/NotesListPanel';
 import StandaloneMockNotice from '../components/StandaloneMockNotice';
 import VditorEditor from '../components/VditorEditor';
+import { resolveNoteMarkdown } from './resolveNoteMarkdown';
 import styles from './NotesPage.module.css';
 
 const NotesPage: React.FC = () => {
@@ -128,18 +131,42 @@ const NotesPage: React.FC = () => {
   /**
    * 右键菜单「添加到知识库 › 某个知识库」。
    *
-   * 列表是真的(与知识库微应用同一套接口),但「把笔记写进知识库」的接口还没就绪 ——
-   * 先提示一句,别让人以为笔记已经进去了。接口到位后把这里换成真正的写入。
+   * 流程:取笔记正文(markdown)→ 当成 .md 文件上传到目标知识库。
+   * 正文本就不在列表接口里,只有 `notes.raw` 这一条通道 —— 见
+   * `resolveNoteMarkdown`。
    */
   const handleAddToKnowledgeBase = useCallback(
-    (_knowledgeBase: KnowledgeBaseOption) => {
-      message.info(
-        t('settings.notesContextMenuKnowledgeBaseAddNotReady', {
-          defaultValue: '添加到知识库的写入接口还没就绪',
-        })
-      );
+    async (knowledgeBase: KnowledgeBaseOption, note: NoteItem) => {
+      try {
+        const markdown = await resolveNoteMarkdown({
+          note,
+          activeNoteId: editor.activeNoteId,
+          activeNote: editor.activeNote,
+          loadNoteContent: list.loadNoteContent,
+        });
+        const fileName = `${(note.title || 'note').replace(/[\\/:*?"<>|]/g, '_')}.md`;
+        if (isStandaloneMockActive()) {
+          // 独立运行模式没有后端 —— 假装上传成功。
+          mockUploadDocumentToKnowledgeBase({
+            knowledgeBaseId: knowledgeBase.id,
+            fileName,
+            bytes: markdown.length,
+          });
+        } else {
+          await uploadDocumentToKnowledgeBase({
+            knowledgeBaseId: knowledgeBase.id,
+            token: ctx.token,
+            fileName,
+            content: markdown,
+          });
+        }
+        message.success(t('settings.notesContextMenuKnowledgeBaseAddSuccess', { defaultValue: '已添加到知识库' }));
+      } catch (error) {
+        console.error('[NotesPage] 加入知识库失败', error);
+        message.error(t('settings.notesContextMenuKnowledgeBaseAddFailed', { defaultValue: '添加到知识库失败' }));
+      }
     },
-    [message, t]
+    [ctx.token, editor, list, message, t]
   );
 
   return (

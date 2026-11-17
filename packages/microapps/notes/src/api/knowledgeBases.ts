@@ -121,6 +121,26 @@ const LIST_PATHS: Record<KnowledgeBaseScope, string> = {
   shared: '/jdbc/common/basecommonlist/listJSON.do?mdCode=share_knowledge_base',
 };
 
+/**
+ * 上传文档到知识库的接口路径。
+ *
+ * 表单字段(`multipart/form-data`):
+ *   - `attach`          文件本体(笔记的 markdown)
+ *   - `knowledgeBaseId` 目标知识库
+ *   - 其余都是平台的默认值:fileType=10 / parseMethod=1 / visualModelCode=''
+ *     / promptWord='' / flgExtractImage=0 / flgContextParsing=0 /
+ *     uploadType='knowledgeBase'
+ */
+const UPLOAD_DOCUMENT_PATH = '/project/aiknowledge/aiknowledgebasesavev2/uploadDocument.do';
+
+/** AIPaaS 的响应信封:成功给 `hasOk: true`(接口文档里写的是 `success`,两边都认)。 */
+type UploadEnvelope = {
+  hasOk?: boolean;
+  success?: boolean;
+  message?: string;
+  tip?: string | null;
+};
+
 /** 拼出某一页的列表地址(分页参数挂在 query 上)。 */
 export function buildKnowledgeBaseListUrl(scope: KnowledgeBaseScope, pageNo: number, perPageSize: number): string {
   const search = new URLSearchParams({
@@ -184,4 +204,74 @@ export async function fetchKnowledgeBasePage(params: {
   const rows = Array.isArray(data?.Rows) ? data.Rows : [];
   const total = typeof data?.Total === 'number' ? data.Total : null;
   return { items: rows.map((row) => mapRow(row, scope)), total };
+}
+
+/**
+ * 把一个文件(笔记的 markdown)上传到指定知识库。
+ *
+ * `POST /project/aiknowledge/aiknowledgebasesavev2/uploadDocument.do`,
+ * 表单字段见 {@link UPLOAD_DOCUMENT_PATH} 的说明 —— 除 `knowledgeBaseId` 与
+ * `attach` 外,其余都是平台默认值。
+ *
+ * 401 → `emitAuthExpired` 回传给 shell 统一登出(与列表同一套出口)。
+ * 业务失败(`hasOk: false` / `success: false`)抛错,消息取平台给的 `message`。
+ */
+export async function uploadDocumentToKnowledgeBase(params: {
+  knowledgeBaseId: string;
+  token: string;
+  /** 上传的文件名(带 `.md` 后缀,平台按后缀认类型)。 */
+  fileName: string;
+  /** 文件内容(笔记的 markdown 正文)。 */
+  content: string;
+  mimeType?: string;
+}): Promise<void> {
+  const { knowledgeBaseId, token, fileName, content, mimeType = 'text/markdown' } = params;
+
+  const form = new FormData();
+  form.append('fileType', '10');
+  form.append('parseMethod', '1');
+  form.append('visualModelCode', '');
+  form.append('promptWord', '');
+  form.append('flgExtractImage', '0');
+  form.append('flgContextParsing', '0');
+  form.append('attach', new Blob([content], { type: mimeType }), fileName);
+  form.append('knowledgeBaseId', knowledgeBaseId);
+  form.append('uploadType', 'knowledgeBase');
+
+  const response = await fetch(`${AIPAAS_BASE_URL}${UPLOAD_DOCUMENT_PATH}`, {
+    method: 'POST',
+    /*
+     * `Content-Type` 不能手写 —— multipart 的 boundary 得让浏览器自己生成。
+     * 鉴权跟列表一样走 `Token` 头(平台不认 `Authorization: Bearer`)。
+     */
+    headers: { Token: token },
+    credentials: 'include',
+    body: form,
+  });
+
+  if (response.status === 401) {
+    emitAuthExpired('notes');
+    throw new Error('HTTP 401');
+  }
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+
+  const text = await response.text();
+  if (text.trim() === '') {
+    // 空 body:平台的全局拦截器在登录态失效时会把响应体抹掉。这里不当成
+    // 登录过期(免得误踢人),当作上传失败处理。
+    throw new Error('empty response');
+  }
+
+  let envelope: UploadEnvelope;
+  try {
+    envelope = JSON.parse(text) as UploadEnvelope;
+  } catch (parseError) {
+    throw new Error(parseError instanceof Error ? parseError.message : 'Invalid JSON response', { cause: parseError });
+  }
+
+  if (envelope?.hasOk === false || envelope?.success === false) {
+    throw new Error(envelope.message ?? envelope.tip ?? '上传失败');
+  }
 }

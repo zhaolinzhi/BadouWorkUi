@@ -72,8 +72,8 @@ type NotesListPanelProps = {
   knowledgeBaseMenu?: KnowledgeBaseMenuState;
   /** 打开右键菜单时拉知识库列表(懒加载,列表没拉过才发请求)。 */
   onRequestKnowledgeBases?: () => void;
-  /** 右键菜单里选中了一个知识库。 */
-  onAddToKnowledgeBase?: (knowledgeBase: KnowledgeBaseOption) => void;
+  /** 右键菜单里选中了一个知识库(连同被操作的那条笔记)。 */
+  onAddToKnowledgeBase?: (knowledgeBase: KnowledgeBaseOption, note: NoteItem) => void;
 };
 
 const startOfToday = (now: number): number => {

@@ -86,8 +86,8 @@ export type NoteContextMenuProps = {
   knowledgeBaseMenu?: KnowledgeBaseMenuState;
   /** 菜单打开时触发:没拉过就拉第一页知识库。 */
   onRequestKnowledgeBases?: () => void;
-  /** 选中一个知识库。 */
-  onAddToKnowledgeBase?: (knowledgeBase: KnowledgeBaseOption) => void;
+  /** 选中一个知识库(连同被操作的那条笔记 —— 上传时要它的正文)。 */
+  onAddToKnowledgeBase?: (knowledgeBase: KnowledgeBaseOption, note: NoteItem) => void;
 };
 
 /** 菜单项的一行:左图标 + 文案 + 可选的尾部标记(勾)。 */
@@ -175,7 +175,8 @@ const NoteContextMenu: React.FC<NoteContextMenuProps> = ({
       if (key.startsWith(KNOWLEDGE_BASE_KEY_PREFIX)) {
         const id = key.slice(KNOWLEDGE_BASE_KEY_PREFIX.length);
         const target = [...personalKnowledgeBases, ...sharedKnowledgeBases].find((item) => item.id === id);
-        if (target) onAddToKnowledgeBase?.(target);
+        // 连同这条笔记一起抛出去 —— 加入知识库要的是它的正文。
+        if (target) onAddToKnowledgeBase?.(target, note);
         return;
       }
       if (!key.startsWith(NOTEBOOK_KEY_PREFIX)) return;
