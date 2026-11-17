@@ -109,7 +109,6 @@
   "notes": "노트",
   "notesPlaceholder": "Markdown으로 작성을 시작하세요...",
   "notesExport": "내보내기",
-  "notesHint": "提示：第一行会自动同步为笔记标题；",
   "notesClear": "지우기",
   "notesClearConfirm": "노트를 지우시겠습니까?",
   "notesClearSuccess": "노트가 지워졌습니다",

@@ -134,7 +134,6 @@
   "notes": "Notizen",
   "notesPlaceholder": "Mit Markdown schreiben...",
   "notesExport": "Exportieren",
-  "notesHint": "提示：第一行会自动同步为笔记标题；",
   "notesClear": "Leeren",
   "notesClearConfirm": "Möchten Sie die Notiz wirklich leeren?",
   "notesClearSuccess": "Notiz geleert",

@@ -109,7 +109,6 @@
   "notes": "Notes",
   "notesPlaceholder": "Start writing in Markdown...",
   "notesExport": "Export",
-  "notesHint": "Tip: The first line auto-syncs as the note title and renders bold + larger.",
   "notesClear": "Clear",
   "notesClearConfirm": "Are you sure you want to clear the note?",
   "notesClearSuccess": "Note cleared",

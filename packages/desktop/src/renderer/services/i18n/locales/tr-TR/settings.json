@@ -109,7 +109,6 @@
   "notes": "Notlar",
   "notesPlaceholder": "Markdown ile yazmaya başlayın...",
   "notesExport": "Dışa Aktar",
-  "notesHint": "提示：第一行会自动同步为笔记标题；",
   "notesClear": "Temizle",
   "notesClearConfirm": "Notu temizlemek istediğinize emin misiniz?",
   "notesClearSuccess": "Not temizlendi",

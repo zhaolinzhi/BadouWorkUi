@@ -2181,7 +2181,6 @@ export type I18nKey =
   | 'settings.notesGroupToday'
   | 'settings.notesGroupYesterday'
   | 'settings.notesGroupsTitle'
-  | 'settings.notesHint'
   | 'settings.notesListStatus'
   | 'settings.notesMore'
   | 'settings.notesMoreActions'

@@ -109,7 +109,6 @@
   "notes": "Notas",
   "notesPlaceholder": "Comece a escrever em Markdown...",
   "notesExport": "Exportar",
-  "notesHint": "提示：第一行会自动同步为笔记标题；",
   "notesClear": "Limpar",
   "notesClearConfirm": "Tem certeza de que deseja limpar a nota?",
   "notesClearSuccess": "Nota limpa",

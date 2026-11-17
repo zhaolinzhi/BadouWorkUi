@@ -1345,7 +1345,6 @@
   "notesDeleteNotebook": "Supprimer le groupe",
   "notesDeleteNotebookConfirm": "Voulez-vous vraiment supprimer ce groupe et toutes ses notes ?",
   "notesExport": "Exporter",
-  "notesHint": "Astuce : la première ligne est synchronisée automatiquement avec le titre de la note, en gras et plus grande.",
   "notesNewNote": "Nouvelle note",
   "notesNoGroups": "Aucun groupe pour le moment",
   "notesNoNotebooksHint": "Créez votre premier groupe pour organiser vos notes.",

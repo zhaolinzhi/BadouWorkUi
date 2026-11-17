@@ -109,7 +109,6 @@
   "notes": "Нотатки",
   "notesPlaceholder": "Почніть писати у Markdown...",
   "notesExport": "Експорт",
-  "notesHint": "提示：第一行会自动同步为笔记标题；",
   "notesClear": "Очистити",
   "notesClearConfirm": "Ви впевнені, що хочете очистити нотатку?",
   "notesClearSuccess": "Нотатку очищено",

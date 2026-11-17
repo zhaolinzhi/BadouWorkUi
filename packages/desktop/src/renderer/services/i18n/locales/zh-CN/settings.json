@@ -109,7 +109,6 @@
   "notes": "笔记",
   "notesPlaceholder": "开始书写 Markdown…",
   "notesExport": "导出",
-  "notesHint": "提示：第一行会自动同步为笔记标题；",
   "notesClear": "清空",
   "notesClearConfirm": "确定要清空当前笔记吗？",
   "notesClearSuccess": "笔记已清空",

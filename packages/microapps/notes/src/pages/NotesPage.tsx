@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Button, Message } from '@arco-design/web-react';
-import { AppHeader, AppIcon, AsyncBoundary, ConfirmModal, EmptyState } from '@aionui/ui';
+import { Message } from '@arco-design/web-react';
+import { AppIcon, AsyncBoundary, ConfirmModal, EmptyState } from '@aionui/ui';
 import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../AppContext';
@@ -14,7 +14,6 @@ import { useNotebookList } from '../hooks/useNotebookList';
 import { useNotesEditor } from '../hooks/useNotesEditor';
 import type { KnowledgeBaseOption } from '../api/knowledgeBases';
 import NotesListPanel from '../components/NotesListPanel';
-import NotesHint from '../components/NotesHint';
 import StandaloneMockNotice from '../components/StandaloneMockNotice';
 import VditorEditor from '../components/VditorEditor';
 import styles from './NotesPage.module.css';
@@ -22,7 +21,6 @@ import styles from './NotesPage.module.css';
 const NotesPage: React.FC = () => {
   const { t } = useTranslation();
   const ctx = useAppContext();
-  const [clearModalVisible, setClearModalVisible] = useState(false);
   const [deleteNoteId, setDeleteNoteId] = useState<string | null>(null);
   // Arco 把 useMessage 的返回方法标成可选(见知识库微应用 useKnowledgeBaseEditor
   // 里的同一个处理),这里统一当成必选来用。
@@ -39,37 +37,6 @@ const NotesPage: React.FC = () => {
     renameNote: list.renameNote,
   });
   const { activeNote } = editor;
-
-  const handleBack = useCallback(() => {
-    ctx.navigate('/guid');
-  }, [ctx]);
-
-  const handleExport = useCallback(() => {
-    if (!activeNote) return;
-    // The list response omits the body — fall back to the lazily loaded content.
-    const blob = new Blob([activeNote.content ?? ''], { type: 'text/markdown;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    const safeTitle = (activeNote.title || 'note').replace(/[\\/:*?"<>|]/g, '_');
-    a.download = `${safeTitle}-${new Date().toISOString().slice(0, 10)}.md`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, [activeNote]);
-
-  const handleClear = useCallback(() => {
-    if (!activeNote) return;
-    setClearModalVisible(true);
-  }, [activeNote]);
-
-  const handleClearConfirm = useCallback(() => {
-    if (activeNote) {
-      void list.updateNoteContent(activeNote.id, '');
-    }
-    setClearModalVisible(false);
-  }, [activeNote, list]);
 
   /**
    * 新建笔记 —— 界面上没有笔记本层级了,笔记统一落到第一个笔记本;
@@ -214,42 +181,6 @@ const NotesPage: React.FC = () => {
             onAddToKnowledgeBase={handleAddToKnowledgeBase}
           />
           <div className='flex min-w-0 flex-1 flex-col'>
-            <AppHeader
-              leading={
-                <Button
-                  type='text'
-                  icon={<AppIcon name='arrow-left' />}
-                  onClick={handleBack}
-                  className='!flex !items-center !gap-4px !rounded-8px !px-6px !text-t-primary'
-                >
-                  {t('common.back', { defaultValue: 'Back' })}
-                </Button>
-              }
-              title={activeNote?.title ?? t('settings.notes', { defaultValue: 'Notes' })}
-              trailing={
-                <>
-                  <Button
-                    icon={<AppIcon name='download' />}
-                    onClick={handleExport}
-                    disabled={!activeNote}
-                    className='!rounded-8px'
-                  >
-                    {t('settings.notesExport', { defaultValue: 'Export' })}
-                  </Button>
-                  <Button
-                    status='danger'
-                    icon={<AppIcon name='delete' />}
-                    onClick={handleClear}
-                    disabled={!activeNote}
-                    className='!rounded-8px'
-                    style={{ backgroundColor: 'rgb(var(--danger-1))' }}
-                  >
-                    {t('settings.notesClear', { defaultValue: 'Clear' })}
-                  </Button>
-                </>
-              }
-            />
-            {activeNote && <NotesHint />}
             <div className={styles.editorContainer}>
               {activeNote ? (
                 <VditorEditor
@@ -272,16 +203,6 @@ const NotesPage: React.FC = () => {
               )}
             </div>
           </div>
-          <ConfirmModal
-            visible={clearModalVisible}
-            title={t('common.confirmDelete', { defaultValue: 'Confirm Delete' })}
-            description={t('settings.notesClearConfirm', { defaultValue: 'Are you sure you want to clear the note?' })}
-            okText={t('settings.notesClear', { defaultValue: 'Clear' })}
-            cancelText={t('common.cancel', { defaultValue: 'Cancel' })}
-            danger
-            onCancel={() => setClearModalVisible(false)}
-            onOk={handleClearConfirm}
-          />
           <ConfirmModal
             visible={deleteNoteId !== null}
             title={t('settings.notesDeleteNote', { defaultValue: 'Delete Note' })}

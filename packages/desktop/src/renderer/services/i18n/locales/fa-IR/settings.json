@@ -109,7 +109,6 @@
   "notes": "یادداشت‌ها",
   "notesPlaceholder": "نوشتن با Markdown را شروع کنید...",
   "notesExport": "برون‌بری",
-  "notesHint": "提示：第一行会自动同步为笔记标题；",
   "notesClear": "پاک کردن",
   "notesClearConfirm": "آیا از پاک کردن یادداشت مطمئن هستید؟",
   "notesClearSuccess": "یادداشت پاک شد",

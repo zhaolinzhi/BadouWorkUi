@@ -109,7 +109,6 @@
   "notes": "筆記",
   "notesPlaceholder": "開始書寫 Markdown…",
   "notesExport": "匯出",
-  "notesHint": "提示：第一行會自動同步為筆記標題；需要加粗請用 **文本**。",
   "notesClear": "清空",
   "notesClearConfirm": "確定要清空當前筆記嗎？",
   "notesClearSuccess": "筆記已清空",
