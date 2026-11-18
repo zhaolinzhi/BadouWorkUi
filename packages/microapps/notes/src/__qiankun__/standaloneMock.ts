@@ -33,6 +33,7 @@ import type {
   NotesBridge,
   UpdateNoteBridgeParams,
 } from './ipc';
+import type { KnowledgeBaseOption, KnowledgeBaseScope } from '../api/knowledgeBases';
 import type { NoteItem, Notebook } from '../api/types';
 
 /** 内存里的假数据。notebooks / notes 一一对应,靠 `notebookId` 关联。 */
@@ -108,6 +109,57 @@ function createSeedData(): MockData {
 const cloneNotebook = (notebook: Notebook): Notebook => ({ ...notebook });
 
 const cloneNote = (note: NoteItem): NoteItem => ({ ...note, tags: [...note.tags] });
+
+// ---------------------------------------------------------------------------
+// 假知识库列表 —— 「添加到知识库」下拉用
+// ---------------------------------------------------------------------------
+
+/**
+ * 独立运行时没有 AIPaaS,「添加到知识库」的下拉会一直空着 —— 补一份内存假数据,
+ * 下拉才有东西可点(也能顺手验「加载更多」)。
+ *
+ * 名字都带「演示」字样,配合页面上那条「独立运行模式」提示条,不会被当成真实知识库。
+ */
+const MOCK_PERSONAL_KNOWLEDGE_BASES: KnowledgeBaseOption[] = [
+  { id: 'kb_mock_personal_1', name: '演示知识库 · 产品文档', scope: 'personal', documentCount: 12 },
+  { id: 'kb_mock_personal_2', name: '演示知识库 · 会议纪要', scope: 'personal', documentCount: 5 },
+  { id: 'kb_mock_personal_3', name: '演示知识库 · 灵感收集', scope: 'personal' },
+];
+
+/** 共享库给 22 条 —— 够触发「加载更多」(每页 20 条)。 */
+const MOCK_SHARED_KNOWLEDGE_BASES: KnowledgeBaseOption[] = Array.from({ length: 22 }, (_unused, index) => ({
+  id: `kb_mock_shared_${index + 1}`,
+  name: `演示共享知识库 ${index + 1}`,
+  scope: 'shared' as const,
+  owner: '演示同事',
+  documentCount: index + 1,
+}));
+
+/**
+ * 取一页假知识库(分页规则与真接口一致:按 `perPageSize` 切页)。
+ */
+export function createStandaloneMockKnowledgeBasePage(params: {
+  scope: KnowledgeBaseScope;
+  pageNo: number;
+  perPageSize: number;
+}): { items: KnowledgeBaseOption[]; total: number | null } {
+  const all = params.scope === 'personal' ? MOCK_PERSONAL_KNOWLEDGE_BASES : MOCK_SHARED_KNOWLEDGE_BASES;
+  const start = (params.pageNo - 1) * params.perPageSize;
+  return { items: all.slice(start, start + params.perPageSize), total: all.length };
+}
+
+/**
+ * 独立运行模式下的「上传文档」—— 没有后端,直接当作成功。
+ *
+ * 只打一行日志(知识库名、文件名、字节数),让人看得出传了什么。
+ */
+export function mockUploadDocumentToKnowledgeBase(params: {
+  knowledgeBaseId: string;
+  fileName: string;
+  bytes: number;
+}): void {
+  console.info('[notes standalone mock] uploadDocument', params);
+}
 
 const now = (): string => new Date().toISOString();
 
