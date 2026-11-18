@@ -16,7 +16,7 @@ type MessageState = {
 const LoginPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const { status, completeExternalLogin } = useAuth();
+  const { status } = useAuth();
 
   const [message, setMessage] = useState<MessageState | null>(null);
   const [loading, setLoading] = useState(false);
@@ -90,23 +90,12 @@ const LoginPage: React.FC = () => {
     });
   }, []);
 
-  // Subscribe to the deep-link callback once on mount so the token arriving
-  // from the OS-routed `aionui://auth/callback` URL triggers login completion.
-  useEffect(() => {
-    let active = true;
-
-    const unsubscribe = ipcBridge.auth.externalLoginCompleted.on((payload) => {
-      if (!active) return;
-      completeExternalLogin(payload.token, { id: payload.user.id, username: payload.user.username });
-      // Navigation to /guid is driven by the `status === 'authenticated'` effect
-      // above once AuthContext flips its state.
-    });
-
-    return () => {
-      active = false;
-      unsubscribe();
-    };
-  }, [completeExternalLogin]);
+  // The deep-link callback is handled by AuthProvider — it is mounted for the
+  // whole app lifetime, so a callback that arrives before this page has
+  // finished loading is not lost, and this page does not have to claim it.
+  //
+  // Navigation to /guid is driven by the `status === 'authenticated'` effect
+  // above once AuthContext flips its state.
 
   const handleStartExternalLogin = useCallback(async () => {
     setLoading(true);

@@ -36,6 +36,14 @@ export type BackendStartupGateProps = {
   renderFailure: (failure: BackendStartupFailureInfo) => ReactNode;
   /** The normal application, shown once the backend is ready. */
   renderApp: () => ReactNode;
+  /**
+   * Rendered alongside whichever view is active.
+   *
+   * Used for the boot-splash hand-off, which must happen whichever way the
+   * gate resolves — the starting view, the failure dialog, and the app are
+   * all "the app has painted".
+   */
+  children?: ReactNode;
 };
 
 /**
@@ -49,7 +57,12 @@ export type BackendStartupGateProps = {
  * The concrete views are injected as render props so this control-flow logic
  * stays free of the heavy App/dialog import graph and remains unit-testable.
  */
-const BackendStartupGate: React.FC<BackendStartupGateProps> = ({ renderStarting, renderFailure, renderApp }) => {
+const BackendStartupGate: React.FC<BackendStartupGateProps> = ({
+  renderStarting,
+  renderFailure,
+  renderApp,
+  children,
+}) => {
   const [state, setState] = useState<BackendStartupFailureInfo | null>(
     () => window.__backendStartupBridge?.getState() ?? window.__backendStartupFailure ?? null
   );
@@ -62,14 +75,29 @@ const BackendStartupGate: React.FC<BackendStartupGateProps> = ({ renderStarting,
   }, []);
 
   if (state?.reason === 'backend_startup_pending_slow') {
-    return <>{renderStarting()}</>;
+    return (
+      <>
+        {renderStarting()}
+        {children}
+      </>
+    );
   }
 
   if (state && shouldShowBackendStartupFailureDialog(state.reason)) {
-    return <>{renderFailure(state)}</>;
+    return (
+      <>
+        {renderFailure(state)}
+        {children}
+      </>
+    );
   }
 
-  return <>{renderApp()}</>;
+  return (
+    <>
+      {renderApp()}
+      {children}
+    </>
+  );
 };
 
 export default BackendStartupGate;

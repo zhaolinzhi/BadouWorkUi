@@ -64,7 +64,7 @@ export const reloadViaViewer = (tabId: string): boolean => {
   return true;
 };
 
-/** Test hook: drop every registration. */
-export const resetTabReloadersForTest = (): void => {
+/** Drop every registration. */
+export const resetTabReloaders = (): void => {
   reloaders.clear();
 };

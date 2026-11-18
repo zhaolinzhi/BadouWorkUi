@@ -25,7 +25,7 @@ import type { MonitorPort } from '@/renderer/pages/conversation/explorer/explore
 import {
   applyMonitorNotification,
   configureExplorerStore,
-  resetExplorerStoreForTest,
+  resetExplorerStore,
   select,
   setExpandedKeys,
 } from '@/renderer/pages/conversation/explorer/explorerStore';
@@ -46,7 +46,7 @@ const makePort = (snapshots: Record<PeKey, Entry[]>): MonitorPort => ({
 });
 
 beforeEach(() => {
-  resetExplorerStoreForTest();
+  resetExplorerStore();
   localStorage.clear();
 });
 afterEach(() => cleanup());

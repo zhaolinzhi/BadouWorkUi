@@ -43,6 +43,7 @@
   "saveFailed": "Kaydetme başarısız",
   "unknownError": "Bilinmeyen hata",
   "sessionExpired": "Oturumunuzun süresi doldu. Lütfen tekrar giriş yapın.",
+  "accountSwitchFailed": "Bu hesabın veri dizinine geçilemedi. Lütfen uygulamayı yeniden başlatıp tekrar deneyin.",
   "confirmDelete": "Silmeyi Onayla",
   "deleteSuccess": "Başarıyla silindi",
   "deleteFailed": "Silme başarısız",

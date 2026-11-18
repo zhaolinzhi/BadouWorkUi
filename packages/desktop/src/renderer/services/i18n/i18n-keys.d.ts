@@ -176,6 +176,7 @@ export type I18nKey =
   | 'codex.thinking.composing'
   | 'codex.thinking.processing'
   | 'common.about'
+  | 'common.accountSwitchFailed'
   | 'common.add'
   | 'common.added'
   | 'common.agentMode'

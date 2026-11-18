@@ -128,20 +128,53 @@ export const subscribe = <Params = unknown, Data = unknown>(
       return;
     }
 
-    Promise.resolve(handler((request as { data?: Params }).data as Params))
-      .then((result) => emit(`subscribe.callback-${name}${request.id}`, result))
+    // `Promise.resolve(handler(...))` does NOT catch a synchronous throw: the
+    // handler runs before the promise exists, so the throw escapes and the
+    // callback is never emitted. Wrap the call so both a synchronous throw
+    // and a rejected promise reach the same failure path.
+    let result: MaybePromise<Data>;
+    try {
+      result = handler((request as { data?: Params }).data as Params);
+    } catch (error) {
+      result = Promise.reject(error);
+    }
+
+    Promise.resolve(result)
+      .then((value) => emit(`subscribe.callback-${name}${request.id}`, value))
       .catch((error: unknown) => {
         console.error(`[bridge] Provider "${name}" failed:`, error);
+        // Report the failure back to the caller. Without this the invokeer's
+        // promise never settles — it waits for a callback that will never
+        // arrive — and anything awaiting it hangs forever. A provider that
+        // throws is a normal failure (a backend that could not start, an
+        // account switch that was cancelled), not a reason to wedge the
+        // caller.
+        emit(`subscribe.callback-${name}${request.id}`, {
+          __bridgeError: { message: error instanceof Error ? error.message : String(error) },
+        });
       });
   });
+
+/**
+ * The envelope a failed provider sends back instead of its result.
+ *
+ * The provider's error cannot cross the wire as-is (it may not be
+ * serializable), so it is wrapped in a plain object the caller can unwrap.
+ */
+type BridgeErrorEnvelope = { __bridgeError?: { message: string } };
 
 export const invoke = <Data = unknown>(name: string, data?: unknown): Promise<Data> => {
   const id = createRequestId(name);
   const callbackName = `subscribe.callback-${name}${id}`;
 
-  return new Promise<Data>((resolve) => {
+  return new Promise<Data>((resolve, reject) => {
     const dispose = on(callbackName, (result) => {
       dispose();
+      const envelope = result as BridgeErrorEnvelope | undefined;
+      if (envelope && typeof envelope === 'object' && envelope.__bridgeError) {
+        reject(new Error(envelope.__bridgeError.message));
+        return;
+      }
       resolve(result as Data);
     });
     emit(`subscribe-${name}`, { id, data });

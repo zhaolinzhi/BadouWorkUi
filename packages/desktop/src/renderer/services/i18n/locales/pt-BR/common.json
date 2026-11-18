@@ -43,6 +43,7 @@
   "saveFailed": "Falha ao salvar",
   "unknownError": "Erro desconhecido",
   "sessionExpired": "Sua sessão expirou. Entre novamente.",
+  "accountSwitchFailed": "Falha ao mudar para o diretório de dados desta conta. Reinicie o aplicativo e tente novamente.",
   "confirmDelete": "Confirmar Exclusão",
   "deleteSuccess": "Excluído com sucesso",
   "deleteFailed": "Falha ao excluir",

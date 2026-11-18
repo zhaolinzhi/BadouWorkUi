@@ -61,7 +61,7 @@ vi.mock('@/common', () => ({
 import ChatConversationIndex from '@/renderer/pages/conversation/index';
 import {
   getCurrentProject,
-  resetCurrentProjectForTest,
+  resetCurrentProjectStore,
 } from '@/renderer/pages/conversation/explorer/currentProjectStore';
 
 const conv = (project_id: string | null): TChatConversation =>
@@ -75,7 +75,7 @@ const renderIndex = () =>
   );
 
 beforeEach(() => {
-  resetCurrentProjectForTest();
+  resetCurrentProjectStore();
   getConversationOrNull.mockReset();
   listChangedCb = null;
 });

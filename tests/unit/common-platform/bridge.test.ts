@@ -104,17 +104,37 @@ describe('local bridge', () => {
     expect(handler).toHaveBeenCalledTimes(1);
   });
 
-  it('logs rejected providers without emitting a success callback', async () => {
-    const { bridge, getIncoming, outbound } = await loadLoopbackBridge();
+  it('settles the invoke promise when the provider throws synchronously', async () => {
+    // A synchronous throw must not wedge the caller either — the provider
+    // handler is invoked inside `Promise.resolve(...)`, but a throw before
+    // that would escape.
+    const { bridge, getIncoming } = await loadLoopbackBridge();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const endpoint = bridge.buildProvider<string, void>('test.throw');
+    endpoint.provider(() => {
+      throw new Error('threw synchronously');
+    });
+
+    const pending = endpoint.invoke();
+    getIncoming()?.emit('subscribe-test.throw', { id: 'request-1', data: undefined });
+
+    await expect(pending).rejects.toThrow('threw synchronously');
+  });
+
+  it('reports a rejected provider to the caller instead of leaving it hanging', async () => {
+    const { bridge, getIncoming } = await loadLoopbackBridge();
     const error = new Error('provider failed');
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    bridge.buildProvider<string, void>('test.failure').provider(() => Promise.reject(error));
+    const endpoint = bridge.buildProvider<string, void>('test.failure');
+    endpoint.provider(() => Promise.reject(error));
 
+    const pending = endpoint.invoke();
     getIncoming()?.emit('subscribe-test.failure', { id: 'request-1', data: undefined });
-    await Promise.resolve();
-    await Promise.resolve();
 
+    // The caller must learn that the provider failed. Silently swallowing it
+    // leaves the invoke promise pending forever, and anything awaiting it
+    // hangs — which is how a failed backend start used to wedge the login.
+    await expect(pending).rejects.toThrow('provider failed');
     expect(console.error).toHaveBeenCalledWith('[bridge] Provider "test.failure" failed:', error);
-    expect(outbound.some(({ name }) => name === 'subscribe.callback-test.failurerequest-1')).toBe(false);
   });
 });

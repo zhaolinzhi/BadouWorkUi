@@ -44,7 +44,7 @@ import './components/workspace/registerWebFsPicker';
 
 // React and core dependencies
 import type { PropsWithChildren } from 'react';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { SWRConfig } from 'swr';
 import type { TFunction } from 'i18next';
@@ -90,6 +90,7 @@ import { repairAllCronJobTimeZonesOnce } from '@renderer/pages/cron/repairCronJo
 import { bootstrapRendererConfig } from '@renderer/services/bootstrapRenderer';
 
 // Components and utilities
+import { AppBootGate } from './components/layout/AppLoader';
 import BackendStartingView from './components/layout/BackendStartingView';
 import BackendStartupGate from './components/layout/BackendStartupGate';
 import GpuAutoDisableNotice from './components/layout/GpuAutoDisableNotice';
@@ -112,7 +113,8 @@ import {
   showInstallationIntegrityModal,
 } from './components/layout/InstallationIntegrityDialog';
 import { createRuntimeInstallationReconciler } from './services/runtime/runtimeInstallationReconciler';
-import { MicroAppBootstrap } from './micro-app/MicroAppBootstrap';
+import { subscribeToBackendPortChanges } from '@/common/adapter/httpBridge';
+import { BootSplashHandoff } from './utils/ui/bootSplash';
 
 // Patch Korean locale with missing properties from English locale
 const koKRComplete = {
@@ -310,38 +312,44 @@ const Config: React.FC<PropsWithChildren> = ({ children }) => {
 
 const Main = () => {
   const { ready } = useAuth();
-  const [configReady, setConfigReady] = useState(false);
 
-  useEffect(() => {
-    if (!ready) return;
-    void bootstrapRendererConfig().finally(() => setConfigReady(true));
-  }, [ready]);
+  // Load the persisted settings, but do NOT gate the first paint on them.
+  // The request goes to the backend, which after an account switch is a
+  // freshly started process still warming up — waiting for it leaves the
+  // window blank for seconds.
+  //
+  // Nothing depends on this gate: i18n initializes synchronously with a
+  // fallback locale and corrects itself when the config lands, and the theme
+  // resolves asynchronously with a 'light' default. Consumers that read the
+  // cache directly re-render when `configService` notifies them, which it
+  // now does after the initial load.
+  const loadRendererSettings = useCallback(() => {
+    void bootstrapRendererConfig();
+  }, []);
 
   useEffect(() => {
     if (!ready) return;
     void repairAllCronJobTimeZonesOnce();
   }, [ready]);
 
-  if (!ready || !configReady) {
-    return null;
-  }
+  // The backend listens on an ephemeral port, so a restart moves it. The
+  // renderer's `window.__backendPort` is frozen by contextBridge and can only
+  // hold the value from preload time, so the bridge keeps its own copy and
+  // follows the port the main process publishes.
+  useEffect(() => subscribeToBackendPortChanges(), []);
 
   return (
-    <Router
-      layout={
-        <ConversationHistoryProvider>
-          <PerfProfiler id='app.layout'>
-            {/* MicroAppBootstrap uses react-router's useNavigate() to drive qiankun
-                child-app navigation, so it MUST be rendered inside <Router> (which
-                is what `layout` becomes after PanelRoute/ProtectedLayout clone it
-                under <HashRouter>). Mounting it earlier — sibling to <Main/> — makes
-                useNavigate throw "may be used only in the context of a <Router>". */}
-            <MicroAppBootstrap />
-            <Layout sider={<Sider />} />
-          </PerfProfiler>
-        </ConversationHistoryProvider>
-      }
-    />
+    <AppBootGate ready={ready} onLoadSettings={loadRendererSettings}>
+      <Router
+        layout={
+          <ConversationHistoryProvider>
+            <PerfProfiler id='app.layout'>
+              <Layout sider={<Sider />} />
+            </PerfProfiler>
+          </ConversationHistoryProvider>
+        }
+      />
+    </AppBootGate>
   );
 };
 
@@ -482,5 +490,8 @@ root.render(
         <App />
       </AppProviders>
     )}
-  />
+  >
+    {/* Hand the window over from the static boot splash to the React app. */}
+    <BootSplashHandoff />
+  </BackendStartupGate>
 );

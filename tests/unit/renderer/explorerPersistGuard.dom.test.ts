@@ -24,7 +24,7 @@ import {
   openProject,
   setExpanded,
   setExpandedKeys,
-  resetExplorerStoreForTest,
+  resetExplorerStore,
 } from '@/renderer/pages/conversation/explorer/explorerStore';
 
 const lsKey = (id: string) => `explorer-ui:${id}`;
@@ -34,7 +34,7 @@ const readExpanded = (id: string): string[] => {
 };
 
 beforeEach(() => {
-  resetExplorerStoreForTest();
+  resetExplorerStore();
   localStorage.clear();
 });
 afterEach(() => localStorage.clear());
