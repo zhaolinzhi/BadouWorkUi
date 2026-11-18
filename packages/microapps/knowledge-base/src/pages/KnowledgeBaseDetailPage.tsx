@@ -10,6 +10,7 @@
  */
 
 import type { KnowledgeBaseRuntime } from './KnowledgeBaseRoutes';
+import DocumentFileIcon, { FILE_FOLDER_ICON } from '../components/kb/DocumentFileIcon';
 import { useKnowledgeBaseDocuments } from '../hooks/useKnowledgeBaseDocuments';
 import { interpolateI18n } from '../utils/knowledgeBaseUtils';
 import KnowledgeBaseAvatar from '../components/KnowledgeBaseAvatar';
@@ -169,7 +170,13 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
       <div className={styles.content}>
         <div className={styles.heading}>
           {knowledgeBase ? (
-            <KnowledgeBaseAvatar knowledgeBase={knowledgeBase} size={80} radius={16} iconScale={0.32} />
+            <KnowledgeBaseAvatar
+              knowledgeBase={knowledgeBase}
+              size={80}
+              radius={16}
+              iconScale={0.32}
+              fallback={<img src={FILE_FOLDER_ICON} alt='' width={48} height={48} />}
+            />
           ) : null}
           <div>
             <h1 className={styles.headingTitle} data-testid='kb-detail-title'>
@@ -250,7 +257,7 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
             {documents.map((doc) => (
               <div key={doc.id} className={styles.row} data-testid={`kb-document-${doc.id}`}>
                 <span className={styles.rowName}>
-                  <AppIcon name='file-text' size={16} />
+                  <DocumentFileIcon name={doc.name} type={doc.type} size={28} className={styles.rowIcon} />
                   <span className={styles.rowNameText}>{doc.name}</span>
                 </span>
                 <span className={styles.rowMeta}>{doc.type}</span>

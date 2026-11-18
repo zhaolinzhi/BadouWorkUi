@@ -238,6 +238,15 @@
   min-width: 0;
 }
 
+/* 文件类型图标 —— 设计稿的 `.kb-file-type-icon>img` 是 28×28。 */
+.rowIcon {
+  display: block;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  object-fit: contain;
+}
+
 .rowNameText {
   overflow: hidden;
   text-overflow: ellipsis;

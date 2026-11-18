@@ -143,6 +143,29 @@ describe('KnowledgeBaseDetailPage', () => {
     expect(row2).not.toContain('12:18:03');
   });
 
+  it('文档行按文件类型展示图标', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        jsonResponse({
+          Total: 2,
+          Rows: [
+            { ...docRow('d1', '设计规范.md'), flgType: 'md' },
+            { ...docRow('d2', '性能报告.docx'), flgType: 'docx' },
+          ],
+        })
+      )
+    );
+
+    renderDetail();
+
+    await waitFor(() => expect(screen.getByTestId('kb-document-d1')).toBeTruthy());
+
+    // flgType 是小写 md / docx → markdown / word 图标
+    expect(screen.getByTestId('doc-icon-markdown')).toBeTruthy();
+    expect(screen.getByTestId('doc-icon-word')).toBeTruthy();
+  });
+
   it('文档行展示创建时间与「更多」按钮', async () => {
     vi.stubGlobal(
       'fetch',

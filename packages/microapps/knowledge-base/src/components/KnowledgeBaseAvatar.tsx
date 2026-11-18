@@ -17,6 +17,13 @@ type KnowledgeBaseAvatarProps = {
   radius?: number;
   /** 默认图标相对 size 的比例。默认 0.5 —— 卡片不受影响；详情页封面用 0.32。 */
   iconScale?: number;
+  /**
+   * 知识库没有自己的图标（既不是图片也不是 emoji）时显示的东西。
+   *
+   * 默认是单色书本图标；详情页的封面传彩色文件夹图标进去
+   * （见 `components/kb/DocumentFileIcon.tsx` 的 `FILE_FOLDER_ICON`）。
+   */
+  fallback?: React.ReactNode;
 };
 
 const KnowledgeBaseAvatar: React.FC<KnowledgeBaseAvatarProps> = ({
@@ -24,6 +31,7 @@ const KnowledgeBaseAvatar: React.FC<KnowledgeBaseAvatarProps> = ({
   size = 32,
   radius = 8,
   iconScale = 0.5,
+  fallback,
 }) => {
   const resolvedIcon = knowledgeBase.icon?.trim();
   const hasEmojiIcon = Boolean(resolvedIcon && isEmoji(resolvedIcon));
@@ -38,7 +46,7 @@ const KnowledgeBaseAvatar: React.FC<KnowledgeBaseAvatarProps> = ({
       ) : hasEmojiIcon ? (
         <span style={{ fontSize: emojiSize, lineHeight: 1 }}>{resolvedIcon}</span>
       ) : (
-        <AppIcon name='book' size={iconSize} />
+        (fallback ?? <AppIcon name='book' size={iconSize} />)
       )}
     </div>
   );
