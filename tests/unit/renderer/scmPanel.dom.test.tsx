@@ -36,10 +36,10 @@ import {
   applyScmNotification,
   configureScmStore,
   getScmInternalsForTest,
-  resetScmStoreForTest,
+  resetScmStore,
 } from '@/renderer/pages/conversation/SourceControl/scmStore';
 import {
-  resetScmUiStoreForTest,
+  resetScmUiStore,
   setSectionCollapsed,
   setSectionHeight,
 } from '@/renderer/pages/conversation/SourceControl/scmUiStore';
@@ -95,8 +95,8 @@ const installPort = (setup: PortSetup): void => {
 };
 
 beforeEach(() => {
-  resetScmStoreForTest();
-  resetScmUiStoreForTest();
+  resetScmStore();
+  resetScmUiStore();
   localStorage.clear();
   diffCalls.length = 0;
   openPreviewMock.mockClear();
@@ -104,8 +104,8 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
-  resetScmStoreForTest();
-  resetScmUiStoreForTest();
+  resetScmStore();
+  resetScmUiStore();
   localStorage.clear();
 });
 

@@ -8,7 +8,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { tokenUsageFromAcpUsage, useAcpMessage } from '@/renderer/pages/conversation/platforms/acp/useAcpMessage';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
-import { resetConversationTurnClockForTests } from '@/renderer/pages/conversation/utils/conversationTurnClock';
+import { resetConversationTurnClock } from '@/renderer/pages/conversation/utils/conversationTurnClock';
 import { resetEnsureConversationRuntimeStateForTests } from '@/renderer/pages/conversation/utils/ensureConversationRuntime';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 
@@ -76,7 +76,7 @@ function deferred<T>() {
 describe('useAcpMessage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    resetConversationTurnClockForTests();
+    resetConversationTurnClock();
     resetEnsureConversationRuntimeStateForTests();
     ensureRuntimeInvokeMock.mockResolvedValue({ recovered: false, config_options: [], runtime: null });
     getSlashCommandsInvokeMock.mockResolvedValue([]);

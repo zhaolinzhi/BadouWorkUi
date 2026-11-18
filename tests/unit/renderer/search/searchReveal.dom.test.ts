@@ -23,7 +23,7 @@ import {
   configureExplorerStore,
   getExplorerSnapshot,
   openProject,
-  resetExplorerStoreForTest,
+  resetExplorerStore,
   reveal,
   select,
 } from '@/renderer/pages/conversation/explorer/explorerStore';
@@ -70,7 +70,7 @@ const PE = 'pe1';
 const roots = [{ pe_id: PE, title: 'app' }];
 
 beforeEach(() => {
-  resetExplorerStoreForTest();
+  resetExplorerStore();
   localStorage.clear();
 });
 

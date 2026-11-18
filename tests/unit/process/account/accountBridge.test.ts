@@ -150,6 +150,50 @@ describe('accountBridge', () => {
     expect(getActiveScope()).toBeNull();
   });
 
+  it('does not cancel an in-flight sign-in when a sign-out arrives at the same time', async () => {
+    // The user clicks logout while the sign-in's backend start is still
+    // waiting for its health check. The sign-out stops the backend, which
+    // kills the child the sign-in just spawned — the sign-in's start then
+    // rejects with "aioncore startup cancelled before health check passed",
+    // and the renderer shows "切换到该账号的数据目录失败，请重启应用后重试。"
+    //
+    // The two operations must be serialized: the sign-out waits for the
+    // sign-in's start to settle, then stops it.
+    let startSettled = false;
+    let resolveStart: (port: number) => void = () => {};
+    startBackend.mockImplementationOnce(async (dataDir: string) => {
+      currentDataDirRef.value = dataDir;
+      await new Promise<number>((resolve) => {
+        resolveStart = resolve;
+      });
+      startSettled = true;
+      return 45678;
+    });
+
+    const signIn = setActiveAccount('u1', 'Alice');
+    await vi.waitFor(() => expect(startBackend).toHaveBeenCalledTimes(1));
+
+    // The sign-in stops the previous backend before starting the new one.
+    // That stop is expected; it is the sign-out's stop that must not land
+    // while the start is in flight.
+    const stopsBeforeSignOut = stopBackend.mock.calls.length;
+
+    // The sign-out arrives while the sign-in's start is still in flight.
+    const signOut = clearActiveAccount();
+
+    // The sign-out must not tear the backend down underneath the in-flight
+    // start — it waits its turn.
+    await Promise.resolve();
+    expect(stopBackend.mock.calls.length).toBe(stopsBeforeSignOut);
+
+    // Let the start settle; the sign-out then stops it.
+    resolveStart(45678);
+    await expect(signIn).resolves.toMatchObject({ restarted: true });
+    await signOut;
+    expect(stopBackend.mock.calls.length).toBe(stopsBeforeSignOut + 1);
+    expect(startSettled).toBe(true);
+  });
+
   it('reports the active account', async () => {
     await setActiveAccount('u1', 'Alice');
 

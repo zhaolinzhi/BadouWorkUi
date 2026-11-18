@@ -32,6 +32,7 @@ export const getConversationTurnStart = (conversationId: string): number | null 
   return turnStartTimes.get(conversationId) ?? null;
 };
 
-export const resetConversationTurnClockForTests = (): void => {
+/** Drop the recorded turn start times. */
+export const resetConversationTurnClock = (): void => {
   turnStartTimes.clear();
 };

@@ -39,8 +39,8 @@ export const subscribeCurrentProject = (listener: () => void): (() => void) => {
 export const useCurrentProject = (): string | null =>
   useSyncExternalStore(subscribeCurrentProject, getCurrentProject, getCurrentProject);
 
-/** Test hook: reset module state. */
-export const resetCurrentProjectForTest = (): void => {
+/** Reset the module state: no current project. */
+export const resetCurrentProjectStore = (): void => {
   currentProjectId = null;
   listeners.clear();
 };

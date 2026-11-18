@@ -38,7 +38,7 @@ import {
   openScmProject,
   refreshAllRepos,
   refreshRepo,
-  resetScmStoreForTest,
+  resetScmStore,
   runScmAction,
   SCM_ERR_CAPABILITY_UNSUPPORTED,
   SCM_ERR_OPERATION_FAILED,
@@ -190,13 +190,13 @@ function makeHarness(): Harness {
 let h: Harness;
 
 beforeEach(() => {
-  resetScmStoreForTest();
+  resetScmStore();
   h = makeHarness();
   configureScmStore(h.port);
 });
 
 afterEach(() => {
-  resetScmStoreForTest();
+  resetScmStore();
 });
 
 describe('openScmProject', () => {
@@ -267,7 +267,7 @@ describe('openScmProject', () => {
   });
 
   it('errors when no port is configured', async () => {
-    resetScmStoreForTest();
+    resetScmStore();
     await openScmProject('p1');
     expect(getScmSnapshot().loadState).toBe('error');
   });
@@ -585,7 +585,7 @@ describe('resource selection + diff', () => {
   });
 
   it('rejects a diff request when no port is configured', async () => {
-    resetScmStoreForTest();
+    resetScmStore();
     await expect(
       fetchScmDiff({
         repository: 'scm:pe1',
@@ -724,7 +724,7 @@ describe('runScmAction', () => {
   });
 
   it('rejects without a port instead of throwing', async () => {
-    resetScmStoreForTest();
+    resetScmStore();
     await expect(runScmAction('stage', 'scm:pe1', [unstagedRow])).resolves.toMatchObject({
       kind: 'rejected',
       retryable: false,

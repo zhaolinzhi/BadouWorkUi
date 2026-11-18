@@ -30,12 +30,50 @@ import { getUserDataRoot } from '@/process/utils/utils';
 import { stopDesktopWebUI } from '@/process/utils/webuiConfig';
 
 /**
+ * Serializes the account operations.
+ *
+ * A sign-in and a sign-out (or two sign-ins) can overlap: the renderer's
+ * deep-link callback fires the login path while the user is signing out, and
+ * the login path's backend start takes seconds to pass its health check.
+ *
+ * The operations must not interleave. The backend manager queues its
+ * `start()` calls but runs `stop()` immediately, so a sign-out that lands
+ * while a sign-in's start is in flight tears the backend down underneath it —
+ * the in-flight start then rejects with "aioncore startup cancelled before
+ * health check passed" and the renderer reports that the account switch
+ * failed, even though the user only asked to sign out.
+ *
+ * The queue never rejects: a failed operation must not poison the ones
+ * behind it.
+ */
+let operationQueue: Promise<unknown> = Promise.resolve();
+
+function enqueue<T>(operation: () => Promise<T>): Promise<T> {
+  const result = operationQueue.then(operation, operation);
+  operationQueue = result.then(
+    (): undefined => undefined,
+    (): undefined => undefined
+  );
+  return result;
+}
+
+/**
  * Sign in as an account.
  *
  * Switches the active data directory and, when the directory changed, stops
  * the running backend and starts a new one against the account's directory.
  */
-export async function setActiveAccount(
+export function setActiveAccount(
+  userId: string,
+  username: string
+): Promise<{
+  backendPort: number;
+  restarted: boolean;
+}> {
+  return enqueue(() => setActiveAccountInternal(userId, username));
+}
+
+async function setActiveAccountInternal(
   userId: string,
   username: string
 ): Promise<{
@@ -91,7 +129,11 @@ export async function setActiveAccount(
  * used, so signing back in as the same account does not need a backend
  * restart.
  */
-export async function clearActiveAccount(): Promise<void> {
+export function clearActiveAccount(): Promise<void> {
+  return enqueue(clearActiveAccountInternal);
+}
+
+async function clearActiveAccountInternal(): Promise<void> {
   await stopDesktopWebUI();
   await stopBackendForAccount();
   clearActiveScope();
@@ -120,6 +162,9 @@ export function initAccountBridge(): void {
 /** Reset module state. Test-only. */
 export function __resetAccountBridgeForTests(): void {
   initialized = false;
+  // A test that leaves an operation pending would otherwise block every
+  // later test behind it.
+  operationQueue = Promise.resolve();
 }
 
 function getRunningBackendPort(): number {

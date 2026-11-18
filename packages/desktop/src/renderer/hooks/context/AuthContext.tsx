@@ -7,6 +7,8 @@ import { ensureKnowledgeServerMcp } from '@/renderer/hooks/mcp/ensureDefaultMcpS
 import { runNewapiPostLogin } from '@/renderer/services/newapi';
 import { ipcBridge } from '@/common';
 import { resetWsForBackendRestart, setBackendPort } from '@/common/adapter/httpBridge';
+import { resetAccountState } from '@/renderer/services/account/resetAccountState';
+import { EXTERNAL_AUTH_STORAGE_KEY } from '@/renderer/services/account/accountStorageKeys';
 
 const LOGOUT_ENDPOINT = `${AIPAAS_BASE_URL}/system/security/logout/logout`;
 
@@ -75,8 +77,6 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-const EXTERNAL_AUTH_STORAGE_KEY = 'external_auth';
-
 function clearAuthCache(): void {
   if (typeof window === 'undefined') return;
   try {
@@ -122,13 +122,81 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
   const tokenExpiredFiredRef = useRef(false);
   const { t } = useTranslation();
 
+  // Whether a session is currently signed in, readable from a callback that
+  // must not re-render when it changes.
+  //
+  // `notifyTokenExpired` needs this: a 401 that arrives after a sign-out is
+  // expected, not a session that expired. It is set where the session
+  // actually changes — the sign-out and the sign-in — rather than derived
+  // from the render state, because the sign-in is applied asynchronously
+  // (the switch is queued) and a caller that asks right after the login was
+  // requested must still see the session as signed in.
+  const signedInRef = useRef(false);
+
+  // Serializes account switches. The deep-link callback can fire twice (the
+  // user retries the SSO, or the OS delivers the URL again), and two
+  // overlapping switches would each reset the renderer's caches — the second
+  // one clearing what the first one just loaded, and the backend restarting
+  // twice in a row.
+  const accountSwitchQueueRef = useRef<Promise<unknown>>(Promise.resolve());
+
+  // The latest `completeExternalLogin`, so the deep-link subscription below
+  // can stay mounted for the app's lifetime without re-subscribing on every
+  // render.
+  const completeExternalLoginRef = useRef<
+    ((token: string, payload: { id: string; username: string }) => Promise<void>) | null
+  >(null);
+
+  // The deep-link callback that carries the login token.
+  //
+  // It is handled here rather than on the login page because this provider
+  // is mounted for the whole app lifetime: the login page is a lazily-loaded
+  // chunk, so a callback that lands while the chunk is still loading would be
+  // emitted into the void — the event is delivered straight through IPC with
+  // no buffering on either side — and the user would sit on the login page
+  // with a valid token and no way forward.
+  //
+  // The provider also claims a token that arrived before it subscribed, which
+  // is the same race from the other side. Both routes deliver the SAME
+  // payload, so the token is deduped here: applying it twice would switch the
+  // account twice, and the second switch would race a sign-out that happened
+  // in between — the backend start would be cancelled and the user would be
+  // told the account switch failed.
+  useEffect(() => {
+    const appliedTokens = new Set<string>();
+
+    const handle = (payload: { token: string; user: { id: string; username: string } }) => {
+      if (appliedTokens.has(payload.token)) return;
+      appliedTokens.add(payload.token);
+      void completeExternalLoginRef.current?.(payload.token, {
+        id: payload.user.id,
+        username: payload.user.username,
+      });
+    };
+
+    const unsubscribe = ipcBridge.auth.externalLoginCompleted.on(handle);
+
+    void ipcBridge.auth.claimPending
+      .invoke()
+      .then((pending) => {
+        if (pending) handle(pending);
+      })
+      .catch(() => {
+        /* no pending token — the event above is the normal path */
+      });
+
+    return unsubscribe;
+  }, []);
+
   const refresh = useCallback(async () => {
     setStatus('checking');
     const stored = readExternalAuth();
     if (stored) {
+      signedInRef.current = true;
       setUser({ id: stored.userId, username: stored.username, token: stored.token });
       setStatus('authenticated');
     } else {
+      signedInRef.current = false;
       setUser(null);
       setStatus('unauthenticated');
     }
@@ -139,7 +207,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     void refresh();
   }, [refresh]);
 
-  const completeExternalLogin = useCallback(
+  const performExternalLogin = useCallback(
     async (token: string, payload: { id: string; username: string }) => {
       const record: ExternalAuthPayload = {
         token,
@@ -154,7 +222,6 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       setUser({ id: payload.id, username: payload.username, token });
       setStatus('authenticated');
       setReady(true);
-      tokenExpiredFiredRef.current = false;
 
       // Switch the backend to this account's data directory before anything
       // talks to it — the backend may have been serving another account's
@@ -169,28 +236,84 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
         // account's database.
         Message.error(t('common.accountSwitchFailed'));
       }
+      if (backendRestarted) {
+        // The backend now serves a different account's data, so everything the
+        // renderer cached for the previous account is wrong: the conversation
+        // list, the project tree, the assistants, the providers, the settings.
+        //
+        // Drop that state explicitly instead of reloading the page: a reload
+        // tore down the whole renderer and left the window blank while it
+        // came back. Every cache that can hold account data registers a reset
+        // in `resetAccountState` — a store that is not registered there keeps
+        // the previous account's data, so new ones must be added to it.
+        //
+        // This runs BEFORE the post-login bootstraps below: those populate
+        // the provider list and the knowledge-base servers for the new
+        // account, and a later cache clear would throw that work away.
+        //
+        // `reload: true` — the backend now serves the new account's data
+        // directory, so the renderer must load from it. The conversation list
+        // in particular fetches only once on mount and would otherwise stay
+        // empty.
+        //
+        // `keepAuth: true` — the identity was written a few lines above, and
+        // this reset clears the account-scoped localStorage keys. Without
+        // this the switch would delete the session it had just established:
+        // the renderer keeps working from memory, but the next reload finds
+        // no session and bounces the user back to the login page.
+        await resetAccountState({ reload: true, keepAuth: true });
+      }
 
       // Fire-and-forget:登录成功后自动从 AIPAAS 取 NewAPI Key 密文并尝试自动建 provider。
       // 失败静默,不阻塞 /guid 跳转。详见 docs/superpowers/specs/2026-09-24-newapi-postlogin-design.md。
       void runNewapiPostLogin(token);
       // Fire-and-forget: ensure the default knowledge-base MCP server exists after login.
       void ensureKnowledgeServerMcp();
+    },
+    [t]
+  );
 
-      if (backendRestarted) {
-        // The backend now serves a different account's data, so everything the
-        // renderer cached for the previous account is wrong: the conversation
-        // list, the project tree, the assistants, the providers, the settings —
-        // roughly fifteen module-level singletons and thirty SWR keys, each
-        // with its own bespoke store contract and several with no reset API
-        // at all. Reloading is the only way to be sure none of them survives.
-        //
-        // The auth record was written to localStorage before the switch, so
-        // the fresh renderer comes back signed in as the new account.
-        window.location.reload();
+  const completeExternalLogin = useCallback(
+    async (token: string, payload: { id: string; username: string }) => {
+      // The session is valid again the moment the login succeeds, so the
+      // "token expired" guard is cleared synchronously — before the queued
+      // switch below, which may still be waiting its turn.
+      tokenExpiredFiredRef.current = false;
+      // The session counts as signed in from here on, not from when the
+      // queued switch happens to run: a token-expiry report that arrives
+      // while the switch is still pending must still be acted on.
+      signedInRef.current = true;
+
+      // Queued: a second deep-link callback must not run on top of this one.
+      //
+      // The queue never wedges: it continues on failure, and the failure is
+      // reported rather than swallowed. A switch that cannot complete must
+      // not leave the user on the login page with no explanation.
+      const run = accountSwitchQueueRef.current.then(
+        () => performExternalLogin(token, payload),
+        () => performExternalLogin(token, payload)
+      );
+      accountSwitchQueueRef.current = run.then(
+        (): undefined => undefined,
+        (): undefined => undefined
+      );
+
+      try {
+        await run;
+      } catch (error) {
+        console.error('Failed to complete the account switch:', error);
+        Message.error(t('common.accountSwitchFailed'));
       }
     },
     [t]
   );
+
+  // Keep the deep-link subscription pointed at the current implementation.
+  // Done in an effect rather than during render: a render may be discarded,
+  // and the ref must only ever hold a callback that was actually committed.
+  useEffect(() => {
+    completeExternalLoginRef.current = completeExternalLogin;
+  }, [completeExternalLogin]);
 
   const logout = useCallback(async () => {
     const token = readExternalAuth()?.token;
@@ -213,17 +336,28 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     void ipcBridge.account.clearActive.invoke().catch((error: unknown) => {
       console.error('Failed to clear the account scope:', error);
     });
+    signedInRef.current = false;
     setUser(null);
     setStatus('unauthenticated');
     clearAuthCache();
     // The renderer holds the signed-out account's data in memory — the
     // conversation list, the project tree, the assistants, the providers.
-    // Reload so none of it is left behind for whoever signs in next.
-    window.location.reload();
+    // Drop it explicitly so none of it is left behind for whoever signs in
+    // next; reloading the page used to do this, at the cost of a blank
+    // window while the renderer came back.
+    await resetAccountState();
   }, []);
 
   const notifyTokenExpired = useCallback(
     (_source: TokenExpiredSource) => {
+      // Already signed out: nothing to expire.
+      //
+      // Signing out invalidates the token, so a request that was already in
+      // flight comes back 401 — and that is expected, the user just signed
+      // out on purpose. Reporting it would tell them "登录已过期，请重新登录"
+      // on top of the sign-out they just performed, and the second logout it
+      // triggers would race the first one's account teardown.
+      if (!signedInRef.current) return;
       if (tokenExpiredFiredRef.current) return;
       tokenExpiredFiredRef.current = true;
       Message.warning(t('common.sessionExpired'));

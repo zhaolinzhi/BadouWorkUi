@@ -61,6 +61,11 @@ class ConfigServiceImpl {
         }
       }
       this.initialized = true;
+      // Notify subscribers for every key that just landed. Without this, a
+      // consumer that mounted before the initial fetch finished would keep
+      // rendering its stale value forever: `useSyncExternalStore` only
+      // re-renders on a notification, and the cache was updated silently.
+      this.notifyAll();
     })();
     this.initPromise.catch(() => {
       // Allow a future caller to retry after a transient failure
@@ -126,6 +131,20 @@ class ConfigServiceImpl {
   private notify(key: ConfigKey, value: unknown): void {
     const subs = this.subscribers.get(key);
     if (subs) {
+      for (const cb of subs) {
+        cb(value);
+      }
+    }
+  }
+
+  /**
+   * Notify every subscriber with its key's current value.
+   *
+   * Used after the initial bulk load, which replaces the whole cache at once.
+   */
+  private notifyAll(): void {
+    for (const [key, subs] of this.subscribers) {
+      const value = this.cache.get(key);
       for (const cb of subs) {
         cb(value);
       }

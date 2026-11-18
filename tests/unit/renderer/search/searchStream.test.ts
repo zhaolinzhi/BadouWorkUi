@@ -7,7 +7,7 @@ import {
   cancelSearch,
   configureSearchStore,
   getSearchSnapshot,
-  resetSearchStoreForTest,
+  resetSearchStore,
   type SearchMatchParams,
   type SearchResult,
   startSearch,
@@ -80,7 +80,7 @@ function wire(): Harness {
 
 afterEach(() => {
   client?.dispose();
-  resetSearchStoreForTest();
+  resetSearchStore();
 });
 
 describe('search stream over real MonitorClient', () => {

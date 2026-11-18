@@ -44,7 +44,7 @@ import './components/workspace/registerWebFsPicker';
 
 // React and core dependencies
 import type { PropsWithChildren } from 'react';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { SWRConfig } from 'swr';
 import type { TFunction } from 'i18next';
@@ -90,7 +90,7 @@ import { repairAllCronJobTimeZonesOnce } from '@renderer/pages/cron/repairCronJo
 import { bootstrapRendererConfig } from '@renderer/services/bootstrapRenderer';
 
 // Components and utilities
-import AppLoader from './components/layout/AppLoader';
+import { AppBootGate } from './components/layout/AppLoader';
 import BackendStartingView from './components/layout/BackendStartingView';
 import BackendStartupGate from './components/layout/BackendStartupGate';
 import GpuAutoDisableNotice from './components/layout/GpuAutoDisableNotice';
@@ -312,12 +312,20 @@ const Config: React.FC<PropsWithChildren> = ({ children }) => {
 
 const Main = () => {
   const { ready } = useAuth();
-  const [configReady, setConfigReady] = useState(false);
 
-  useEffect(() => {
-    if (!ready) return;
-    void bootstrapRendererConfig().finally(() => setConfigReady(true));
-  }, [ready]);
+  // Load the persisted settings, but do NOT gate the first paint on them.
+  // The request goes to the backend, which after an account switch is a
+  // freshly started process still warming up — waiting for it leaves the
+  // window blank for seconds.
+  //
+  // Nothing depends on this gate: i18n initializes synchronously with a
+  // fallback locale and corrects itself when the config lands, and the theme
+  // resolves asynchronously with a 'light' default. Consumers that read the
+  // cache directly re-render when `configService` notifies them, which it
+  // now does after the initial load.
+  const loadRendererSettings = useCallback(() => {
+    void bootstrapRendererConfig();
+  }, []);
 
   useEffect(() => {
     if (!ready) return;
@@ -330,23 +338,18 @@ const Main = () => {
   // follows the port the main process publishes.
   useEffect(() => subscribeToBackendPortChanges(), []);
 
-  if (!ready || !configReady) {
-    // Render a loader rather than `null`: the app is not ready yet, but the
-    // window must not be blank while it waits. A blank window is
-    // indistinguishable from a crash.
-    return <AppLoader fullScreen />;
-  }
-
   return (
-    <Router
-      layout={
-        <ConversationHistoryProvider>
-          <PerfProfiler id='app.layout'>
-            <Layout sider={<Sider />} />
-          </PerfProfiler>
-        </ConversationHistoryProvider>
-      }
-    />
+    <AppBootGate ready={ready} onLoadSettings={loadRendererSettings}>
+      <Router
+        layout={
+          <ConversationHistoryProvider>
+            <PerfProfiler id='app.layout'>
+              <Layout sider={<Sider />} />
+            </PerfProfiler>
+          </ConversationHistoryProvider>
+        }
+      />
+    </AppBootGate>
   );
 };
 

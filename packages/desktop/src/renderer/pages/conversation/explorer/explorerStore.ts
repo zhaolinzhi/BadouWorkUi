@@ -385,8 +385,8 @@ export const getExplorerInternalsForTest = (): { cacheKeys: PeKey[]; expanded: P
   current: [...current],
 });
 
-/** Test hook: reset all module state. */
-export const resetExplorerStoreForTest = (): void => {
+/** Reset all module state: no port, no tree, no selection. */
+export const resetExplorerStore = (): void => {
   port = null;
   projectId = null;
   roots = [];

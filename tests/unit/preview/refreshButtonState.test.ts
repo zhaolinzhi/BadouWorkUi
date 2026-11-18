@@ -18,7 +18,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   registerTabReloader,
   reloadViaViewer,
-  resetTabReloadersForTest,
+  resetTabReloaders,
 } from '@/renderer/pages/conversation/Preview/context/tabReloaderRegistry';
 import {
   isRefreshActionable,
@@ -171,7 +171,7 @@ describe('the state token used as a test hook', () => {
 // edit and read it as "refresh ate my work" rather than "the save failed" — which is
 // exactly why the save-outcome classifier exists.
 describe('viewer-owned reloads', () => {
-  beforeEach(() => resetTabReloadersForTest());
+  beforeEach(() => resetTabReloaders());
 
   it('reports no reloader for a tab that has not registered one', () => {
     expect(reloadViaViewer('tab-1')).toBe(false);

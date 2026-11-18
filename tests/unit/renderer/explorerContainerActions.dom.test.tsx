@@ -116,7 +116,7 @@ vi.mock('@/common', () => ({
 }));
 
 import { ExplorerContainer } from '@/renderer/pages/conversation/explorer/ExplorerContainer';
-import { resetExplorerStoreForTest } from '@/renderer/pages/conversation/explorer/explorerStore';
+import { resetExplorerStore } from '@/renderer/pages/conversation/explorer/explorerStore';
 
 const entry = (over: Partial<ProjectEntryDto>): ProjectEntryDto => ({
   pe_id: 'peA',
@@ -142,7 +142,7 @@ const renderIt = () =>
   );
 
 beforeEach(() => {
-  resetExplorerStoreForTest();
+  resetExplorerStore();
   projectGet.mockReset().mockResolvedValue(detail([entry({ pe_id: 'peA', display_name: 'Root' })]));
   attachFolder.mockReset();
   removeFolder.mockReset();

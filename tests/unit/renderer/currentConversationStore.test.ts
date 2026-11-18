@@ -7,11 +7,11 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   getCurrentConversation,
-  resetCurrentConversationForTest,
+  resetCurrentConversationStore,
   setCurrentConversation,
 } from '@/renderer/pages/conversation/explorer/currentConversationStore';
 
-afterEach(() => resetCurrentConversationForTest());
+afterEach(() => resetCurrentConversationStore());
 
 describe('currentConversationStore', () => {
   it('stores the active conversation id', () => {
@@ -36,7 +36,7 @@ describe('currentConversationStore', () => {
 
   it('resets to null via the test hook', () => {
     setCurrentConversation('conv-1');
-    resetCurrentConversationForTest();
+    resetCurrentConversationStore();
     expect(getCurrentConversation()).toBeNull();
   });
 });

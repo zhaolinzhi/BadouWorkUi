@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => {
     externalLoginCompletedListeners: [] as ExternalLoginCompletedListener[],
     completeExternalLogin: vi.fn(),
     navigate: vi.fn(),
+    claimPendingInvoke: vi.fn(),
   };
 });
 
@@ -37,6 +38,9 @@ vi.mock('@/common', () => ({
     auth: {
       startExternalLogin: {
         invoke: mocks.startExternalLoginInvoke,
+      },
+      claimPending: {
+        invoke: mocks.claimPendingInvoke,
       },
       externalLoginCompleted: {
         on: (listener: ExternalLoginCompletedListener) => {
@@ -74,23 +78,17 @@ beforeEach(() => {
   mocks.navigate.mockReset();
   mocks.externalLoginCompletedListeners.length = 0;
   mocks.startExternalLoginInvoke.mockResolvedValue(successResult);
+  mocks.claimPendingInvoke.mockReset();
+  mocks.claimPendingInvoke.mockResolvedValue(null);
 });
-
-const fireExternalLoginCompleted = (payload: { token: string; user: { id: string; username: string } }) => {
-  act(() => {
-    for (const listener of mocks.externalLoginCompletedListeners) {
-      listener(payload);
-    }
-  });
-};
 
 const getSubmitButton = (): HTMLElement => screen.getByRole('button', { name: /login\.submit/ });
 
 describe('LoginPage (button-triggered deep-link flow)', () => {
-  it('subscribes to externalLoginCompleted on mount but does NOT auto-launch', async () => {
+  it('does NOT auto-launch the external login', async () => {
     render(<LoginPage />);
     await waitFor(() => {
-      expect(mocks.externalLoginCompletedListeners.length).toBe(1);
+      expect(getSubmitButton()).toBeInTheDocument();
     });
     expect(mocks.startExternalLoginInvoke).not.toHaveBeenCalled();
   });
@@ -118,21 +116,19 @@ describe('LoginPage (button-triggered deep-link flow)', () => {
     });
   });
 
-  it('calls completeExternalLogin and navigates to /guid when the deep-link emitter fires', async () => {
+  it('leaves the deep-link handling to AuthProvider', async () => {
+    // The subscription and the pending-token claim both live in
+    // AuthProvider, which is mounted for the whole app lifetime. The login
+    // page is a lazily-loaded chunk: a callback that lands while it is still
+    // loading would be emitted into the void.
     render(<LoginPage />);
-    await waitFor(() => {
-      expect(mocks.externalLoginCompletedListeners.length).toBe(1);
-    });
-
-    fireExternalLoginCompleted({ token: 'tok-1', user: { id: 'u1', username: 'alice' } });
 
     await waitFor(() => {
-      expect(mocks.completeExternalLogin).toHaveBeenCalledWith('tok-1', { id: 'u1', username: 'alice' });
-      // Navigation to /guid is driven by the status==='authenticated' effect
-      // inside LoginPage. The mocked AuthContext doesn't flip status, so the
-      // effect won't fire — assert completeExternalLogin was called instead.
+      expect(getSubmitButton()).toBeInTheDocument();
     });
-    expect(mocks.navigate).not.toHaveBeenCalledWith('/guid');
+    expect(mocks.externalLoginCompletedListeners.length).toBe(0);
+    expect(mocks.claimPendingInvoke).not.toHaveBeenCalled();
+    expect(mocks.completeExternalLogin).not.toHaveBeenCalled();
   });
 
   it('renders an error message when startExternalLogin.invoke() rejects', async () => {
@@ -183,10 +179,10 @@ describe('LoginPage (button-triggered deep-link flow)', () => {
     });
   });
 
-  it('unsubscribes from externalLoginCompleted on unmount', async () => {
+  it('does not leave a deep-link subscription behind on unmount', async () => {
     const { unmount } = render(<LoginPage />);
     await waitFor(() => {
-      expect(mocks.externalLoginCompletedListeners.length).toBe(1);
+      expect(getSubmitButton()).toBeInTheDocument();
     });
     unmount();
     expect(mocks.externalLoginCompletedListeners.length).toBe(0);

@@ -50,7 +50,7 @@ vi.mock('@arco-design/web-react', async () => {
 
 import { ScmPanel } from '@/renderer/pages/conversation/SourceControl/ScmPanel';
 import { resourceKey } from '@/renderer/pages/conversation/SourceControl/scmModel';
-import { configureScmStore, resetScmStoreForTest } from '@/renderer/pages/conversation/SourceControl/scmStore';
+import { configureScmStore, resetScmStore } from '@/renderer/pages/conversation/SourceControl/scmStore';
 import { RPC_DISCONNECTED, RPC_RECONNECTED, RpcError } from '@/renderer/pages/conversation/explorer/monitorClient';
 
 const repo = (over: Partial<ScmRepository> = {}): ScmRepository => ({
@@ -119,14 +119,14 @@ const rowFor = (name: string): HTMLElement => {
 };
 
 beforeEach(() => {
-  resetScmStoreForTest();
+  resetScmStore();
   confirmCalls.length = 0;
   actCalls.length = 0;
 });
 
 afterEach(() => {
   cleanup();
-  resetScmStoreForTest();
+  resetScmStore();
 });
 
 describe('action gating', () => {

@@ -199,6 +199,16 @@ export const auth = {
   externalLoginCompleted: bridge.buildEmitter<{ token: string; user: { id: string; username: string } }>(
     'auth:external-login-completed'
   ),
+  /** Renderer → main: claim the auth payload that arrived before the
+   *  provider was listening. Returns null once it has been claimed.
+   *
+   *  The deep link is delivered straight through IPC with no buffering, and
+   *  the provider subscribes from its mount effect — so a deep link that
+   *  lands first would be lost, leaving the user on the login page with a
+   *  valid token. This lets the provider pick it up instead. */
+  claimPending: bridge.buildProvider<{ token: string; user: { id: string; username: string } } | null, void>(
+    'auth:claim-pending'
+  ),
 };
 
 // ---------------------------------------------------------------------------

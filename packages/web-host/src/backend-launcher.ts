@@ -524,6 +524,14 @@ async function probeHealthCheckTcpConnect(port: number, timeoutMs = 1_000): Prom
 
 export class BackendLifecycleManager {
   private childProcess: ChildProcess | null = null;
+  /**
+   * The child the manager currently owns, and whether it is still alive.
+   *
+   * `ChildProcess.exitCode` is not a reliable liveness signal — it stays
+   * null on some platforms and is not updated by every exit path — so the
+   * manager tracks the exit event itself.
+   */
+  private childExited = false;
   private _port = 0;
   private _status: BackendStatus = 'stopped';
   private _lastDbPath = '';
@@ -534,6 +542,33 @@ export class BackendLifecycleManager {
   private restartWindowStart = 0;
   private readonly maxRestarts = 3;
   private readonly restartWindowMs = 60_000;
+
+  /**
+   * Serializes lifecycle operations.
+   *
+   * `start()` resolves only after the health check, which takes seconds. Two
+   * account switches can overlap — the renderer fires `setActive` again
+   * without waiting for the previous one — and without this queue the second
+   * start overwrites `childProcess` while the first is still awaiting
+   * readiness. The first backend is then orphaned: nobody holds a reference
+   * to it, so it keeps its port and its data directory open forever.
+   */
+  private lifecycleQueue: Promise<unknown> = Promise.resolve();
+
+  /**
+   * Run a lifecycle operation after every previously queued one has settled.
+   *
+   * The queue never rejects: a failed operation must not poison the ones
+   * behind it.
+   */
+  private enqueue<T>(operation: () => Promise<T>): Promise<T> {
+    const result = this.lifecycleQueue.then(operation, operation);
+    this.lifecycleQueue = result.then(
+      (): undefined => undefined,
+      (): undefined => undefined
+    );
+    return result;
+  }
 
   constructor(
     private readonly appMeta: AppMetadata,
@@ -554,7 +589,7 @@ export class BackendLifecycleManager {
     );
   }
 
-  async start(
+  start(
     dbPath: string,
     logDir?: string,
     dirs?: BackendDirConfig,
@@ -562,6 +597,34 @@ export class BackendLifecycleManager {
     preferredPort?: number,
     launchFlags: BackendLaunchFlags = {}
   ): Promise<number> {
+    // Serialized: a concurrent start must not race the one in flight.
+    return this.enqueue(() => this.startInternal(dbPath, logDir, dirs, options, preferredPort, launchFlags));
+  }
+
+  private async startInternal(
+    dbPath: string,
+    logDir?: string,
+    dirs?: BackendDirConfig,
+    options?: BackendStartOptions,
+    preferredPort?: number,
+    launchFlags: BackendLaunchFlags = {}
+  ): Promise<number> {
+    // A new start always supersedes the running backend: the previous one
+    // must go before the replacement spawns, or two backends would hold the
+    // same data directory (the instance guard) and the old one would keep its
+    // port.
+    //
+    // The account switch stops the backend explicitly before starting the
+    // new one, so this only matters for a start that arrives without a
+    // preceding stop (a crash restart, a recovery).
+    //
+    // Only the child this manager currently owns is stopped. A child that
+    // already exited is skipped: stopping it would wait for an `exit` event
+    // that has already been emitted.
+    if (this.childProcess && !this.childExited) {
+      await this.stop();
+    }
+
     // Bounded retry loop for the transient "a peer aioncore already owns this
     // data directory" case (Sentry 135525166). The owning peer either finishes
     // startup and keeps running, or a crash-orphan self-exits and releases the
@@ -696,8 +759,9 @@ export class BackendLifecycleManager {
       throw makeStartupError('spawn', 'aioncore startup directory preparation failed', error);
     }
 
+    let spawnedChild: ChildProcess;
     try {
-      this.childProcess = spawn(binaryPath, args, {
+      spawnedChild = spawn(binaryPath, args, {
         stdio: ['pipe', 'pipe', 'pipe'],
         env: dirs ? buildSpawnEnv(dirs) : process.env,
         cwd: dirs?.workDir ?? dbPath,
@@ -707,13 +771,17 @@ export class BackendLifecycleManager {
       this._status = 'error';
       throw makeStartupError('spawn', 'aioncore process spawn threw before startup', error);
     }
+    this.childProcess = spawnedChild;
+    this.childExited = false;
 
     this.childProcess.stdin?.end();
 
     backendPid = this.childProcess.pid;
     const pid = backendPid;
     const killOnExit = () => {
-      if (pid) void killBackendProcessTree(this.childProcess, 'SIGKILL');
+      // Kill the child this handler was registered for, not whatever the
+      // manager currently holds — a newer start may have replaced it.
+      if (pid) void killBackendProcessTree(spawnedChild, 'SIGKILL');
     };
     process.on('exit', killOnExit);
 
@@ -741,6 +809,7 @@ export class BackendLifecycleManager {
 
       this.childProcess?.once('exit', (code, signal) => {
         process.removeListener('exit', killOnExit);
+        if (this.childProcess === spawnedChild) this.childExited = true;
         if (this._status === 'running') {
           this.handleCrash(code, signal);
           return;
@@ -854,8 +923,8 @@ export class BackendLifecycleManager {
     } catch (error) {
       if (error instanceof BackendStartupError && error.details.stage === 'listen_timeout') {
         startupSettled = true;
-        await killBackendProcessTree(this.childProcess, 'SIGKILL');
-        this.childProcess = null;
+        await killBackendProcessTree(spawnedChild, 'SIGKILL');
+        if (this.childProcess === spawnedChild) this.childProcess = null;
         this._status = 'error';
       }
       throw error;
@@ -890,8 +959,8 @@ export class BackendLifecycleManager {
         return this._port;
       }
       startupSettled = true;
-      await killBackendProcessTree(this.childProcess, 'SIGKILL');
-      this.childProcess = null;
+      await killBackendProcessTree(spawnedChild, 'SIGKILL');
+      if (this.childProcess === spawnedChild) this.childProcess = null;
       this._status = 'error';
       throw healthTimeoutError;
     }
@@ -911,11 +980,33 @@ export class BackendLifecycleManager {
     return this._port;
   }
 
+  /**
+   * Stop the running backend.
+   *
+   * NOT queued: a stop has to be able to cancel a start that is still in
+   * flight (the health check takes seconds, and an account switch during
+   * that window must abandon the old backend rather than wait for it).
+   *
+   * The cancelled start rejects with `BackendStartupCancelledError`, so the
+   * caller's `await start()` settles — the bridge turns that rejection into
+   * a failed invoke rather than a promise that never resolves.
+   */
   async stop(): Promise<void> {
     if (!this.childProcess) return;
     const childProcess = this.childProcess;
     this._status = 'stopped';
     const dataDir = this._lastDbPath;
+
+    // A child that already exited will not emit 'exit' again, so waiting for
+    // that event would block for the full kill timeout on every stop of an
+    // already-dead backend — long enough for the next start to be racing it.
+    if (this.childExited) {
+      await cleanupRegisteredAgentProcesses(dataDir);
+      if (this.childProcess === childProcess) {
+        this.childProcess = null;
+      }
+      return;
+    }
 
     const gracefulKill = killBackendProcessTree(childProcess, 'SIGTERM');
     await new Promise<void>((resolve) => {
@@ -928,7 +1019,11 @@ export class BackendLifecycleManager {
       });
     });
     await cleanupRegisteredAgentProcesses(dataDir);
-    this.childProcess = null;
+    // Only clear the reference if it still points at the process we killed.
+    // A newer start may have replaced it while we were waiting for the exit.
+    if (this.childProcess === childProcess) {
+      this.childProcess = null;
+    }
   }
 
   private async waitForHealth(
