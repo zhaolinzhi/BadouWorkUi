@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   externalLoginCompletedListeners: [] as ExternalLoginCompletedListener[],
   setActive: vi.fn(async () => ({ backendPort: 4321, restarted: false })),
   claimPending: vi.fn(async (): Promise<{ token: string; user: { id: string; username: string } } | null> => null),
+  getActive: vi.fn(async (): Promise<{ userId: string; username: string } | null> => null),
 }));
 
 vi.mock('@/renderer/services/account/resetAccountState', () => ({
@@ -28,6 +29,7 @@ vi.mock('@/common', async (importOriginal) => {
       account: {
         ...actual.ipcBridge.account,
         setActive: { invoke: mocks.setActive },
+        getActive: { invoke: mocks.getActive },
         clearActive: { invoke: vi.fn(async () => {}) },
       },
       auth: {

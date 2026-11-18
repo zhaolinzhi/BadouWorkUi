@@ -9,6 +9,7 @@ import { ipcBridge } from '@/common';
 import { resetWsForBackendRestart, setBackendPort } from '@/common/adapter/httpBridge';
 import { resetAccountState } from '@/renderer/services/account/resetAccountState';
 import { EXTERNAL_AUTH_STORAGE_KEY } from '@/renderer/services/account/accountStorageKeys';
+import { setConversationListSwitching } from '@/renderer/pages/conversation/GroupedHistory/hooks/useConversationListSync';
 
 const LOGOUT_ENDPOINT = `${AIPAAS_BASE_URL}/system/security/logout/logout`;
 
@@ -47,6 +48,27 @@ async function activateAccount(userId: string, username: string): Promise<boolea
     console.warn('Failed to clear the browser session on account switch:', error);
   });
   return result.restarted;
+}
+
+/**
+ * Whether the account signing in is a different one from the active one.
+ *
+ * Signing in again as the same account restarts nothing and leaves nothing
+ * stale, so the UI must not show a switching state for it.
+ *
+ * The main process owns the active account, so it is the only one that can
+ * answer this. A failure to answer is treated as "different": showing the
+ * switching state is harmless, and assuming "same" would show the previous
+ * account's conversations during a real switch.
+ */
+async function isDifferentAccount(userId: string): Promise<boolean> {
+  try {
+    const active = await ipcBridge.account.getActive.invoke();
+    return active?.userId !== userId;
+  } catch (error) {
+    console.warn('Failed to read the active account:', error);
+    return true;
+  }
 }
 
 type AuthStatus = 'checking' | 'authenticated' | 'unauthenticated';
@@ -226,6 +248,21 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       // Switch the backend to this account's data directory before anything
       // talks to it — the backend may have been serving another account's
       // database.
+      //
+      // The conversation list is hidden for the whole switch. The rows on
+      // screen belong to the account being switched away from, and the
+      // backend restart takes seconds — long enough for the user to read
+      // (and click) the previous account's conversations. So the list is
+      // dropped before the restart begins and the sidebar shows a loading
+      // state until the new account's data arrives.
+      //
+      // Only when the account actually changes: signing in again as the same
+      // account restarts nothing and leaves nothing stale, so the list must
+      // not flicker.
+      const switchingAccount = await isDifferentAccount(payload.id);
+      if (switchingAccount) {
+        setConversationListSwitching(true);
+      }
       let backendRestarted = false;
       try {
         backendRestarted = await activateAccount(payload.id, payload.username);
@@ -236,32 +273,49 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
         // account's database.
         Message.error(t('common.accountSwitchFailed'));
       }
-      if (backendRestarted) {
-        // The backend now serves a different account's data, so everything the
-        // renderer cached for the previous account is wrong: the conversation
-        // list, the project tree, the assistants, the providers, the settings.
-        //
-        // Drop that state explicitly instead of reloading the page: a reload
-        // tore down the whole renderer and left the window blank while it
-        // came back. Every cache that can hold account data registers a reset
-        // in `resetAccountState` — a store that is not registered there keeps
-        // the previous account's data, so new ones must be added to it.
-        //
-        // This runs BEFORE the post-login bootstraps below: those populate
-        // the provider list and the knowledge-base servers for the new
-        // account, and a later cache clear would throw that work away.
-        //
-        // `reload: true` — the backend now serves the new account's data
-        // directory, so the renderer must load from it. The conversation list
-        // in particular fetches only once on mount and would otherwise stay
-        // empty.
-        //
-        // `keepAuth: true` — the identity was written a few lines above, and
-        // this reset clears the account-scoped localStorage keys. Without
-        // this the switch would delete the session it had just established:
-        // the renderer keeps working from memory, but the next reload finds
-        // no session and bounces the user back to the login page.
-        await resetAccountState({ reload: true, keepAuth: true });
+
+      try {
+        if (backendRestarted) {
+          // The backend now serves a different account's data, so everything
+          // the renderer cached for the previous account is wrong: the
+          // conversation list, the project tree, the assistants, the
+          // providers, the settings.
+          //
+          // Drop that state explicitly instead of reloading the page: a
+          // reload tore down the whole renderer and left the window blank
+          // while it came back. Every cache that can hold account data
+          // registers a reset in `resetAccountState` — a store that is not
+          // registered there keeps the previous account's data, so new ones
+          // must be added to it.
+          //
+          // This runs BEFORE the post-login bootstraps below: those populate
+          // the provider list and the knowledge-base servers for the new
+          // account, and a later cache clear would throw that work away.
+          //
+          // `reload: true` — the backend now serves the new account's data
+          // directory, so the renderer must load from it. The conversation
+          // list in particular fetches only once on mount and would
+          // otherwise stay empty.
+          //
+          // `keepAuth: true` — the identity was written a few lines above,
+          // and this reset clears the account-scoped localStorage keys.
+          // Without this the switch would delete the session it had just
+          // established: the renderer keeps working from memory, but the next
+          // reload finds no session and bounces the user back to the login
+          // page.
+          await resetAccountState({ reload: true, keepAuth: true });
+        }
+        // Nothing was restarted — the same account signed in again, so
+        // nothing was stale and the state must not be touched. (A failed
+        // switch lands here too: the backend still serves the previous
+        // account, whose data the renderer is still showing.)
+      } finally {
+        // The list is on its way. The loading state ends here; the rows fill
+        // in when the fetch lands. It has to end even if the reset threw —
+        // otherwise the sidebar would show a loading state forever.
+        if (switchingAccount) {
+          setConversationListSwitching(false);
+        }
       }
 
       // Fire-and-forget:登录成功后自动从 AIPAAS 取 NewAPI Key 密文并尝试自动建 provider。

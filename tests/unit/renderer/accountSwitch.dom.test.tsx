@@ -31,6 +31,7 @@ vi.mock('@/common', async (importOriginal) => {
       account: {
         ...actual.ipcBridge.account,
         setActive: { invoke: setActive },
+        getActive: { invoke: vi.fn(async () => null) },
         clearActive: { invoke: clearActive },
       },
     },

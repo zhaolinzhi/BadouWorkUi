@@ -44,16 +44,26 @@ vi.mock('@/renderer/utils/perf', async (importOriginal) => {
 import {
   resetConversationListSyncInitForTest,
   resetConversationListSyncStore,
+  setConversationListSwitching,
   useConversationListSync,
 } from '@/renderer/pages/conversation/GroupedHistory/hooks/useConversationListSync';
 
 function Probe() {
-  const { conversations } = useConversationListSync();
-  return <div data-testid='count'>{conversations.length}</div>;
+  const { conversations, switching } = useConversationListSync();
+  return (
+    <div>
+      <div data-testid='count'>{conversations.length}</div>
+      <div data-testid='switching'>{String(switching)}</div>
+    </div>
+  );
 }
 
 function renderedCount(): number {
   return Number(document.querySelector('[data-testid="count"]')?.textContent ?? '-1');
+}
+
+function renderedSwitching(): boolean {
+  return document.querySelector('[data-testid="switching"]')?.textContent === 'true';
 }
 
 beforeEach(() => {
@@ -147,5 +157,85 @@ describe('resetConversationListSyncStore', () => {
 
     // It must not be applied — the list stays empty.
     expect(renderedCount()).toBe(0);
+  });
+});
+
+describe('the switching flag', () => {
+  it('reports switching while the account is being switched', async () => {
+    getUserConversations.mockResolvedValue({
+      items: [{ id: 'c1', title: 'Old account conversation', project_id: null }],
+    });
+
+    render(<Probe />);
+    await waitFor(() => expect(renderedCount()).toBe(1));
+    expect(renderedSwitching()).toBe(false);
+
+    // The switch starts: the backend is being restarted, so the list must
+    // not show the previous account's conversations.
+    await act(async () => {
+      setConversationListSwitching(true);
+    });
+
+    expect(renderedSwitching()).toBe(true);
+    // The old account's conversation is gone — it must not be visible while
+    // the switch is in flight.
+    expect(renderedCount()).toBe(0);
+  });
+
+  it('clears the flag once the new account data has arrived', async () => {
+    getUserConversations.mockResolvedValue({
+      items: [{ id: 'c1', title: 'Old account conversation', project_id: null }],
+    });
+
+    render(<Probe />);
+    await waitFor(() => expect(renderedCount()).toBe(1));
+
+    await act(async () => {
+      setConversationListSwitching(true);
+    });
+    expect(renderedSwitching()).toBe(true);
+
+    // The switch finished: the new account's list is loaded and the sidebar
+    // must show it again.
+    getUserConversations.mockResolvedValue({
+      items: [{ id: 'c2', title: 'New account conversation', project_id: null }],
+    });
+    await act(async () => {
+      resetConversationListSyncStore({ reload: true });
+      setConversationListSwitching(false);
+    });
+
+    await waitFor(() => expect(renderedCount()).toBe(1));
+    expect(renderedSwitching()).toBe(false);
+  });
+
+  it('keeps the flag when the store is reset with switching on', async () => {
+    render(<Probe />);
+    await waitFor(() => expect(renderedSwitching()).toBe(false));
+
+    await act(async () => {
+      resetConversationListSyncStore({ switching: true });
+    });
+
+    expect(renderedSwitching()).toBe(true);
+  });
+
+  it('clears the flag on a sign-out, which has no account to switch to', async () => {
+    render(<Probe />);
+    await waitFor(() => expect(renderedSwitching()).toBe(false));
+
+    await act(async () => {
+      setConversationListSwitching(true);
+    });
+    expect(renderedSwitching()).toBe(true);
+
+    // A sign-out has no account to switch to, so the flag must not survive
+    // it — the sidebar would show a loading state for a list that is never
+    // coming back.
+    await act(async () => {
+      resetConversationListSyncStore();
+    });
+
+    expect(renderedSwitching()).toBe(false);
   });
 });

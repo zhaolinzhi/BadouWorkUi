@@ -124,6 +124,14 @@ type ConversationListSyncSnapshot = {
   conversations: TChatConversation[];
   generatingConversationIds: Set<string>;
   completionUnreadConversationIds: Set<string>;
+  /**
+   * Whether the app is switching to another account.
+   *
+   * While this is true the list belongs to nobody: the backend is being
+   * restarted against the new account's data directory, so the rows on screen
+   * are the previous account's. The sidebar shows a loading state instead.
+   */
+  switching: boolean;
 };
 
 const listeners = new Set<() => void>();
@@ -143,10 +151,19 @@ let conversation_idsState = new Set<string>();
 // backfilled); a missing key = not loaded yet (caller placeholders).
 let projectIdByIdState = new Map<string, string | null>();
 let activeConversationIdState: string | null = null;
+/**
+ * Whether the app is switching to another account.
+ *
+ * Set while the backend is restarted against the new account's data
+ * directory. The rows on screen belong to the previous account for that
+ * whole window, so the sidebar shows a loading state instead.
+ */
+let switchingState = false;
 let snapshotState: ConversationListSyncSnapshot = {
   conversations: conversationsState,
   generatingConversationIds: generatingConversationIdsState,
   completionUnreadConversationIds: completionUnreadConversationIdsState,
+  switching: switchingState,
 };
 
 const emitStoreChange = () => {
@@ -154,8 +171,36 @@ const emitStoreChange = () => {
     conversations: conversationsState,
     generatingConversationIds: generatingConversationIdsState,
     completionUnreadConversationIds: completionUnreadConversationIdsState,
+    switching: switchingState,
   };
   listeners.forEach((listener) => listener());
+};
+
+/**
+ * Mark the account switch as in progress (or finished).
+ *
+ * The flag lives in the store because it has to change in the same tick as
+ * the list it describes: the previous account's rows must disappear at the
+ * moment the switch starts, not a moment later when the reset runs.
+ *
+ * Starting a switch therefore also drops the list. Doing it here rather than
+ * leaving it to the caller means there is no window in which the flag says
+ * "switching" while the previous account's conversations are still on
+ * screen — the whole point of the flag.
+ */
+export const setConversationListSwitching = (switching: boolean): void => {
+  if (switchingState === switching) return;
+  switchingState = switching;
+  if (switching) {
+    // The rows belong to the account being switched away from. Drop them
+    // and invalidate any request still in flight — its response describes
+    // that same previous account.
+    storeGeneration += 1;
+    conversationsState = [];
+    conversation_idsState = new Set();
+    projectIdByIdState = new Map();
+  }
+  emitStoreChange();
 };
 
 const subscribeConversationListSync = (listener: () => void) => {
@@ -202,6 +247,7 @@ export const resetConversationListSyncInitForTest = (): void => {
   isStoreInitialized = false;
   inflightRefresh = null;
   lastRefreshFinishedAt = 0;
+  switchingState = false;
   storeGeneration += 1;
 };
 
@@ -497,11 +543,18 @@ const initializeConversationListSyncStore = () => {
  *
  *   A sign-out does not want one: there is no account to load yet, and the
  *   backend is on its way down.
+ *
+ * @param options.switching Whether the app is switching accounts. The flag
+ *   rides along with the reset so the two cannot disagree: a reset that
+ *   clears the list but leaves the flag set would show a loading state for a
+ *   list that is not coming back.
  */
-export const resetConversationListSyncStore = (options: { reload?: boolean } = {}): void => {
+export const resetConversationListSyncStore = (options: { reload?: boolean; switching?: boolean } = {}): void => {
   // Invalidate any request that is still in flight — its response describes
   // the previous account.
   storeGeneration += 1;
+
+  switchingState = options.switching ?? false;
 
   conversationsState = [];
   generatingConversationIdsState = new Set();
@@ -531,7 +584,7 @@ export const useConversationListSync = () => {
     initializeConversationListSyncStore();
   }, []);
 
-  const { conversations, generatingConversationIds, completionUnreadConversationIds } = useSyncExternalStore(
+  const { conversations, generatingConversationIds, completionUnreadConversationIds, switching } = useSyncExternalStore(
     subscribeConversationListSync,
     getConversationListSyncSnapshot,
     getConversationListSyncSnapshot
@@ -559,11 +612,12 @@ export const useConversationListSync = () => {
   return useMemo(
     () => ({
       conversations,
+      switching,
       isConversationGenerating,
       hasCompletionUnread,
       clearCompletionUnread,
       setActiveConversation,
     }),
-    [conversations, clearCompletionUnread, setActiveConversation]
+    [conversations, switching, clearCompletionUnread, setActiveConversation]
   );
 };
