@@ -497,7 +497,7 @@ export type ModelImageInputCapability = 'supported' | 'unsupported';
  * aionrs runtime to emit a specific `tools[i]` shape (e.g. flat
  * `{name, parameters}` instead of nested `{function: {name, parameters}}`).
  */
-export type ModelToolWireShape = 'native' | 'openai_function' | 'openai_flat_function' | 'anthropic_input_schema';
+export type ModelToolWireShape = 'native' | 'open_ai_function' | 'open_ai_flat_function' | 'anthropic_input_schema';
 
 export type ModelSettings = {
   image_input?: ModelImageInputCapability;

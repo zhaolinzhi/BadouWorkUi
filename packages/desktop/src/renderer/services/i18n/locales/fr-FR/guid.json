@@ -8,6 +8,7 @@
   "selectAssistantHint": "Sélectionnez un assistant pour démarrer une tâche",
   "workspace": {
     "workInProject": "Travailler dans un projet",
+    "selectProject": "Sélectionner un projet",
     "optional": "Facultatif",
     "clearWorkspace": "Clair",
     "specifyWorkspace": "Sélectionnez le dossier du projet",

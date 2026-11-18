@@ -30,6 +30,7 @@ import {
   type PlatformConfig,
 } from '@/renderer/utils/model/modelPlatforms';
 import type { DeepLinkAddProviderDetail } from '@/renderer/hooks/system/useDeepLink';
+import ThumbnailImage from '@/renderer/components/media/ThumbnailImage';
 
 /**
  * Protocol icon configurations
@@ -188,7 +189,15 @@ const ProtocolDetectionStatus: React.FC<ProtocolDetectionStatusProps> = ({
  */
 const ProviderLogo: React.FC<{ logo: string | null; name: string; size?: number }> = ({ logo, name, size = 20 }) => {
   if (logo) {
-    return <img src={logo} alt={name} className='object-contain shrink-0' style={{ width: size, height: size }} />;
+    return (
+      <ThumbnailImage
+        src={logo}
+        size={size}
+        alt={name}
+        className='object-contain shrink-0'
+        style={{ width: size, height: size }}
+      />
+    );
   }
   return <LinkCloud theme='outline' size={size} className='text-t-secondary flex shrink-0' />;
 };

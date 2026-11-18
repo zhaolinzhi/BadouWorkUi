@@ -10,6 +10,7 @@ import { IconShrink } from '@arco-design/web-react/icon';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TabFadeState } from '../../hooks/useTabOverflow';
+import ThumbnailImage from '@/renderer/components/media/ThumbnailImage';
 
 /**
  * 单个 tab 的最大宽度。
@@ -191,8 +192,9 @@ const PreviewTabs: React.FC<PreviewTabsProps> = ({
                 <span className='text-12px flex items-center gap-4px min-w-0'>
                   {/* 站点图标（浏览器 tab）/ Site icon (browser tabs) */}
                   {tab.favicon && (
-                    <img
+                    <ThumbnailImage
                       src={tab.favicon}
+                      size={12}
                       alt=''
                       className='w-12px h-12px flex-shrink-0 rd-2px'
                       // 图标加载失败时静默隐藏，避免出现破图占位 / Hide silently on load failure

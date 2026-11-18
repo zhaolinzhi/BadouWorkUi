@@ -1,0 +1,18 @@
+{
+  "nav": {
+    "meetingRecordingShort": "錄音",
+    "taskCenterShort": "任務",
+    "scheduledShort": "排程",
+    "appMarketShort": "應用",
+    "ariaLabel": "主導覽"
+  },
+  "appMarket": {
+    "title": "應用市集",
+    "comingSoon": "應用市集正在建置中，敬請期待。"
+  },
+  "account": {
+    "menuLabel": "個人中心",
+    "openMenu": "開啟個人選單",
+    "appearance": "外觀"
+  }
+}

@@ -16,6 +16,13 @@ const ComponentsShowcase: React.FC = () => {
       <div>
         <h1 className='text-3xl font-bold mb-2'>BadouWork 自定义组件样式展示</h1>
         <p className='text-t-secondary'>展示所有在 arco-override.css 中自定义的组件样式</p>
+        <p className='text-t-secondary mt-1'>
+          想看项目里有哪些图标?去
+          <a href='#/test/icons' className='text-primary'>
+            图标总览
+          </a>
+          —— 点一下图标就复制它的语义名。
+        </p>
       </div>
 
       {/* Message */}

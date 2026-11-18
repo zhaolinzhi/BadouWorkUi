@@ -53,6 +53,8 @@ export interface AgentModeSelectorProps {
   compactLabelOverride?: string;
   /** Optional compact leading icon */
   compactLeadingIcon?: React.ReactNode;
+  /** Optional compact trailing icon (e.g. a custom chevron). Falls back to the built-in arrow. */
+  compactTrailingIcon?: React.ReactNode;
   /** Optional display label formatter for mode options */
   modeLabelFormatter?: (mode: AgentModeOption) => string;
   /** Optional compact prefix text, e.g. "Permission" / "权限" */
@@ -92,6 +94,7 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
   onModeSelect,
   compactLabelOverride,
   compactLeadingIcon,
+  compactTrailingIcon,
   modeLabelFormatter,
   compactLabelPrefix,
   hideCompactLabelPrefixOnMobile = false,
@@ -278,7 +281,9 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
               {showLogoInCompact && <span className='shrink-0 inline-flex items-center'>{renderLogo()}</span>}
             </>
           }
-          trailing={canInteract ? <Down size={12} className='text-t-tertiary shrink-0' /> : null}
+          trailing={
+            canInteract ? (compactTrailingIcon ?? <Down size={12} className='text-t-tertiary shrink-0' />) : null
+          }
           loading={isSetting}
           disabled={isSetting}
           onClick={canInteract ? () => !isSetting && setDropdownVisible((visible) => !visible) : undefined}

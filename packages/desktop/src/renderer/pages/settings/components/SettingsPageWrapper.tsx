@@ -10,6 +10,7 @@ import { type IExtensionSettingsTab } from '@/common/adapter/ipcBridge';
 import { useExtensionSettingsTabs } from '@/renderer/hooks/system/useExtensionSettingsTabs';
 import {
   Cat,
+  Code,
   Communication,
   Computer,
   Earth,
@@ -26,6 +27,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useExtI18n } from '@/renderer/hooks/system/useExtI18n';
 import { BUILTIN_TAB_IDS, LEGACY_ANCHOR_REMAP } from './SettingsSider';
 import './settings.css';
+import ThumbnailImage from '@/renderer/components/media/ThumbnailImage';
 
 interface SettingsPageWrapperProps {
   children: React.ReactNode;
@@ -78,10 +80,17 @@ export function getBuiltinSettingsNavItems(isDesktop: boolean, t: TranslateFn): 
     },
     pet: { id: 'pet', label: t('pet.desktopPet'), icon: <Cat theme='outline' size='16' />, path: 'pet' },
     system: { id: 'system', label: t('settings.system'), icon: <System theme='outline' size='16' />, path: 'system' },
+    developer: {
+      id: 'developer',
+      label: t('settings.developerSettings'),
+      icon: <Code theme='outline' size='16' />,
+      path: 'developer',
+    },
     about: { id: 'about', label: t('settings.about'), icon: <Info theme='outline' size='16' />, path: 'about' },
   };
 
-  return BUILTIN_TAB_IDS.map((id) => builtinMap[id]);
+  // 开发者分组只在开发构建里出现 —— 打包版这条导航项整个不存在。
+  return BUILTIN_TAB_IDS.filter((id) => import.meta.env.DEV || id !== 'developer').map((id) => builtinMap[id]);
 }
 
 const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, className, contentClassName }) => {
@@ -131,7 +140,7 @@ const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, cla
         id: tab.id,
         label: resolveExtTabName(tab),
         icon: resolvedIcon ? (
-          <img src={resolvedIcon} alt='' className='w-16px h-16px object-contain' />
+          <ThumbnailImage src={resolvedIcon} size={16} alt='' className='w-16px h-16px object-contain' />
         ) : (
           <Puzzle theme='outline' size='16' />
         ),

@@ -68,10 +68,7 @@ jobs:
           node-version: '22'
 
       - name: Setup bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-          cache: true
+        uses: ./.github/actions/setup-bun
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -94,7 +91,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-14, windows-2022]
+        os: [ubuntu-latest, macos-15, windows-2022]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -111,10 +108,7 @@ jobs:
           node-version: '22'
 
       - name: Setup bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-          cache: true
+        uses: ./.github/actions/setup-bun
 
       - name: Disable Windows Defender (Windows only)
         if: matrix.os == 'windows-2022'
@@ -155,10 +149,7 @@ jobs:
           node-version: '22'
 
       - name: Setup bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-          cache: true
+        uses: ./.github/actions/setup-bun
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -232,10 +223,7 @@ jobs:
           node-version: '22'
 
       - name: Setup bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-          cache: true
+        uses: ./.github/actions/setup-bun
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -279,7 +267,7 @@ jobs:
       matrix:
         include:
           - platform: 'macos-arm64'
-            os: 'macos-14'
+            os: 'macos-15'
             arch: 'arm64'
             target: '--mac'
             build_args: '--mac --arm64'
@@ -307,10 +295,7 @@ jobs:
           node-version: '22'
 
       - name: Setup bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-          cache: true
+        uses: ./.github/actions/setup-bun
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -362,7 +347,6 @@ jobs:
         env:
           npm_config_runtime: electron
           npm_config_disturl: https://electronjs.org/headers
-          ELECTRON_CACHE: ${{ runner.temp }}/.cache/electron
           ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/.cache/electron-builder
 
       - name: Setup MSBuild (Windows only)
@@ -382,6 +366,9 @@ jobs:
           Write-Host "✓Build test passed for ${{ matrix.platform }}"
         env:
           NODE_OPTIONS: '--max-old-space-size=8192'
+          # 内置微应用(qiankun):与发布流水线保持同一条构建路径
+          # Bundle the qiankun micro apps, same path as the release pipeline
+          MICRO_APP_BUNDLE: '1'
           npm_config_runtime: electron
           npm_config_arch: x64
           npm_config_target_arch: x64
@@ -404,6 +391,9 @@ jobs:
           echo "✓Build test passed for ${{ matrix.platform }}"
         env:
           NODE_OPTIONS: '--max-old-space-size=8192'
+          # 内置微应用(qiankun):与发布流水线保持同一条构建路径
+          # Bundle the qiankun micro apps, same path as the release pipeline
+          MICRO_APP_BUNDLE: '1'
           npm_config_arch: ${{ matrix.arch }}
           npm_config_target_arch: ${{ matrix.arch }}
           npm_config_runtime: electron

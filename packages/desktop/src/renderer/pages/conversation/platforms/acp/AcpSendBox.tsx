@@ -54,7 +54,7 @@ import { useAcpInitialMessage } from './useAcpInitialMessage';
 import type { UseAcpMessageReturn } from './useAcpMessage';
 import { findAllKbTokens } from '@/renderer/utils/kb/atKbInsertion';
 import { kbIdToMcpServerId } from '@/renderer/utils/kb/kbToMcpId';
-import { useKnowledgeBaseList } from '@/renderer/hooks/knowledge-base';
+import { useKnowledgeBaseList } from '@/renderer/hooks/kb-chat/useKnowledgeBaseList';
 
 const configErrorMessageKey = (error: unknown) => {
   const errorKind = classifyConfigSetError(error);

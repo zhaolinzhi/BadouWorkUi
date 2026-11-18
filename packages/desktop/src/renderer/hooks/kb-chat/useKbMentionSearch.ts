@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import { useMemo } from 'react';
-import { useKnowledgeBaseList } from '@/renderer/hooks/knowledge-base/useKnowledgeBaseList';
+import { useKnowledgeBaseList } from '@/renderer/hooks/kb-chat/useKnowledgeBaseList';
 import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
 import { KB_TOKEN_PREFIX } from '@/renderer/utils/kb/atKbInsertion';
 

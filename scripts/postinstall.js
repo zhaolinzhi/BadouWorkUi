@@ -4,11 +4,26 @@
  */
 
 const { execSync } = require('child_process');
+const { assertNodeVersion } = require('../packages/shared-scripts/src/assert-node-version.js');
 
 // Note: web-tree-sitter is now a direct dependency in package.json
 // No need for symlinks or copying - npm will install it directly to node_modules
 
 function runPostInstall() {
+  // node 版本闸门。放在最前面,因为版本过低时后面每一个步骤的报错都很难懂:
+  // native 模块重建会挂在别处,husky 的 prepare 会报 "Unexpected token '||='",
+  // 子应用的 vite 构建更是返回退出码 0 假装成功。这里先把它拦下来。
+  //
+  // Node version gate. It runs first because every later failure mode is cryptic on
+  // an old node: the native rebuild dies somewhere unrelated, husky's prepare reports
+  // "Unexpected token '||='", and the micro apps' vite build exits 0 while failing.
+  try {
+    assertNodeVersion();
+  } catch (error) {
+    console.error(`[postinstall] ${error.message}`);
+    process.exit(1);
+  }
+
   try {
     // Check if we're in a CI environment
     const isCI = process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true';

@@ -1,0 +1,185 @@
+/**
+ * Notes editor area overrides for Vditor.
+ *
+ * Vditor 自带一套样式(工具栏 38px、图标 15px、内容区 16px 字号),和设计稿
+ * BadouWork-Desktop-Handoff 的笔记页对不上。这里只改**外观**,不动 Vditor 的
+ * 功能项 —— 工具栏仍然是 Vditor 自己渲染的,只是换成设计稿的几何:
+ *
+ *   .notes-toolbar     48px 高、8px 12px 内边距、底部 1px 分隔线
+ *   .notes-tool        32px 方形图标按钮、4px 圆角
+ *   .notes-tool-separator  1px × 20px 的浅灰竖线
+ *
+ * 文档区同理:设计稿的 `.note-scroll` 是 32px 48px 内边距、1280px 最大宽度,
+ * 标题 24px/500,正文 14px。
+ *
+ * 选择器用 `:global()` 写 Vditor 自己的类名 —— CSS Modules 只对本地类名做哈希。
+ */
+
+.editorContainer {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--notes-panel-bg);
+}
+
+.editorContainer :global(.vditor) {
+  /*
+   * `position: relative` 把下拉面板(标题/更多)的**包含块**上移到 `.vditor`。
+   *
+   * 为什么要上移:面板是绝对定位的,默认包含块是工具栏项
+   * (`.vditor-toolbar__item`)。工具栏要横向滚动,所以带
+   * `overflow-x: auto`(overflow-y 被规范强制成 hidden)—— 而绝对定位的元素
+   * 会被「位于它与包含块之间」的祖先裁掉,面板于是只剩落在工具栏盒子里的
+   * 两行可见(标题菜单只剩「三级标题」「四级标题」)。把包含块上移到
+   * `.vditor` 之后,工具栏不再位于面板与包含块之间,裁剪失效。
+   */
+  position: relative;
+  background-color: var(--notes-panel-bg);
+  color: var(--text-primary);
+}
+
+/* 工具栏:48px 高的一行,图标按钮 32px */
+.editorContainer :global(.vditor-toolbar) {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 48px;
+  /*
+   * `!important` 是必须的:Vditor 在运行时给工具栏写 inline `padding-left`
+   * (用来做工具栏横向滚动的偏移),inline 样式会盖掉同优先级的类声明。
+   */
+  padding: 8px 12px !important;
+  background-color: var(--notes-panel-bg);
+  border-bottom: 1px solid var(--notes-panel-border);
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.editorContainer :global(.vditor-toolbar__item) {
+  float: none;
+  /*
+   * `position: static`:工具栏项不再当包含块,面板的包含块因此是上面的
+   * `.vditor`(包含块在工具栏之外 → 工具栏的 overflow 裁不到面板)。
+   *
+   * `display: block`(而不是 inline-flex):绝对定位的子元素在 flex 容器里
+   * 会「当作唯一的 flex item」计算静态位置,`align-items: center` 会把面板
+   * 垂直居中到按钮上 —— 面板就往上溢出了。改成 block 之后,面板的静态位置
+   * 落在按钮正下方(和 Vditor 上游 float 布局下的效果一致)。
+   *
+   * `line-height: 0` + 按钮 `vertical-align: top`:按钮是行内盒,行盒会额外
+   * 撑出基线以下的空隙,这里不要那点空隙,工具栏项保持 32px 高。
+   */
+  position: static;
+  display: block;
+  line-height: 0;
+  flex-shrink: 0;
+}
+
+.editorContainer :global(.vditor-toolbar__item .vditor-tooltipped) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background-color: transparent;
+  color: var(--text-secondary);
+  /*
+   * 工具栏项变成 static 之后,按钮自己当包含块 —— 上传按钮里那个隐藏的
+   * `<input type="file">` 才能继续盖在按钮上(否则会跑到编辑器左上角,
+   * 点按钮弹不出文件选择框)。
+   */
+  position: relative;
+  vertical-align: top;
+}
+
+/* 上传的隐藏 <input> 精确铺满按钮 */
+.editorContainer :global(.vditor-toolbar__item .vditor-tooltipped input) {
+  width: 100%;
+  height: 100%;
+}
+
+.editorContainer :global(.vditor-toolbar__item .vditor-tooltipped:hover) {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.editorContainer :global(.vditor-toolbar__item svg) {
+  width: 16px;
+  height: 16px;
+}
+
+/* 分隔线:1px × 20px 的浅灰竖线 */
+.editorContainer :global(.vditor-toolbar__divider) {
+  float: none;
+  height: 20px;
+  margin: 0 8px;
+  border-left: 1px solid var(--notes-panel-border);
+}
+
+/* 保持工具栏单行:Vditor 用 <br> 强制换行,这里不需要 */
+.editorContainer :global(.vditor-toolbar__br) {
+  display: none;
+}
+
+/* 末尾一组(全屏 / 编辑模式 / 更多)靠右对齐 */
+.editorContainer :global(.vditor-toolbar__item:last-of-type) {
+  margin-left: auto;
+}
+
+/*
+ * 下拉面板里的快捷键提示(⌥⌘1 之类)是符号字形,Vditor 默认字体
+ * "Helvetica Neue" 里没有这些码位,会掉到字体回退渲染成乱码。
+ * 这里系统字体优先(中文仍走系统字体),符号字体兜底。
+ */
+.editorContainer :global(.vditor-hint),
+.editorContainer :global(.vditor-panel) {
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Apple Symbols', 'Segoe UI Symbol', 'Helvetica Neue', Arial,
+    sans-serif;
+}
+
+/* 文档区:32px 48px 内边距、1280px 最大宽度 */
+.editorContainer :global(.vditor-content) {
+  background-color: var(--notes-panel-bg);
+}
+
+.editorContainer :global(.vditor-reset) {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  /* 同工具栏:Vditor 用 inline `padding-left` 顶掉这里的内边距,必须 !important */
+  padding: 32px 48px !important;
+  background-color: transparent;
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+/* 隐掉 Vditor 加在标题前的「H1/H2」角标 —— 设计稿里标题就是纯标题 */
+.editorContainer :global(.vditor-reset > h1::before),
+.editorContainer :global(.vditor-reset > h2::before),
+.editorContainer :global(.vditor-reset > h3::before),
+.editorContainer :global(.vditor-reset > h4::before),
+.editorContainer :global(.vditor-reset > h5::before),
+.editorContainer :global(.vditor-reset > h6::before) {
+  display: none;
+}
+
+.editorContainer :global(.vditor-reset h1) {
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 34px;
+  margin: 0 0 24px;
+}
+
+.editorContainer :global(.vditor-reset h2) {
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 28px;
+}

@@ -9,6 +9,7 @@ import { usePresetAssistantInfo } from '@renderer/hooks/agent/usePresetAssistant
 import { resolveConversationBackend } from '@/renderer/pages/conversation/utils/conversationAssistantIdentity';
 import { useTeammateColor } from '../identity/TeamIdentityContext';
 import { Robot } from '@icon-park/react';
+import ThumbnailImage from '@/renderer/components/media/ThumbnailImage';
 
 const useAcpDraft = getSendBoxDraftHook('acp', { _type: 'acp', atPath: [], content: '', uploadFile: [] });
 const useAionrsDraft = getSendBoxDraftHook('aionrs', { _type: 'aionrs', atPath: [], content: '', uploadFile: [] });
@@ -119,8 +120,9 @@ const TeamChatEmptyState: React.FC<Props> = ({
         );
       }
       return (
-        <img
+        <ThumbnailImage
           src={presetInfo.logo}
+          size={48}
           alt={presetInfo.name}
           className='w-48px h-48px object-contain rounded-8px opacity-90'
         />
@@ -128,8 +130,9 @@ const TeamChatEmptyState: React.FC<Props> = ({
     }
     if (agentAvatar.kind === 'image') {
       return (
-        <img
+        <ThumbnailImage
           src={agentAvatar.value}
+          size={48}
           alt={assistantName}
           className='w-48px h-48px object-contain rounded-8px opacity-80'
         />

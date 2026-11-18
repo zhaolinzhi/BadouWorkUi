@@ -1,0 +1,12 @@
+/*
+ * UnoCSS 虚拟模块的测试替身
+ *
+ * 应用入口会 `import 'uno.css'` —— 那是 UnoCSS 的虚拟模块入口,不 import 它,
+ * UnoCSS 不知道要把工具类生成到哪个入口(插件会警告 "Entry module not found")。
+ *
+ * 这个 import 只在构建/开发服务器里有意义:测试环境没有 UnoCSS 插件,解析不到
+ * `uno.css` 会直接让整个测试文件加载失败。所以根 `vitest.config.ts` 里把这个
+ * specifier 指到本文件 —— 测试里样式本来就不参与断言,空文件即可。
+ *
+ * 真正的 UnoCSS 配置在根 `uno.config.ts`,由各子应用自己的 `uno.config.ts` 复用。
+ */

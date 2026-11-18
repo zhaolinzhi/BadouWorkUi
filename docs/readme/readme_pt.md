@@ -702,7 +702,7 @@ Por favor, leia [CONTRIBUTING.md](../../CONTRIBUTING.md) antes de abrir um PR.
 
 ### Configuração de desenvolvimento
 
-O desenvolvimento local do AionUi usa dois repositórios: AionUi para o frontend Electron e AionCore para o backend local. Consulte o [guia de desenvolvimento](../contributing/development.md) para a configuração completa no macOS, Linux e Windows.
+O desenvolvimento local do AionUi usa dois repositórios: AionUi para o frontend Electron e BadouWorkCore para o backend local. Consulte o [guia de desenvolvimento](../contributing/development.md) para a configuração completa no macOS, Linux e Windows.
 
 ---
 

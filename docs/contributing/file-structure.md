@@ -180,7 +180,7 @@ A single directory must not contain more than **10** direct children (files + su
 ## UI Library & Icon Standards
 
 - **Component library**: `@arco-design/web-react`. All new UI must use Arco components first.
-- **Icon library**: `@icon-park/react`. All icons must come from this library.
+- **Icon library**: `@icon-park/react`. Icons must come from this library first. Only when it has no suitable icon, add a custom one by dropping the design's SVG into `packages/ui/src/components/icons/svg/` — the build-time plugin converts it into the same kind of React component and registers it automatically, so it renders identically (see [AppIcon](ui-components/app-icon.md)).
 - **No raw HTML for interactive elements**: Do not use native `<button>`, `<input>`, `<select>`, `<textarea>`, `<modal>`, etc. Use the corresponding Arco component (`Button`, `Input`, `Select`, `Modal`, etc.).
 - **Layout tags are fine**: `<div>`, `<span>`, `<section>`, `<nav>`, `<main>`, and other pure layout/semantic tags may be used freely.
 

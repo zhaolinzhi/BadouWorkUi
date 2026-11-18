@@ -5,6 +5,7 @@ export { default as SiderMeetingRecordingEntry } from './SiderMeetingRecordingEn
 export { default as SiderScheduledEntry } from './SiderScheduledEntry';
 export { default as SiderSearchEntry } from './SiderSearchEntry';
 export { default as SiderToolbar } from './SiderToolbar';
+export { default as SiderAppMarketEntry } from './SiderAppMarketEntry';
 // Task Center and Workbench sidebar entries are enterprise-only; the public
 // flavor keeps the page/IPC code in the bundle but hides the entries from
 // the UI. Driven by packages/desktop/src/common/config/flavor.ts.

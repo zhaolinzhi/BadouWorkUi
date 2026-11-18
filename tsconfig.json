@@ -18,11 +18,13 @@
       "@/*": ["./packages/desktop/src/*"],
       "@process/*": ["./packages/desktop/src/process/*"],
       "@renderer/*": ["./packages/desktop/src/renderer/*"],
-      "@worker/*": ["./packages/desktop/src/process/worker/*"]
+      "@worker/*": ["./packages/desktop/src/process/worker/*"],
+      "@aionui/ui": ["./packages/ui/src/index.ts"]
     }
   },
   "include": [
     "packages/desktop/src/**/*",
+    "packages/ui/src/**/*",
     "uno.config.ts",
     "packages/desktop/electron.vite.config.ts",
     "playwright.config.ts",

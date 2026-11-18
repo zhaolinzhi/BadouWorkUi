@@ -6,11 +6,22 @@
   margin: 0 auto;
 }
 
-.heroHeader {
+/* 首页顶部区块：标题 + 助手切换条（设计稿 `.hero`） */
+.hero {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  margin-bottom: 16px;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.heroTitle {
+  margin: 0;
+  font-size: 24px;
+  line-height: 34px;
+  font-weight: 800;
+  color: var(--guid-hero-text);
+  text-align: center;
 }
 
 /* 调试入口条：水平居中一条小按钮组，只在首页加载 */
@@ -46,10 +57,38 @@
   background: var(--color-fill-2);
 }
 
+/* 建议指令区（设计稿 `.suggestions`） */
+.suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  margin-top: 32px;
+}
+
+/* 建议指令标题（设计稿 `.suggestions p`） */
 .assistantPromptHint {
-  color: var(--color-text-3);
-  font-size: 13px;
+  margin: 0;
+  color: var(--guid-hero-text);
+  font-size: 14px;
   line-height: 20px;
+}
+
+/* 建议指令条目（设计稿 `.suggestion`） */
+.promptSuggestion {
+  width: fit-content;
+  max-width: 100%;
+  min-height: 20px;
+  gap: 9px;
+  border-radius: 4px;
+  text-align: left;
+  color: var(--guid-suggestion-text) !important;
+  font-size: 14px !important;
+  line-height: 20px !important;
+}
+
+.promptSuggestion:hover {
+  color: var(--guid-hero-text) !important;
 }
 
 .guidInputCard {
@@ -57,23 +96,56 @@
   box-sizing: border-box;
 }
 
+/* 输入区外层：白卡 + 项目托盘（设计稿 `.composer-group`）
+   底部留 51px —— 设计稿里托盘露在白卡下方的那一截正好是 51px。 */
 .guidInputCardWrap {
+  position: relative;
   width: 100%;
   box-sizing: border-box;
-  background: var(--bg-2);
+  padding-bottom: 51px;
 }
 
+/* 项目托盘底色：设计稿 `.project-tray` —— 72px 高，往上盖住白卡底部 21px */
+.projectTrayBg {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 72px;
+  background: var(--guid-tray-bg);
+  border-radius: 0 0 24px 24px;
+  box-shadow: var(--guid-tray-shadow);
+  pointer-events: none;
+}
+
+/* 输入卡（设计稿 `.composer`） */
 .guidInputInner {
   position: relative;
-  background: var(--bg-base, #fff);
-  border: 1px solid var(--color-border-3);
+  z-index: 1;
+  background: var(--guid-composer-bg);
+  border: 1px solid var(--guid-composer-border);
   border-radius: 24px;
+  box-shadow: var(--guid-composer-shadow);
   box-sizing: border-box;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
 }
 
-:global([data-theme='dark']) .guidInputInner {
-  background: #262626;
-  border-color: #3a3a3a;
+.guidInputInner:focus-within {
+  border-color: var(--guid-composer-border-focus);
+  box-shadow: var(--guid-composer-shadow-focus);
+}
+
+/* 输入框：设计稿 textarea 高 68px / 字号 16px / 行高 22px */
+.guidInputTextarea {
+  min-height: 68px;
+}
+
+@media (max-width: 768px) {
+  .guidInputTextarea {
+    min-height: 44px;
+  }
 }
 
 .actionRow {
@@ -128,6 +200,25 @@
   color: var(--text-primary) !important;
 }
 
+/* 模型 / 授权选择器：设计稿 `.selector` —— 32px 高、8px 圆角、透明底、悬停才出色 */
+.actionConfigGroup :global(.sendbox-model-btn),
+.actionConfigGroup :global(.agent-mode-compact-pill) {
+  height: 32px !important;
+  min-height: 32px !important;
+  padding: 0 8px !important;
+  border-radius: 8px !important;
+}
+
+.actionConfigGroup :global(.sendbox-model-btn:hover),
+.actionConfigGroup :global(.agent-mode-compact-pill:hover) {
+  background: var(--guid-selector-hover) !important;
+}
+
+.actionConfigGroup :global(.sendbox-model-btn:active),
+.actionConfigGroup :global(.agent-mode-compact-pill:active) {
+  background: var(--guid-selector-active) !important;
+}
+
 .actionConfigGroup :global(.sendbox-model-btn .arco-btn-content) {
   gap: 0 !important;
 }
@@ -160,27 +251,85 @@
 .actionSubmit {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   flex-shrink: 0;
   margin-left: auto;
   min-width: 0;
 }
 
+/* 附件「+」按钮：设计稿 `.add-button` —— 36px 圆、浅灰底 */
+.addButton.arco-btn,
+.addButton.arco-btn-secondary {
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  padding: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  background: var(--guid-add-btn-bg) !important;
+  color: var(--text-primary) !important;
+}
+
+.addButton.arco-btn:hover,
+.addButton.arco-btn:focus-visible {
+  background: var(--guid-add-btn-hover-bg) !important;
+}
+
+/* 发送按钮：设计稿 `.send-button` —— 36px 圆、品牌蓝渐变、禁用时半透明 */
+.guidSendButton.arco-btn,
+.guidSendButton.arco-btn-primary {
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  padding: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  background: var(--guid-send-bg) !important;
+  color: #fff !important;
+  transition:
+    opacity 140ms ease,
+    filter 140ms ease,
+    transform 100ms ease;
+}
+
+.guidSendButton.arco-btn:disabled,
+.guidSendButton.arco-btn-primary:disabled {
+  background: var(--guid-send-bg) !important;
+  opacity: 0.48 !important;
+}
+
+.guidSendButton.arco-btn:not(:disabled):hover {
+  filter: brightness(0.96);
+}
+
+.guidSendButton.arco-btn:not(:disabled):active {
+  filter: brightness(0.86);
+  transform: scale(0.96);
+}
+
+/* 项目托盘文案：设计稿 `.project-tray` 露在白卡下方的那一截（51px），文字贴底 */
 .workspaceFootnote {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 8px;
-  padding: 6px 6px 10px 14px;
+  height: 51px;
+  box-sizing: border-box;
+  padding: 0 16px 16px;
   background: transparent;
 }
 
 .workspaceEmptyBtn {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   font-size: 14px;
   font-weight: 500;
-  color: var(--color-text-3);
+  color: var(--guid-project-label);
   background: transparent;
   border: none;
   padding: 4px 6px;
@@ -194,7 +343,7 @@
 }
 
 .workspaceEmptyBtn:hover {
-  color: var(--color-text-2);
+  color: var(--text-primary);
   background: var(--color-fill-3);
 }
 
@@ -215,7 +364,7 @@
   gap: 5px;
   font-size: 14px;
   font-weight: 500;
-  color: var(--color-text-2);
+  color: var(--guid-project-label);
   background: transparent;
   border: none;
   padding: 4px 4px 4px 6px;
@@ -347,7 +496,7 @@
 }
 
 .lightPlaceholder::placeholder {
-  color: #b4b5bc;
+  color: var(--guid-placeholder);
   opacity: 1;
 }
 
@@ -515,6 +664,49 @@
   color: var(--aou-9) !important;
 }
 
+/* 助手切换条：设计稿 `.assistant-switch` —— 2px 内边距、8px 间距、999px 圆角 */
+.assistantSwitchRow {
+  width: 100%;
+}
+
+.assistantSwitchBar {
+  position: relative;
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  gap: 8px;
+  padding: 2px;
+  border-radius: 999px;
+  background: var(--guid-assistant-bar-bg);
+}
+
+/* 助手药丸：设计稿 `.assistant` —— 32px 高、10px 内边距 */
+.assistantPill {
+  display: inline-flex !important;
+  min-width: 0 !important;
+  height: 32px !important;
+  align-items: center !important;
+  gap: 4px !important;
+  padding: 0 10px !important;
+  border: none !important;
+  border-radius: 999px !important;
+  font-size: 14px !important;
+  line-height: 20px !important;
+  white-space: nowrap;
+  transition:
+    background-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+/* 选中态：白底 + 浅蓝描边（描边用内阴影画，不占布局宽度）
+   这两个属性必须带 !important —— Arco 的 `Button type='text'` 自带
+   `background-color: transparent` 与 `box-shadow: none`，且是运行时注入的，
+   同优先级下会盖掉这里的白底和描边。 */
+.assistantPillSelected {
+  background: var(--guid-assistant-selected-bg) !important;
+  box-shadow: inset 0 0 0 1px var(--guid-assistant-selected-border) !important;
+}
+
 /* 底部快捷按钮：基础间距 + 安全区 */
 .guidQuickActions {
   bottom: calc(32px + env(safe-area-inset-bottom, 0px));
@@ -536,7 +728,7 @@
 
 /* 浅色占位符 */
 .lightPlaceholder :global(textarea::placeholder) {
-  color: #b4b5bc !important;
+  color: var(--guid-placeholder) !important;
   opacity: 1 !important;
 }
 

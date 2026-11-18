@@ -1,0 +1,18 @@
+# bun configuration for this repository.
+#
+# We force the hoisted linker (instead of bun's default isolated layout) so
+# every dependency — including transitive ones pulled in by newly added
+# packages such as qiankun (import-html-entry, single-spa, lodash,
+# @babel/runtime) — is installed into the top-level node_modules/.
+#
+# Why: vite/electron-vite optimizeDeps walks the import graph from the
+# top-level node_modules and only resolves dependencies that are reachable
+# from there. Under bun's isolated layout those transitive deps live inside
+# node_modules/.bun/<pkg>@<ver>/node_modules/, which causes the first-launch
+# pre-bundle step to fail or stall and leaves the renderer process loading
+# nothing — a full white screen in Electron.
+#
+# Switching to hoisted layout makes node_modules look the same way npm/yarn
+# (and vite itself) expect, so optimizeDeps succeeds on first launch.
+[install]
+linker = "hoisted"

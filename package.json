@@ -6,14 +6,16 @@
   "license": "Apache-2.0",
   "author": {
     "name": "BaDouWork",
-    "email": "service@aionui.com"
+    "email": "service@badousoft.com"
   },
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "packages/microapps/*"
   ],
   "main": "./out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev --config packages/desktop/electron.vite.config.ts",
+    "dev:all": "node scripts/dev-all.mjs",
     "start": "electron-vite dev --config packages/desktop/electron.vite.config.ts",
     "start:multi": "cross-env AIONUI_MULTI_INSTANCE=1 electron-vite dev --config packages/desktop/electron.vite.config.ts",
     "cli": "electron-vite dev --config packages/desktop/electron.vite.config.ts",
@@ -28,7 +30,7 @@
     "dist:mac": "node scripts/build-with-builder.js auto --mac",
     "dist:win": "node scripts/build-with-builder.js auto --win",
     "dist:linux": "node scripts/build-with-builder.js auto --linux",
-    "build-mac": "node scripts/build-with-builder.js auto --mac --arm64 --x64",
+    "build-mac": "node scripts/build-with-builder.js auto --mac",
     "build-win": "node scripts/build-with-builder.js auto --win",
     "build-deb": "node scripts/build-with-builder.js auto --linux",
     "build-mac:arm64": "node scripts/build-with-builder.js arm64 --mac --arm64",
@@ -37,6 +39,8 @@
     "build-win:x64": "node scripts/build-with-builder.js x64 --win --x64",
     "build-win:x64:fast": "cross-env ELECTRON_BUILDER_COMPRESSION_LEVEL=1 node scripts/build-with-builder.js x64 --win --x64 --config.win.signAndEditExecutable=false",
     "build-win:x64:debug-versions": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-fast-debug-versions.ps1",
+    "build:all": "cross-env MICRO_APP_BUNDLE=1 node scripts/build-with-builder.js auto --mac",
+    "build:offline": "cross-env MICRO_APP_BUNDLE=1 AIONUI_HUB_SKIP=1 ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ node scripts/build-with-builder.js auto --mac",
     "build": "node scripts/build-with-builder.js auto --mac --arm64 --x64",
     "release:notes": "node scripts/generate-release-notes.js",
     "manifest:local": "node scripts/generate-local-update-manifest.js",
@@ -151,6 +155,7 @@
     "postcss": "^8.5.8",
     "pptx2json": "^0.0.10",
     "process": "^0.11.10",
+    "qiankun": "^2.10.16",
     "qrcode-terminal": "^0.12.0",
     "qrcode.react": "^4.2.0",
     "react": "^19.1.0",

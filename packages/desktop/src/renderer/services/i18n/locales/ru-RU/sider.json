@@ -1,0 +1,18 @@
+{
+  "nav": {
+    "meetingRecordingShort": "Запись",
+    "taskCenterShort": "Задачи",
+    "scheduledShort": "Расписание",
+    "appMarketShort": "Приложения",
+    "ariaLabel": "Основная навигация"
+  },
+  "appMarket": {
+    "title": "Маркет приложений",
+    "comingSoon": "Маркет приложений скоро будет доступен."
+  },
+  "account": {
+    "menuLabel": "Аккаунт",
+    "openMenu": "Открыть меню аккаунта",
+    "appearance": "Оформление"
+  }
+}

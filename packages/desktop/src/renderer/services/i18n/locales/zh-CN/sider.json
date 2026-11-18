@@ -1,0 +1,18 @@
+{
+  "nav": {
+    "meetingRecordingShort": "录音",
+    "taskCenterShort": "任务",
+    "scheduledShort": "定时",
+    "appMarketShort": "应用",
+    "ariaLabel": "主导航"
+  },
+  "appMarket": {
+    "title": "应用市场",
+    "comingSoon": "应用市场正在建设中，敬请期待。"
+  },
+  "account": {
+    "menuLabel": "个人中心",
+    "openMenu": "打开个人菜单",
+    "appearance": "外观"
+  }
+}

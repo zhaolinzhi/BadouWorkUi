@@ -20,6 +20,7 @@ import { uuid } from '@/common/utils';
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import EnvVarEditor, { type EnvVarRow } from './EnvVarEditor';
+import ThumbnailImage from '@/renderer/components/media/ThumbnailImage';
 
 /**
  * Longest edge (in px) a custom-agent avatar image is downscaled to before
@@ -436,7 +437,7 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
                 }}
               >
                 {avatarPreview.kind === 'image' ? (
-                  <img src={avatarPreview.value} alt='' className='h-full w-full object-cover' />
+                  <ThumbnailImage src={avatarPreview.value} size={48} alt='' className='h-full w-full object-cover' />
                 ) : avatarPreview.kind === 'emoji' ? (
                   avatarPreview.value
                 ) : (

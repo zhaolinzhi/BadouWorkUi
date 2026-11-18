@@ -36,6 +36,7 @@ import { isLegacyReadOnlyConversationType } from '../utils/conversationRuntime';
 import { resolveConversationBackend } from '../utils/conversationAssistantIdentity';
 import LegacyReadOnlyConversation from '../platforms/legacy/LegacyReadOnlyConversation';
 import { useActiveLease } from '../hooks/useActiveLease';
+import ThumbnailImage from '@/renderer/components/media/ThumbnailImage';
 // import SkillRuleGenerator from './components/SkillRuleGenerator'; // Temporarily hidden
 
 const configErrorMessageKey = (error: unknown) => {
@@ -103,7 +104,7 @@ const _AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ co
     <Tooltip content={t('conversation.workspace.createNewConversation')}>
       <Button
         size='mini'
-        icon={<img src={addChatIcon} alt='Add chat' className='w-14px h-14px block m-auto' />}
+        icon={<ThumbnailImage src={addChatIcon} size={14} alt='Add chat' className='w-14px h-14px block m-auto' />}
         onClick={async () => {
           if (isCreatingRef.current) return;
           isCreatingRef.current = true;

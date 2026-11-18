@@ -56,9 +56,14 @@ vi.mock('@/renderer/utils/platform', () => ({
   isElectronDesktop: () => environment.isDesktop,
 }));
 
-vi.mock('@icon-park/react', () => {
+// 组件里用到的图标统一替换成空壳 —— 但要保留 icon-park 的**全部**导出,
+// 因为 `@aionui/ui` 的图标映射表会静态 import 其中一批(缺一个就报
+// 「No xxx export is defined on the @icon-park/react mock」)。
+vi.mock('@icon-park/react', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@icon-park/react')>();
   const Icon = () => <span aria-hidden='true' />;
   return {
+    ...actual,
     ArrowUp: Icon,
     Brain: Icon,
     FolderOpen: Icon,

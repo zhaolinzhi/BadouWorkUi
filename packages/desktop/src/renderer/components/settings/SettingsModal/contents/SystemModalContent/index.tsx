@@ -25,7 +25,6 @@ import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { useSettingsViewMode } from '../../settingsViewContext';
 import BrowserNotificationGrant from './BrowserNotificationGrant';
-import DevSettings from './DevSettings';
 import BrowserDataSection from './BrowserDataSection';
 import DirInputItem from './DirInputItem';
 import PreferenceRow from './PreferenceRow';
@@ -547,9 +546,6 @@ const SystemModalContent: React.FC = () => {
 
           {/* In-app browser: sign-in state and cache */}
           <BrowserDataSection />
-
-          {/* Developer settings: DevTools + CDP (only visible in dev mode) */}
-          <DevSettings />
         </div>
       </AionScrollArea>
     </div>

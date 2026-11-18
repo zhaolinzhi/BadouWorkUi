@@ -8,7 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const list = vi.fn();
 
-vi.mock('@/renderer/hooks/knowledge-base/useKnowledgeBaseList', () => ({
+vi.mock('@/renderer/hooks/kb-chat/useKnowledgeBaseList', () => ({
   useKnowledgeBaseList: () => {
     const v = list();
     return {
@@ -64,7 +64,7 @@ describe('useKbMentionSearch', () => {
     expect(result.current.items.map((i) => i.path)).toEqual(['kb:1']);
   });
 
-  it('respects the limit', () => {
+  it('不再按 limit 截断 —— 下拉可滚动,所有命中项都透出', () => {
     list.mockReturnValue({
       personalItems: Array.from({ length: 12 }, (_, i) => ({
         id: String(i),
@@ -73,8 +73,9 @@ describe('useKbMentionSearch', () => {
       })),
       sharedItems: [],
     });
+    // `limit` 仍留在签名里(调用方不用改),但不再参与截断
     const { result } = renderHook(() => useKbMentionSearch({ query: '', isOpen: true, limit: 5 }));
-    expect(result.current.items).toHaveLength(5);
+    expect(result.current.items).toHaveLength(12);
   });
 
   it('marks shared items', () => {

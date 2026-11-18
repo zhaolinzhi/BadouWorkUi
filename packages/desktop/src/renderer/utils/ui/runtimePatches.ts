@@ -35,6 +35,17 @@ const ARCO_MESSAGE_KEY_PATTERNS = [
 // 抑制第三方库中 React 19 ref 废弃警告（等待库更新）
 const REACT_19_REF_PATTERNS = ['accessing element.ref was removed in react 19', 'ref is now a regular prop'];
 
+// Silence Arco Design findDOMNode deprecation warnings.
+// Arco Design's internal ResizeObserverComponent2.componentDidMount calls
+// React.findDOMNode(), which React 18+ flags as deprecated under StrictMode.
+// Upstream fix is pending (see https://github.com/arco-design/arco-design/issues).
+// Until arco-design ships a real fix we suppress the noise here so it doesn't
+// drown out real warnings during development.
+const ARCO_FIND_DOM_NODE_PATTERNS = [
+  'element does not define the `getrootdomnode` method',
+  'finddomnode is deprecated in strictmode',
+];
+
 const extractMessage = (value: unknown): string | undefined => {
   if (!value) return undefined;
   if (typeof value === 'string') return value;
@@ -51,7 +62,8 @@ const shouldSilence = (message?: string) => {
   return (
     RESIZE_OBSERVER_PATTERNS.some((pattern) => normalized.includes(pattern)) ||
     ARCO_MESSAGE_KEY_PATTERNS.some((pattern) => normalized.includes(pattern)) ||
-    REACT_19_REF_PATTERNS.some((pattern) => normalized.includes(pattern))
+    REACT_19_REF_PATTERNS.some((pattern) => normalized.includes(pattern)) ||
+    ARCO_FIND_DOM_NODE_PATTERNS.some((pattern) => normalized.includes(pattern))
   );
 };
 

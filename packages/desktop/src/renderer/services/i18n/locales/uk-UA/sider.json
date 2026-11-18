@@ -1,0 +1,18 @@
+{
+  "nav": {
+    "meetingRecordingShort": "Запис",
+    "taskCenterShort": "Завдання",
+    "scheduledShort": "Розклад",
+    "appMarketShort": "Застосунки",
+    "ariaLabel": "Основна навігація"
+  },
+  "appMarket": {
+    "title": "Маркет застосунків",
+    "comingSoon": "Маркет застосунків буде доступний найближчим часом."
+  },
+  "account": {
+    "menuLabel": "Обліковий запис",
+    "openMenu": "Відкрити меню облікового запису",
+    "appearance": "Оформлення"
+  }
+}

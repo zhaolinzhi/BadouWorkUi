@@ -3,6 +3,7 @@ import { Robot } from '@icon-park/react';
 import { resolveAssistantAvatar } from '@renderer/utils/model/assistantAvatar';
 import { resolveAssistantName } from '@renderer/utils/model/assistantDisplay';
 import { assistantRuntimeKey, type Assistant } from '@/common/types/agent/assistantTypes';
+import ThumbnailImage from '@/renderer/components/media/ThumbnailImage';
 
 /** Team leader selector entry derived from the unified assistant catalog. */
 export type TeamAssistantOption = {
@@ -66,8 +67,9 @@ export const AssistantOptionLabel: React.FC<AssistantOptionLabelProps> = ({
   const nameClass = muted ? 'text-t-tertiary' : 'text-t-primary';
   const avatarNode =
     avatar.kind === 'image' ? (
-      <img
+      <ThumbnailImage
         src={avatar.value}
+        size={iconSize}
         alt={assistant.name}
         style={{ width: iconSize, height: iconSize, objectFit: 'contain' }}
       />

@@ -1,0 +1,18 @@
+{
+  "nav": {
+    "meetingRecordingShort": "Kayıt",
+    "taskCenterShort": "Görev",
+    "scheduledShort": "Planlı",
+    "appMarketShort": "Uygulama",
+    "ariaLabel": "Ana gezinme"
+  },
+  "appMarket": {
+    "title": "Uygulama Marketi",
+    "comingSoon": "Uygulama Marketi yakında yayında."
+  },
+  "account": {
+    "menuLabel": "Hesap",
+    "openMenu": "Hesap menüsünü aç",
+    "appearance": "Görünüm"
+  }
+}

@@ -55,9 +55,7 @@ jobs:
           node-version: '22'
 
       - name: Setup bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
+        uses: ./.github/actions/setup-bun
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -113,9 +111,7 @@ jobs:
           node-version: '22'
 
       - name: Setup bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
+        uses: ./.github/actions/setup-bun
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -187,7 +183,6 @@ jobs:
         env:
           npm_config_runtime: electron
           npm_config_disturl: https://electronjs.org/headers
-          ELECTRON_CACHE: ${{ runner.temp }}/.cache/electron
           ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/.cache/electron-builder
 
       - name: Print build configuration
@@ -382,6 +377,9 @@ jobs:
         env:
           WINDOWS_BUILD_COMMAND: ${{ matrix.command }}
           AIONUI_BACKEND_RUN_ID: ${{ inputs.aioncore_run_id }}
+          # 内置微应用(qiankun):构建子应用并拷进安装包,entry 走 app://microapps
+          # Bundle the qiankun micro apps into the installer (entry: app://microapps)
+          MICRO_APP_BUNDLE: '1'
           # Node.js memory limit for vite bundling (prevents OOM during build)
           # Node.js 内存限制，防止 vite 打包时内存不足
           NODE_OPTIONS: '--max-old-space-size=8192'
@@ -393,8 +391,12 @@ jobs:
           npm_config_disturl: https://electronjs.org/headers
           npm_config_build_from_source: true
           npm_config_cache: ${{ runner.temp }}/.npm
-          ELECTRON_CACHE: ${{ runner.temp }}/.cache/electron
           ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/.cache/electron-builder
+          # Electron binary mirror. The default source (GitHub Releases) intermittently
+          # returns 504 Gateway Time-out on the CI runners, which fails the build
+          # during the "packaging" phase. npmmirror serves the identical
+          # electron-v<version>-<platform>-<arch>.zip assets.
+          ELECTRON_MIRROR: https://registry.npmmirror.com/-/binary/electron/
           # Signing & IDs / 签名与应用 ID 配置
           APP_ID: ${{ secrets.APP_ID }}
           appleId: ${{ secrets.APPLE_ID }}
@@ -442,9 +444,33 @@ jobs:
         run: |
           set +e  # Handle errors manually
 
-          # Run build command
-          ${{ matrix.command }} 2>&1 | tee "${RUNNER_TEMP}/build.log"
-          BUILD_EXIT_CODE=${PIPESTATUS[0]}
+          # Run build command, retrying transient network failures.
+          # The Electron binary is fetched from a mirror during packaging, and
+          # a stalled download surfaces as "Response code 504 (Gateway
+          # Time-out) failedTask=build" with no DMG produced. Retrying the
+          # whole build is safe: electron-builder reuses its download cache,
+          # so a partially-downloaded artifact is not fetched twice.
+          BUILD_MAX_ATTEMPTS=3
+          BUILD_ATTEMPT=1
+          BUILD_EXIT_CODE=1
+          while [ "$BUILD_ATTEMPT" -le "$BUILD_MAX_ATTEMPTS" ]; do
+            if [ "$BUILD_ATTEMPT" -gt 1 ]; then
+              echo "::warning::Build failed (attempt $((BUILD_ATTEMPT - 1))/$BUILD_MAX_ATTEMPTS). Retrying in 60s..."
+              sleep 60
+            fi
+
+            echo "::group::Build attempt ${BUILD_ATTEMPT}/${BUILD_MAX_ATTEMPTS}"
+            ${{ matrix.command }} 2>&1 | tee "${RUNNER_TEMP}/build.log"
+            BUILD_EXIT_CODE=${PIPESTATUS[0]}
+            echo "::endgroup::"
+
+            # A successful build (or a DMG that exists despite a non-zero exit
+            # code — the notarization-failure case) must not be retried.
+            if [ "$BUILD_EXIT_CODE" -eq 0 ] || ls out/*.dmg 1>/dev/null 2>&1; then
+              break
+            fi
+            BUILD_ATTEMPT=$((BUILD_ATTEMPT + 1))
+          done
 
           # Check if DMG was created (most important artifact)
           DMG_EXISTS=false
@@ -485,6 +511,9 @@ jobs:
         env:
           NODE_OPTIONS: '--max-old-space-size=8192'
           AIONUI_BACKEND_RUN_ID: ${{ inputs.aioncore_run_id }}
+          # 内置微应用(qiankun):构建子应用并拷进安装包,entry 走 app://microapps
+          # Bundle the qiankun micro apps into the installer (entry: app://microapps)
+          MICRO_APP_BUNDLE: '1'
           npm_config_arch: ${{ matrix.arch }}
           APP_ID: ${{ secrets.APP_ID }}
           appleId: ${{ secrets.APPLE_ID }}
@@ -494,11 +523,14 @@ jobs:
           CSC_NAME: ${{ secrets.IDENTITY }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
           npm_config_cache: ${{ runner.temp }}/.npm
-          ELECTRON_CACHE: ${{ runner.temp }}/.cache/electron
           ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/.cache/electron-builder
           ELECTRON_BUILDER_BINARIES_MIRROR: https://github.com/electron-userland/electron-builder-binaries/releases/download/
           npm_config_electron_builder_binaries_mirror: https://github.com/electron-userland/electron-builder-binaries/releases/download/
-          ELECTRON_MIRROR: ''
+          # Electron binary mirror. The default source (GitHub Releases) intermittently
+          # returns 504 Gateway Time-out on the CI runners, which fails the build
+          # during the "packaging" phase. npmmirror serves the identical
+          # electron-v<version>-<platform>-<arch>.zip assets.
+          ELECTRON_MIRROR: https://registry.npmmirror.com/-/binary/electron/
           npm_config_disturl: https://electronjs.org/headers
           npm_config_runtime: electron
           npm_config_target_arch: ${{ matrix.arch }}
@@ -523,13 +555,19 @@ jobs:
         env:
           NODE_OPTIONS: '--max-old-space-size=8192'
           AIONUI_BACKEND_RUN_ID: ${{ inputs.aioncore_run_id }}
+          # 内置微应用(qiankun):构建子应用并拷进安装包,entry 走 app://microapps
+          # Bundle the qiankun micro apps into the installer (entry: app://microapps)
+          MICRO_APP_BUNDLE: '1'
           npm_config_arch: ${{ matrix.arch }}
           npm_config_cache: ${{ runner.temp }}/.npm
-          ELECTRON_CACHE: ${{ runner.temp }}/.cache/electron
           ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/.cache/electron-builder
           ELECTRON_BUILDER_BINARIES_MIRROR: https://github.com/electron-userland/electron-builder-binaries/releases/download/
           npm_config_electron_builder_binaries_mirror: https://github.com/electron-userland/electron-builder-binaries/releases/download/
-          ELECTRON_MIRROR: ''
+          # Electron binary mirror. The default source (GitHub Releases) intermittently
+          # returns 504 Gateway Time-out on the CI runners, which fails the build
+          # during the "packaging" phase. npmmirror serves the identical
+          # electron-v<version>-<platform>-<arch>.zip assets.
+          ELECTRON_MIRROR: https://registry.npmmirror.com/-/binary/electron/
           npm_config_disturl: https://electronjs.org/headers
           npm_config_runtime: electron
           npm_config_target_arch: ${{ matrix.arch }}

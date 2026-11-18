@@ -8,6 +8,7 @@ import { ipcBridge } from '@/common';
 import { addRecentWorkspace, getRecentWorkspaces } from '@/renderer/components/workspace';
 import { AionInlineSearchInput } from '@/renderer/components/base';
 import { Tooltip } from '@arco-design/web-react';
+import { AppIcon } from '@aionui/ui';
 import { Close, Down } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -20,18 +21,8 @@ type GuidWorkspaceFootnoteProps = {
   onClearWorkspace: () => void;
 };
 
-const FolderIcon = ({ size = 12 }: { size?: number }) => (
-  <svg
-    width={size}
-    height={size}
-    fill='none'
-    stroke='currentColor'
-    strokeWidth='1.8'
-    viewBox='0 0 24 24'
-    style={{ lineHeight: 0, flexShrink: 0 }}
-  >
-    <path d='M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z' />
-  </svg>
+const FolderIcon = ({ size = 14 }: { size?: number }) => (
+  <AppIcon name='project-folder' size={size} className='shrink-0' />
 );
 
 const PlusIcon = () => (
@@ -262,7 +253,7 @@ const GuidWorkspaceFootnote: React.FC<GuidWorkspaceFootnoteProps> = ({
             onClick={recentWorkspaces.length > 0 ? toggleOpen : handleBrowseWorkspace}
           >
             <FolderIcon size={14} />
-            <span>{t('guid.workspace.workInProject')}</span>
+            <span>{t('guid.workspace.selectProject')}</span>
             {recentWorkspaces.length > 0 && (
               <Down
                 theme='outline'

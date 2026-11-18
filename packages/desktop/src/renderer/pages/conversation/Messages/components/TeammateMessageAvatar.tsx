@@ -9,6 +9,7 @@ import useSWR from 'swr';
 import { usePresetAssistantInfo } from '@renderer/hooks/agent/usePresetAssistantInfo';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { Robot } from '@icon-park/react';
+import ThumbnailImage from '@/renderer/components/media/ThumbnailImage';
 
 type Props = {
   senderName: string;
@@ -46,11 +47,25 @@ const TeammateMessageAvatar: React.FC<Props> = ({ senderName, senderConversation
         </span>
       );
     }
-    return <img src={presetInfo.logo} alt={presetInfo.name} className='w-20px h-20px rounded-full object-contain' />;
+    return (
+      <ThumbnailImage
+        src={presetInfo.logo}
+        size={20}
+        alt={presetInfo.name}
+        className='w-20px h-20px rounded-full object-contain'
+      />
+    );
   }
 
   if (backendLogo) {
-    return <img src={backendLogo} alt={senderName} className='w-20px h-20px rounded-full object-contain' />;
+    return (
+      <ThumbnailImage
+        src={backendLogo}
+        size={20}
+        alt={senderName}
+        className='w-20px h-20px rounded-full object-contain'
+      />
+    );
   }
 
   return (

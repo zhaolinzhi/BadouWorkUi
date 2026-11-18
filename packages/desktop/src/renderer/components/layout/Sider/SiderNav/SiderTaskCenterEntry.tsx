@@ -5,11 +5,11 @@
  */
 
 import React from 'react';
-import { Tooltip } from '@arco-design/web-react';
+import { useTranslation } from 'react-i18next';
 import { Clipboard } from '@icon-park/react';
-import classNames from 'classnames';
-import CollapsedRailTooltip from '../CollapsedRailTooltip';
+import { AppIcon } from '@aionui/ui';
 import { useTaskCenterT } from '@renderer/pages/task-center/useTaskCenterT';
+import SiderNavItem from './SiderNavItem';
 
 interface SiderTaskCenterEntryProps {
   isMobile: boolean;
@@ -19,45 +19,22 @@ interface SiderTaskCenterEntryProps {
 }
 
 const SiderTaskCenterEntry: React.FC<SiderTaskCenterEntryProps> = ({ isMobile, isActive, collapsed, onClick }) => {
-  const t = useTaskCenterT();
-  const title = String(t('taskCenter.title'));
-
-  if (collapsed) {
-    return (
-      <CollapsedRailTooltip label={title} onClick={onClick} active={isActive}>
-        <Clipboard
-          theme='outline'
-          size='22'
-          fill='currentColor'
-          className='block leading-none shrink-0'
-          style={{ lineHeight: 0 }}
-        />
-      </CollapsedRailTooltip>
-    );
-  }
+  const { t } = useTranslation();
+  // 任务中心页面是纯中文的,标题沿用它自己的 `t`。
+  const taskCenterT = useTaskCenterT();
+  const title = String(taskCenterT('taskCenter.title'));
 
   return (
-    <Tooltip content={title} disabled={!collapsed} position='right'>
-      <div
-        className={classNames(
-          'box-border group h-34px w-full flex items-center justify-start gap-8px pl-10px pr-8px rd-0.5rem cursor-pointer shrink-0 transition-all text-t-primary',
-          isMobile && 'sider-action-btn-mobile',
-          isActive ? 'bg-fill-3' : 'hover:bg-fill-3 active:bg-fill-4'
-        )}
-        onClick={onClick}
-      >
-        <span className='size-22px flex items-center justify-center shrink-0 text-t-primary'>
-          <Clipboard
-            theme='outline'
-            size='16'
-            fill='currentColor'
-            className='block leading-none'
-            style={{ lineHeight: 0 }}
-          />
-        </span>
-        <span className='collapsed-hidden text-t-primary text-14px font-[500] leading-24px'>{title}</span>
-      </div>
-    </Tooltip>
+    <SiderNavItem
+      collapsed={collapsed}
+      isActive={isActive}
+      isMobile={isMobile}
+      collapsedLabel={t('sider.nav.taskCenterShort')}
+      expandedLabel={title}
+      onClick={onClick}
+      // 设计稿的导航里没有「任务中心」这一项,暂时沿用 icon-park 的 Clipboard。
+      icon={<AppIcon icon={Clipboard} size={collapsed ? 20 : 18} />}
+    />
   );
 };
 

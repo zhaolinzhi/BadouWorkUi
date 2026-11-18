@@ -702,7 +702,7 @@ PR を開く前に [CONTRIBUTING.md](../../CONTRIBUTING.md) をお読みくだ�
 
 ### 開発環境セットアップ
 
-AionUi のローカル開発では、Electron フロントエンド用の AionUi とローカルバックエンド用の AionCore の 2 つのリポジトリを使います。macOS、Linux、Windows の完全なセットアップ手順は [Development Guide](../contributing/development.md) を参照してください。
+AionUi のローカル開発では、Electron フロントエンド用の AionUi とローカルバックエンド用の BadouWorkCore の 2 つのリポジトリを使います。macOS、Linux、Windows の完全なセットアップ手順は [Development Guide](../contributing/development.md) を参照してください。
 
 ---
 

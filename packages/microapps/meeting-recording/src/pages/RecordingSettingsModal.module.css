@@ -1,0 +1,339 @@
+/**
+ * 录音设置弹窗的样式 —— 对齐设计稿 BadouWork-Desktop-Handoff 的
+ * `.rec-dialog.wide` / `.rec-source-options` / `.rec-info` /
+ * `.rec-more-settings` / `.rec-advanced`。
+ *
+ * 设计稿的关键几何:
+ *   .rec-dialog.wide      640px 宽、32px 内边距、16px 圆角
+ *   .rec-source-option    两张 50% 宽的卡片,选中态浅蓝底 + 浅蓝描边
+ *   .rec-info             16px 内边距、8px 圆角的状态提示块
+ *   .rec-more-settings    「更多设置 / 收起设置」一行
+ *   .rec-advanced         展开后的名称输入 + 设备 / 语言选择
+ */
+
+/*
+ * Arco 的 Modal 自带三段式结构(标题 / 内容 / 按钮),默认有分隔线与固定
+ * 内边距;设计稿的弹窗是一整块白底,靠 32px 内边距与 20px 段间距分区。
+ * 这里把三段的边框与内边距清掉,统一交给卡片自身的 padding。
+ */
+.modal {
+  box-sizing: border-box;
+  padding: 32px !important;
+  border: none !important;
+  border-radius: 16px !important;
+  background: var(--rec-surface) !important;
+  box-shadow: 0 8px 16px #00000014 !important;
+}
+
+.modal :global(.arco-modal-header) {
+  height: auto;
+  padding: 0 !important;
+  border-bottom: none !important;
+  align-items: flex-start;
+  background: transparent !important;
+  margin-bottom: 20px;
+}
+
+/* Arco 默认把标题居中 —— 设计稿是左对齐 */
+.modal :global(.arco-modal-header) :global(.arco-modal-title) {
+  flex: 1;
+  text-align: left;
+  font-weight: normal;
+}
+
+.modal :global(.arco-modal-content) {
+  padding: 0 !important;
+  background: transparent !important;
+  color: var(--rec-heading);
+  font-size: 14px;
+}
+
+.modal :global(.arco-modal-footer) {
+  padding: 20px 0 0 !important;
+  border-top: none !important;
+  background: transparent !important;
+  text-align: left;
+}
+
+/* 关闭按钮:设计稿里它在弹窗右上角,与标题大致齐平 */
+.modal :global(.arco-modal-close-icon) {
+  top: 38px;
+  right: 28px;
+  color: var(--rec-muted);
+}
+
+.header {
+  padding-right: 40px;
+}
+
+.title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 28px;
+  color: var(--rec-heading);
+}
+
+.description {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 22px;
+  color: var(--rec-muted);
+}
+
+/* 内容区:三段之间 20px(设计稿 `.rec-settings-dialog` 的 gap) */
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 22px;
+  color: var(--rec-heading);
+}
+
+.sectionHint {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 22px;
+  color: var(--rec-muted);
+}
+
+/* 录音来源:两张并排的卡片 */
+.sourceOptions {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.sourceOption {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-sizing: border-box;
+  min-height: 72px;
+  padding: 12px 16px;
+  border: 1px solid var(--rec-border);
+  border-radius: 8px;
+  background: var(--rec-surface);
+  cursor: pointer;
+}
+
+/* 选中态:浅蓝底 + 浅蓝描边 */
+.sourceOptionActive {
+  border-color: var(--rec-brand-border);
+  background: var(--rec-brand-soft);
+}
+
+.sourceOptionDisabled {
+  cursor: default;
+  color: var(--rec-disabled-text);
+}
+
+.sourceIcon {
+  flex-shrink: 0;
+  color: var(--rec-brand);
+}
+
+.sourceOptionDisabled .sourceIcon {
+  color: var(--rec-disabled-text);
+}
+
+.sourceCopy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sourceName {
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--rec-heading);
+}
+
+.sourceOptionDisabled .sourceName {
+  color: var(--rec-disabled-text);
+}
+
+.sourceDescription {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--rec-muted);
+}
+
+/* 状态提示块 —— 设计稿 `.rec-info.rec-source-hint`:高 64px、上边距 20px、内边距 12px、行距 2px */
+.info {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  height: 64px;
+  margin-top: 20px;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--rec-info-bg);
+}
+
+.infoBlue {
+  background: var(--rec-brand-soft);
+}
+
+.infoTitle {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 22px;
+  color: var(--rec-heading);
+}
+
+.infoDescription {
+  margin: 0;
+  font-size: 12px;
+  line-height: 22px;
+  color: var(--rec-muted);
+}
+
+/* 「更多设置 / 收起设置」 */
+.moreRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+}
+
+.moreButton {
+  height: 32px !important;
+  padding: 0 !important;
+  color: var(--rec-brand) !important;
+  font-size: 14px !important;
+}
+
+.moreSummary {
+  font-size: 12px;
+  line-height: 22px;
+  color: var(--rec-muted);
+}
+
+.moreChevron {
+  color: var(--rec-muted);
+}
+
+/* 展开后箭头翻转 */
+.moreChevronOpen {
+  transform: rotate(180deg);
+}
+
+/* 展开后的高级设置 */
+.advanced {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* 设计稿 `.rec-dialog input[type=text], .rec-dialog select`:40px 高、8px 圆角 */
+.advanced :global(.arco-input-wrapper),
+.advanced :global(.arco-select-view) {
+  height: 40px !important;
+  border-radius: 8px !important;
+  border-color: var(--rec-border) !important;
+  background: var(--rec-surface) !important;
+  color: var(--rec-heading) !important;
+}
+
+/* Select 要撑满 Tooltip 的外层 span */
+.advanced :global(.arco-select) {
+  width: 100%;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* 字段名 —— 设计稿 `.rec-label>span`:14px,但颜色是次要文字 */
+.fieldLabel {
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--rec-muted);
+}
+
+.fieldRow {
+  display: flex;
+  gap: 12px;
+}
+
+.fieldRow > * {
+  flex: 1;
+  min-width: 0;
+}
+
+.fieldRow > :first-child {
+  flex: 1.6;
+}
+
+/* 底部按钮 */
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.footerButton,
+.footerPrimaryButton {
+  height: 36px !important;
+  padding: 0 16px !important;
+  border-radius: 8px !important;
+  font-size: 14px !important;
+}
+
+.footerButton {
+  border-color: var(--rec-border) !important;
+  background: var(--rec-surface) !important;
+  color: var(--rec-heading) !important;
+}
+
+.footerPrimaryButton {
+  border-color: var(--rec-brand) !important;
+  background: var(--rec-brand) !important;
+  color: #ffffff !important;
+}
+
+.footerPrimaryButton:hover {
+  border-color: var(--rec-brand-hover) !important;
+  background: var(--rec-brand-hover) !important;
+}
+
+.footerPrimaryButton:disabled {
+  border-color: var(--rec-disabled-bg) !important;
+  background: var(--rec-disabled-bg) !important;
+  color: var(--rec-disabled-text) !important;
+}
+
+/*
+ * Tooltip 必须挂在可接收事件的元素上 —— disabled 的控件不派发鼠标事件,
+ * 提示永远不会出现。用一层 span 把 Tooltip 与控件隔开。
+ */
+.disabledWrapper {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+}
+
+.disabledWrapper > * {
+  flex: 1;
+  min-width: 0;
+}

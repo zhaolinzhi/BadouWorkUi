@@ -16,6 +16,21 @@ type UseContainerWidthReturn = {
 const WIDTH_SETTLE_MS = 120;
 
 /**
+ * Content-box width of an element.
+ *
+ * `ResizeObserver` reports the content box (padding excluded), so the initial
+ * measurement has to exclude the padding too — otherwise the two would
+ * disagree whenever the container is inset (see the content row in Layout,
+ * whose left padding is the sider's width).
+ */
+const measureContentWidth = (element: HTMLElement): number => {
+  const style = getComputedStyle(element);
+  const paddingLeft = parseFloat(style.paddingLeft) || 0;
+  const paddingRight = parseFloat(style.paddingRight) || 0;
+  return element.getBoundingClientRect().width - paddingLeft - paddingRight;
+};
+
+/**
  * Tracks the width of a container element using ResizeObserver,
  * falling back to window.innerWidth when the element is not yet mounted.
  */
@@ -30,7 +45,7 @@ export function useContainerWidth(): UseContainerWidthReturn {
       setContainerWidth(typeof window === 'undefined' ? 0 : window.innerWidth);
       return;
     }
-    setContainerWidth(element.offsetWidth);
+    setContainerWidth(measureContentWidth(element));
     if (typeof ResizeObserver === 'undefined') {
       return;
     }

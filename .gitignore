@@ -65,6 +65,9 @@ typings/
 # dotenv environment variables file
 .env
 .env.test
+# 本地覆盖:packages/desktop/.env.local 及各环境的 .local 变体,个人用,不提交
+.env.local
+.env.*.local
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
@@ -95,6 +98,9 @@ typings/
 
 # Electron-Forge
 out/
+
+# electron-vite atomic build backups (renamed from out/ before each rebuild)
+.tmp-out-backup-*
 
 # IDE and Editor files
 .idea
@@ -162,7 +168,6 @@ specs/**/work-*
 .spec-cache/
 .tmp/
 my-video
-${env.ELECTRON_CACHE}/
 
 # Agent Kit
 .agent
@@ -191,6 +196,7 @@ vx.toml
 .taichuy/*
 kylindoc/
 .workspace/
+/data/
 lint-results.txt
 
 # Git worktrees

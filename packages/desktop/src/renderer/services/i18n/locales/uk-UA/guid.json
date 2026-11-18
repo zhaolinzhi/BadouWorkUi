@@ -8,6 +8,7 @@
   "selectAssistantHint": "Виберіть асистента, щоб розпочати завдання",
   "workspace": {
     "workInProject": "Працювати в проєкті",
+    "selectProject": "Вибрати проєкт",
     "optional": "Необов'язково",
     "clearWorkspace": "Очистити",
     "specifyWorkspace": "Вибрати папку проєкту",

@@ -5,6 +5,7 @@ import { useExtI18n } from '@/renderer/hooks/system/useExtI18n';
 import { useExtensionSettingsTabs } from '@/renderer/hooks/system/useExtensionSettingsTabs';
 import {
   Cat,
+  Code,
   Communication,
   Computer,
   Earth,
@@ -23,6 +24,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Tooltip } from '@arco-design/web-react';
 import { getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
 import { PerfProfiler, mark } from '@/renderer/utils/perf';
+import ThumbnailImage from '@/renderer/components/media/ThumbnailImage';
 
 /** Builtin settings tab IDs in display order (must match router paths). */
 export const BUILTIN_TAB_IDS = [
@@ -34,6 +36,7 @@ export const BUILTIN_TAB_IDS = [
   'webui',
   'pet',
   'system',
+  'developer',
   'about',
 ] as const;
 
@@ -56,6 +59,7 @@ export const LEGACY_ANCHOR_REMAP: Record<string, string> = {
 const GROUP_HEADER_BEFORE: Record<string, string> = {
   agent: 'settings.groupAiCore',
   appearance: 'settings.groupApp',
+  developer: 'settings.groupDeveloper',
   about: 'settings.groupAbout',
 };
 
@@ -111,11 +115,20 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
       },
       pet: { id: 'pet', label: t('pet.desktopPet'), icon: <Cat />, path: 'pet' },
       system: { id: 'system', label: t('settings.system'), icon: <System />, path: 'system' },
+      developer: {
+        id: 'developer',
+        label: t('settings.developerSettings'),
+        icon: <Code />,
+        path: 'developer',
+      },
       about: { id: 'about', label: t('settings.about'), icon: <Info />, path: 'about' },
     };
 
-    // Start with ordered builtin IDs, hiding desktop-only tabs in browser mode
-    const result: SiderItem[] = BUILTIN_TAB_IDS.filter((id) => isDesktop || id !== 'pet').map((id) => builtinMap[id]);
+    // Start with ordered builtin IDs, hiding desktop-only tabs in browser mode.
+    // 开发者分组只在开发构建里出现 —— 打包版这条导航项整个不存在。
+    const result: SiderItem[] = BUILTIN_TAB_IDS.filter(
+      (id) => (isDesktop || id !== 'pet') && (import.meta.env.DEV || id !== 'developer')
+    ).map((id) => builtinMap[id]);
 
     // Extension tabs with position anchoring
     const beforeMap = new Map<string, IExtensionSettingsTab[]>();
@@ -148,7 +161,11 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
       return {
         id: tab.id,
         label: resolveExtTabName(tab),
-        icon: resolvedIcon ? <img src={resolvedIcon} alt='' className='w-full h-full object-contain' /> : <Puzzle />,
+        icon: resolvedIcon ? (
+          <ThumbnailImage src={resolvedIcon} size={20} alt='' className='w-full h-full object-contain' />
+        ) : (
+          <Puzzle />
+        ),
         isImageIcon: Boolean(resolvedIcon),
         path: `ext/${tab.id}`,
       };

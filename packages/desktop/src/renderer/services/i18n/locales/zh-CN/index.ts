@@ -26,6 +26,7 @@ import workbench from './workbench.json';
 import kbChat from './kb-chat.json';
 import taskCenter from './taskCenter.json';
 import meetingRecording from './meeting-recording.json';
+import sider from './sider.json';
 
 export default {
   common,
@@ -51,4 +52,5 @@ export default {
   'kb-chat': kbChat,
   taskCenter,
   'meeting-recording': meetingRecording,
+  sider,
 };

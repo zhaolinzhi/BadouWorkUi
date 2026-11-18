@@ -5,6 +5,7 @@
   "description": "AionUi desktop Electron application",
   "main": "../../out/main/index.js",
   "dependencies": {
+    "@aionui/ui": "workspace:*",
     "@aionui/web-host": "workspace:*"
   }
 }

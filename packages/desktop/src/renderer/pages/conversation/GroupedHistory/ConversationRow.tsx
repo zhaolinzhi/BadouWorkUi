@@ -20,6 +20,7 @@ import { useTranslation } from 'react-i18next';
 
 import type { ConversationRowProps } from './types';
 import { isConversationPinned } from './utils/groupingHelpers';
+import ThumbnailImage from '@/renderer/components/media/ThumbnailImage';
 
 const ConversationRow: React.FC<ConversationRowProps> = (props) => {
   const {
@@ -79,8 +80,9 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
     }
     if (leadingMark.kind === 'image') {
       return (
-        <img
+        <ThumbnailImage
           src={leadingMark.value}
+          size={16}
           alt={leadingMark.label}
           className={classNames('w-16px h-16px rounded-50% flex-shrink-0', composedClass)}
         />

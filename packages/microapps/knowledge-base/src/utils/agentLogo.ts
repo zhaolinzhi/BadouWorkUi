@@ -1,0 +1,209 @@
+/**
+ * @license
+ * Copyright 2025 AionUi (aionui.com)
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * 统一的 Agent Logo 工具(节选)
+ * Unified Agent Logo utility
+ *
+ * Logo 真值由后端 `/api/agents/management` 提供（投影自 agent_metadata.icon/avatar）。
+ * 前端不再维护任何 backend -> 资源路径的硬编码映射。
+ *
+ * 使用方式：组件用 {@link useAgentLogos} 取得 `backend -> url` 映射，再用纯函数
+ * {@link resolveAgentLogo} / {@link resolveAgentAvatar} 解析。非组件的工具函数应把
+ * 映射作为参数传入。
+ *
+ * 从 shell(`packages/desktop/src/renderer/utils/model/agentLogo.ts`)复制,
+ * 保留 `AgentLogoMap` / `AGENT_LOGOS_SWR_KEY` / `useAgentLogos` /
+ * `resolveAgentLogo` / `resolveAgentAvatar` 及其私有依赖(`prefetchAgentLogos` /
+ * `fetchAgentLogos` / `normalizeLogoUrl` / `lookup*` / `blobCache`)。
+ * 裁掉的是助手设置页在用的模型展示工具:`getCachedLogoUrl` /
+ * `isDefaultModel` / `getModelDisplayLabel`。
+ */
+
+import { ipcBridge } from './ipc';
+import type { AssistantAvatar } from './assistantAvatar';
+import { isBackendRelativeAssetPath, isLikelyLocalFilePath, resolveAssistantAvatar } from './assistantAvatar';
+import type { ManagedAgent } from './agentTypes';
+import { resolveBackendAssetUrl } from './platform';
+import useSWR from 'swr';
+
+/** Map of lowercased backend id -> logo URL.
+ *
+ * After {@link prefetchAgentLogos} runs (called automatically by
+ * {@link useAgentLogos}), the values are `blob:` URLs so subsequent `<img>`
+ * tags never hit the network again. Without that pre-warm step, every
+ * AgentCard mount triggered one HTTP request per logo — mounting the
+ * Agent Settings page once fired ~30 concurrent requests.
+ */
+export type AgentLogoMap = Record<string, string>;
+
+export const AGENT_LOGOS_SWR_KEY = 'agents.logos';
+
+/** Module-level cache: original URL -> resolved blob URL.
+ *
+ * Keyed by URL so duplicate entries across the agent map (one logo often
+ * covers 3-4 backend ids) only get fetched once. Entries survive component
+ * unmount/remount so navigating away and back does not re-fetch.
+ */
+const blobCache = new Map<string, string>();
+
+/**
+ * Best-effort prefetch of every HTTP URL in the logo map. Each unique URL is
+ * fetched exactly once and replaced with a `blob:` URL in the returned map.
+ * Failed fetches leave the original URL in place — the browser will retry
+ * the `<img>` request, but only one per URL, not one per consumer.
+ */
+async function prefetchAgentLogos(map: AgentLogoMap): Promise<AgentLogoMap> {
+  // Collect unique URLs that still need fetching.
+  const pending: Array<{ url: string; key: string }> = [];
+  for (const [key, url] of Object.entries(map)) {
+    if (!url || url.startsWith('blob:') || url.startsWith('data:')) continue;
+    if (blobCache.has(url)) continue;
+    pending.push({ url, key });
+  }
+  if (pending.length === 0) return map;
+
+  // Deduplicate by URL — multiple map keys share the same logo URL.
+  const uniqueUrls = Array.from(new Set(pending.map((p) => p.url)));
+  const results = await Promise.allSettled(
+    uniqueUrls.map(async (url) => {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`logo fetch ${url} -> ${response.status}`);
+      const blob = await response.blob();
+      return { url, blobUrl: URL.createObjectURL(blob) };
+    })
+  );
+  for (const result of results) {
+    if (result.status === 'fulfilled') {
+      blobCache.set(result.value.url, result.value.blobUrl);
+    }
+  }
+
+  // Rewrite every map entry to its blob URL (or keep the original on failure).
+  const prefetched: AgentLogoMap = {};
+  for (const [key, url] of Object.entries(map)) {
+    prefetched[key] = blobCache.get(url) ?? url;
+  }
+  return prefetched;
+}
+
+function collectManagedAgentLogoKeys(agent: ManagedAgent): string[] {
+  const keys = [agent.backend, agent.agent_type, agent.id, agent.custom_agent_id];
+  return keys
+    .filter((key): key is string => typeof key === 'string' && key.trim().length > 0)
+    .map((key) => key.trim().toLowerCase())
+    .filter((key, index, values) => values.indexOf(key) === index);
+}
+
+/** Shared fetcher for the backend management catalog, keyed into a backend->url map. */
+async function fetchAgentLogos(): Promise<AgentLogoMap> {
+  try {
+    const agents = await ipcBridge.acpConversation.getManagedAgents.invoke();
+    if (Array.isArray(agents)) {
+      const map: AgentLogoMap = {};
+      for (const agent of agents as ManagedAgent[]) {
+        const logo = agent.avatar || agent.icon;
+        if (!logo) continue;
+
+        for (const key of collectManagedAgentLogoKeys(agent)) {
+          map[key] = logo;
+        }
+      }
+      // Warm the browser-level cache immediately so every AgentCard that
+      // mounts in the next paint cycle can render from memory.
+      return await prefetchAgentLogos(map);
+    }
+  } catch {
+    // fall through to empty map
+  }
+  return {};
+}
+
+/**
+ * Subscribe to the backend logo catalog. SWR dedups across subscribers, so a
+ * single network request warms a shared cache and every consumer re-renders
+ * once it hydrates.
+ */
+export function useAgentLogos(): AgentLogoMap {
+  const { data } = useSWR(AGENT_LOGOS_SWR_KEY, fetchAgentLogos, {
+    revalidateOnFocus: false,
+    dedupingInterval: 60_000,
+  });
+  return data ?? {};
+}
+
+function normalizeLogoUrl(logo: string): string | null {
+  const value = logo.trim();
+  if (!value || isLikelyLocalFilePath(value)) return null;
+  if (value.startsWith('/') && !isBackendRelativeAssetPath(value)) return null;
+
+  const resolved = resolveBackendAssetUrl(value) ?? value;
+  const isImage = /\.(svg|png|jpe?g|webp|gif)$/i.test(resolved) || /^(https?:|data:|\/)/i.test(resolved);
+  return isImage ? resolved : null;
+}
+
+function lookupBackendLogoValue(logos: AgentLogoMap, backend: string | undefined | null): string | null {
+  if (!backend || typeof backend !== 'string') return null;
+  return logos?.[backend.toLowerCase()] ?? null;
+}
+
+function lookupBackendLogo(logos: AgentLogoMap, backend: string | undefined | null): string | null {
+  const logo = lookupBackendLogoValue(logos, backend);
+  return logo ? normalizeLogoUrl(logo) : null;
+}
+
+function lookupBackendAvatar(logos: AgentLogoMap, backend: string | undefined | null): AssistantAvatar {
+  const logo = lookupBackendLogoValue(logos, backend);
+  return resolveAssistantAvatar(logo || undefined);
+}
+
+/**
+ * Resolve the best available logo for an agent from the backend logo catalog.
+ *
+ * Pure — pass the map from {@link useAgentLogos}. Priority:
+ *   1. Explicit icon/avatar (if provided)
+ *   2. Adapter ID from custom_agent_id (`ext:extensionName:adapterId`) → catalog
+ *   3. Backend ID → catalog
+ *   4. null (caller renders its own fallback)
+ */
+export function resolveAgentLogo(
+  logos: AgentLogoMap,
+  opts: {
+    icon?: string | null;
+    backend?: string | null;
+    custom_agent_id?: string | null;
+    isExtension?: boolean;
+  }
+): string | null {
+  if (opts.icon) return normalizeLogoUrl(opts.icon);
+
+  if (opts.isExtension && opts.custom_agent_id) {
+    const adapterId = opts.custom_agent_id.split(':').pop();
+    const logo = lookupBackendLogo(logos, adapterId);
+    if (logo) return logo;
+  }
+
+  return lookupBackendLogo(logos, opts.backend);
+}
+
+export function resolveAgentAvatar(
+  logos: AgentLogoMap,
+  opts: {
+    icon?: string | null;
+    backend?: string | null;
+    custom_agent_id?: string | null;
+    isExtension?: boolean;
+  }
+): AssistantAvatar {
+  const explicitAvatar = resolveAssistantAvatar(opts.icon || undefined);
+  if (explicitAvatar.kind !== 'fallback') return explicitAvatar;
+
+  if (opts.isExtension && opts.custom_agent_id) {
+    const adapterId = opts.custom_agent_id.split(':').pop();
+    const adapterAvatar = lookupBackendAvatar(logos, adapterId);
+    if (adapterAvatar.kind !== 'fallback') return adapterAvatar;
+  }
+
+  return lookupBackendAvatar(logos, opts.backend);
+}

@@ -36,6 +36,7 @@ import {
 } from '@icon-park/react';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { AppIcon } from '@aionui/ui';
 import styles from '../index.module.css';
 
 /**
@@ -572,7 +573,8 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
               <Button
                 type='secondary'
                 shape='circle'
-                icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}
+                className={styles.addButton}
+                icon={<Plus theme='filled' size='18' fill='currentColor' />}
                 loading={uploading}
                 disabled={uploading}
                 data-testid='file-upload-btn'
@@ -593,8 +595,8 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
                 <Button
                   type='secondary'
                   shape='circle'
-                  className={isPlusDropdownOpen ? styles.plusButtonRotate : ''}
-                  icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}
+                  className={`${styles.addButton} ${isPlusDropdownOpen ? styles.plusButtonRotate : ''}`}
+                  icon={<Plus theme='filled' size='18' fill='currentColor' />}
                   loading={uploading}
                   disabled={uploading}
                   data-testid='file-upload-btn'
@@ -642,7 +644,8 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
                 initialMode={selectedMode}
                 onModeSelect={onModeSelect}
                 dynamicModes={dynamicModes}
-                compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
+                compactLeadingIcon={<AppIcon name='permission-mode' size={18} fill={iconColors.primary} />}
+                compactTrailingIcon={<AppIcon name='chevron-down' size={12} fill={iconColors.secondary} />}
                 modeLabelFormatter={getModeDisplayLabel}
               />
             )}
@@ -655,11 +658,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
           type='primary'
           loading={loading}
           disabled={isButtonDisabled}
-          className='send-button-custom'
-          style={{
-            backgroundColor: isButtonDisabled ? undefined : '#000000',
-            borderColor: isButtonDisabled ? undefined : '#000000',
-          }}
+          className={styles.guidSendButton}
           icon={<ArrowUp theme='filled' size='14' fill='white' strokeWidth={5} />}
           onClick={onSend}
           data-testid='guid-send-btn'

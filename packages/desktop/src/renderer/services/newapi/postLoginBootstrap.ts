@@ -1,6 +1,7 @@
 import { AIPAAS_BASE_URL } from '@/renderer/api/config';
 import { BackendHttpError, isBackendHttpError } from '@/common/adapter/httpBridge';
 import { ipcBridge } from '@/common';
+import type { ModelSettings } from '@/common/config/storage';
 import { decryptNewapiKey } from '@/renderer/utils/crypto';
 import {
   NEWAPI_BASE_URL,
@@ -17,7 +18,7 @@ type MaskForCurrentResponse = {
   bean?: { enc: string | null } | null;
 };
 
-type ProviderLike = { id?: string; api_key: string };
+type ProviderLike = { id?: string; api_key: string; model_settings?: Record<string, ModelSettings> };
 
 /**
  * GET /project/newapi/newapikeyqueryaction/maskForCurrent — 取当前登录用户的 NewAPI Key AES 密文。

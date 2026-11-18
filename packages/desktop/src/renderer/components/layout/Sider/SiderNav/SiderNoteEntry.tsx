@@ -6,10 +6,8 @@
 
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Tooltip } from '@arco-design/web-react';
-import { Notes } from '@icon-park/react';
-import classNames from 'classnames';
-import CollapsedRailTooltip from '../CollapsedRailTooltip';
+import { AppIcon } from '@aionui/ui';
+import SiderNavItem from './SiderNavItem';
 
 interface SiderNoteEntryProps {
   isMobile: boolean;
@@ -20,43 +18,18 @@ interface SiderNoteEntryProps {
 
 const SiderNoteEntry: React.FC<SiderNoteEntryProps> = ({ isMobile, isActive, collapsed, onClick }) => {
   const { t } = useTranslation();
-
-  if (collapsed) {
-    return (
-      <CollapsedRailTooltip label={t('settings.notes')} onClick={onClick} active={isActive}>
-        <Notes
-          theme='outline'
-          size='22'
-          fill='currentColor'
-          className='block leading-none shrink-0'
-          style={{ lineHeight: 0 }}
-        />
-      </CollapsedRailTooltip>
-    );
-  }
+  const label = t('settings.notes');
 
   return (
-    <Tooltip content={t('settings.notes')} disabled={!collapsed} position='right'>
-      <div
-        className={classNames(
-          'box-border group h-34px w-full flex items-center justify-start gap-8px pl-10px pr-8px rd-0.5rem cursor-pointer shrink-0 transition-all text-t-primary',
-          isMobile && 'sider-action-btn-mobile',
-          isActive ? 'bg-fill-3' : 'hover:bg-fill-3 active:bg-fill-4'
-        )}
-        onClick={onClick}
-      >
-        <span className='size-22px flex items-center justify-center shrink-0 text-t-primary'>
-          <Notes
-            theme='outline'
-            size='16'
-            fill='currentColor'
-            className='block leading-none'
-            style={{ lineHeight: 0 }}
-          />
-        </span>
-        <span className='collapsed-hidden text-t-primary text-14px font-[500] leading-24px'>{t('settings.notes')}</span>
-      </div>
-    </Tooltip>
+    <SiderNavItem
+      collapsed={collapsed}
+      isActive={isActive}
+      isMobile={isMobile}
+      collapsedLabel={label}
+      expandedLabel={label}
+      onClick={onClick}
+      icon={<AppIcon name='nav-note' size={collapsed ? 20 : 18} />}
+    />
   );
 };
 

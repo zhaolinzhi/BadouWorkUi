@@ -97,7 +97,7 @@ interface AuthContextValue {
   notifyTokenExpired: (source: TokenExpiredSource) => void;
 }
 
-const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+export const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 function clearAuthCache(): void {
   if (typeof window === 'undefined') return;

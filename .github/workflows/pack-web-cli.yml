@@ -46,9 +46,7 @@ jobs:
           node-version: '22'
 
       - name: Setup bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
+        uses: ./.github/actions/setup-bun
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -77,8 +75,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { platform: darwin, arch: arm64, os: macos-14 }
-          - { platform: darwin, arch: x64, os: macos-14 }
+          - { platform: darwin, arch: arm64, os: macos-15 }
+          - { platform: darwin, arch: x64, os: macos-15 }
           - { platform: linux, arch: x64, os: ubuntu-latest }
           - { platform: linux, arch: arm64, os: ubuntu-24.04-arm }
           - { platform: win32, arch: x64, os: windows-2022 }
@@ -102,9 +100,7 @@ jobs:
           node-version: '22'
 
       - name: Setup bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
+        uses: ./.github/actions/setup-bun
 
       - name: Install dependencies
         run: bun install --frozen-lockfile

@@ -22,6 +22,7 @@ import PromptsSection from './editor/PromptsSection';
 import DefaultsSection from './editor/DefaultsSection';
 import RulesSection from './editor/RulesSection';
 import PlanModePromptSection from './editor/PlanModePromptSection';
+import ThumbnailImage from '@/renderer/components/media/ThumbnailImage';
 
 export type AssistantEditorSectionsProps = {
   editor: AssistantEditorViewModel;
@@ -88,7 +89,7 @@ const AssistantEditorSections: React.FC<AssistantEditorSectionsProps> = ({ edito
         style={{ backgroundColor: avatar.kind === 'image' ? 'transparent' : 'var(--color-fill-2)' }}
       >
         {avatar.kind === 'image' ? (
-          <img src={avatar.value} alt={option.name} className='h-full w-full object-contain' />
+          <ThumbnailImage src={avatar.value} size={20} alt={option.name} className='h-full w-full object-contain' />
         ) : avatar.kind === 'emoji' ? (
           <span className='text-14px leading-none'>{avatar.value}</span>
         ) : (

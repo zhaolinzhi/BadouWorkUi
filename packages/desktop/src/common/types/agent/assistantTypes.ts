@@ -25,6 +25,15 @@ export function isAionrsAssistant(assistant?: Pick<Assistant, 'agent'> | null): 
   return assistant?.agent?.type === 'aionrs';
 }
 
+/**
+ * Badou Cli — the internal aionrs runtime shipped with the product. Distinct
+ * from other aionrs-backed assistants (e.g. generated ones), so the default
+ * agent selection can prefer it explicitly.
+ */
+export function isInternalAionrsAssistant(assistant?: Pick<Assistant, 'agent'> | null): boolean {
+  return assistant?.agent?.type === 'aionrs' && assistant?.agent?.source === 'internal';
+}
+
 export interface Assistant {
   id: string;
   source: AssistantSource;

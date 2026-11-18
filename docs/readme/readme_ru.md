@@ -720,7 +720,7 @@ brew install aionui
 
 ### Настройка среды разработки
 
-Локальная разработка AionUi использует два репозитория: AionUi для Electron-фронтенда и AionCore для локального backend. Полная настройка для macOS, Linux и Windows описана в [Development Guide](../contributing/development.md).
+Локальная разработка AionUi использует два репозитория: AionUi для Electron-фронтенда и BadouWorkCore для локального backend. Полная настройка для macOS, Linux и Windows описана в [Development Guide](../contributing/development.md).
 
 ---
 

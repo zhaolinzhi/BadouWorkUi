@@ -51,7 +51,7 @@ preflight:
         $nodeVer = (node --version 2>&1).Trim()
         $major = [int]($nodeVer -replace '^v','').Split('.')[0]
         if ($major -ge 22) { Write-Host "  OK  Node.js $nodeVer" }
-        else { Write-Host "  WARN  Node.js $nodeVer (recommend >= 22)" }
+        else { Write-Host "  FAIL  Node.js $nodeVer (需要 >= 22,见 package.json 的 engines)"; $failed = $true }
     } catch { Write-Host "  FAIL  Node.js not found"; $failed = $true }
     Write-Host "[2/6] bun..."
     try {
@@ -171,6 +171,14 @@ verify-native:
 # ============================================================
 # Build (mirrors CI workflow environment setup)
 # ============================================================
+
+# Bundle the qiankun micro apps into every installer built by the recipes below.
+#
+# Without it the renderer keeps `VITE_MICRO_APP_ENABLED=true` from
+# `packages/desktop/.env.production` but has no asset base, so the entries fall back to
+# `//localhost:7991-7993` — an installer whose micro apps can only load on a machine
+# running the micro-app dev servers.
+export MICRO_APP_BUNDLE := "1"
 
 # Build for current platform (preflight → build)
 build: preflight

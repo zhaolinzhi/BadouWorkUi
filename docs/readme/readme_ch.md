@@ -705,7 +705,7 @@ brew install aionui
 
 ### 开发环境搭建
 
-AionUi 本地开发涉及两个仓库：AionUi 负责 Electron 前端，AionCore 负责本地后端。完整的 macOS、Linux 和 Windows 搭建流程请看 [开发指南](../contributing/development.md)。
+AionUi 本地开发涉及两个仓库：AionUi 负责 Electron 前端，BadouWorkCore 负责本地后端。完整的 macOS、Linux 和 Windows 搭建流程请看 [开发指南](../contributing/development.md)。
 
 ---
 

@@ -1,0 +1,32 @@
+{
+  "name": "@aionui/microapp-notes",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@aionui/microapp-shared": "workspace:*",
+    "@aionui/ui": "workspace:*",
+    "@arco-design/web-react": "^2.66.1",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-i18next": "^14.0.5",
+    "react-router-dom": "^7.8.0",
+    "vditor": "^3.11.1"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.1.6",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.8.3",
+    "unocss": "^66.3.3",
+    "vite": "^6.4.1",
+    "vite-plugin-qiankun": "^1.0.15",
+    "vitest": "^4.0.18"
+  }
+}

@@ -55,6 +55,32 @@ describe('resolveBinaryPath', () => {
     expect(resolveBinaryPath()).toBe(binaryPath);
   });
 
+  it('warns when it falls back to a PATH binary because the bundled one is missing', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const resourcesPath = '/app/resources';
+    const runtimeKey = `${process.platform}-${process.arch}`;
+    const binaryName = process.platform === 'win32' ? 'aioncore.exe' : 'aioncore';
+    const pathBinary = '/usr/local/bin/aioncore';
+
+    setResourcesPath(resourcesPath);
+    vi.mocked(existsSync).mockImplementation((path) => path === pathBinary);
+    vi.mocked(readdirSync).mockImplementation(() => [] as ReturnType<typeof readdirSync>);
+    vi.mocked(execSync).mockReturnValue(pathBinary);
+
+    expect(resolveBinaryPath()).toBe(pathBinary);
+
+    const message = warn.mock.calls.map((call) => String(call[0])).join('\n');
+    expect(message).toContain(pathBinary);
+    // 告警里要指名「随包后端本来该在哪」,用户才找得到地方补
+    expect(message).toContain('bundled-aioncore');
+    expect(message).toContain(runtimeKey);
+    expect(message).toContain(binaryName);
+    // 提示里必须说清「怎么恢复」,否则看到日志也不知道该做什么
+    expect(message).toContain('prepareAioncore');
+
+    warn.mockRestore();
+  });
+
   it('attaches bundled path diagnostics when aioncore cannot be resolved', () => {
     const resourcesPath = '/app/resources';
     const runtimeKey = `${process.platform}-${process.arch}`;

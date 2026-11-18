@@ -6,6 +6,7 @@ import { Avatar } from '@arco-design/web-react';
 import { Robot } from '@icon-park/react';
 import React from 'react';
 import { isEmoji, resolveAvatarImageSrc } from './assistantUtils';
+import ThumbnailImage from '@/renderer/components/media/ThumbnailImage';
 
 type AssistantAvatarProps = {
   assistant: AssistantListItem;
@@ -30,8 +31,9 @@ const AssistantAvatar: React.FC<AssistantAvatarProps> = ({
     <Avatar.Group size={size}>
       <Avatar className='border-none' shape={shape} style={{ backgroundColor: 'var(--color-fill-2)', border: 'none' }}>
         {avatarImage ? (
-          <img
+          <ThumbnailImage
             src={avatarImage}
+            size={size}
             alt=''
             className={`h-full w-full rounded-inherit ${imageFit === 'contain' ? 'object-contain' : 'object-cover'}`}
             style={{ display: 'block' }}

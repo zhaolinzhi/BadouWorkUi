@@ -16,6 +16,7 @@ import { Switch, Tag } from '@arco-design/web-react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { ChannelConfig } from './types';
+import ThumbnailImage from '@/renderer/components/media/ThumbnailImage';
 
 interface ChannelHeaderProps {
   channel: ChannelConfig;
@@ -42,7 +43,9 @@ const ChannelHeader: React.FC<ChannelHeaderProps> = ({ channel, onToggleEnabled 
   return (
     <div className='flex items-center justify-between group' data-channel-header={channel.id}>
       <div className='flex items-center gap-8px flex-1 min-w-0'>
-        {logoSrc && <img src={logoSrc} alt={logoAlt} className='w-14px h-14px object-contain shrink-0' />}
+        {logoSrc && (
+          <ThumbnailImage src={logoSrc} size={14} alt={logoAlt} className='w-14px h-14px object-contain shrink-0' />
+        )}
         <span className='text-14px text-t-primary'>{channel.title}</span>
         {channel.status === 'coming_soon' && (
           <Tag size='small' color='gray'>

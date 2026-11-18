@@ -77,11 +77,35 @@ export function resolveBinaryPath(): string {
   if (bundled) return bundled;
 
   const fromPath = resolveFromSystemPATH(diagnostics);
-  if (fromPath) return fromPath;
+  if (fromPath) {
+    warnBundledBinaryMissing(fromPath, diagnostics);
+    return fromPath;
+  }
 
   throw new BackendBinaryResolveError(
     `Cannot find "${BINARY_NAME}" binary. Checked bundled location and system PATH.`,
     diagnostics
+  );
+}
+
+/**
+ * 随包后端没找到、只能退到 PATH 上时,把这件事说出来。
+ *
+ * PATH 上的 `aioncore` 经常来自**另一个仓库谱系**:本仓库 pin 的是
+ * zhaolinzhi/BadouWorkCore,而 PATH 上常见的是上游 iOfficeAI/AionCore 的 cargo
+ * 安装。两边的 sqlx migration 编号对不上,对着同一个数据目录跑就会报
+ * "migration 38 was previously applied but has been modified" —— 应用界面上只显示成
+ * 「本地数据迁移失败」,完全看不出是二进制拿错了。
+ *
+ * 随包后端在 `resources/bundled-aioncore/<platform>-<arch>/`,那目录是 gitignore
+ * 的构建缓存,`git clean -xfd` 一次就没了 —— 所以「怎么恢复」必须一起印出来。
+ */
+function warnBundledBinaryMissing(pathBinary: string, diagnostics: BackendBinaryResolveDiagnostics): void {
+  const checked = diagnostics.checkedBundledPath ?? '未知路径';
+  console.warn(
+    `[aioncore] 没找到随包后端(${checked}),改用 PATH 上的 ${pathBinary}。\n` +
+      `[aioncore] 若两者不是同一谱系,启动会报 migration checksum 冲突(界面上显示为「本地数据迁移失败」)。\n` +
+      `[aioncore] 恢复随包后端:node scripts/prepareAioncore.js`
   );
 }
 

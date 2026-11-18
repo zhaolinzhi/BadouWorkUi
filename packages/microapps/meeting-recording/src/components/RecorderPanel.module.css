@@ -1,0 +1,63 @@
+/**
+ * 录音开关按钮的样式 —— 对齐设计稿 BadouWork-Desktop-Handoff 的
+ * `.rec-button` / `.rec-primary`(36px 高、8px 圆角)。
+ */
+
+.panel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* 主按钮:蓝底白字 */
+.startButton {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 8px;
+  height: 36px !important;
+  padding: 0 16px !important;
+  border-radius: 8px !important;
+  border: 1px solid var(--rec-brand) !important;
+  background: var(--rec-brand) !important;
+  color: #ffffff !important;
+  font-size: 14px !important;
+  line-height: 36px !important;
+}
+
+.startButton:hover {
+  border-color: var(--rec-brand-hover) !important;
+  background: var(--rec-brand-hover) !important;
+}
+
+/* 录音中:浅蓝底 + 品牌蓝字 */
+.stopButton {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 8px;
+  height: 36px !important;
+  padding: 0 16px !important;
+  border-radius: 8px !important;
+  border: 1px solid var(--rec-brand-border) !important;
+  background: var(--rec-brand-soft) !important;
+  color: var(--rec-brand) !important;
+  font-size: 14px !important;
+  line-height: 36px !important;
+}
+
+.stopButton:hover {
+  border-color: var(--rec-brand) !important;
+}
+
+.timer {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 22px;
+  font-variant-numeric: tabular-nums;
+  color: var(--rec-brand);
+}
+
+.error {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--rec-muted);
+}

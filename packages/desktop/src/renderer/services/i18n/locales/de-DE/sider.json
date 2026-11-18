@@ -1,0 +1,18 @@
+{
+  "nav": {
+    "meetingRecordingShort": "Aufnahme",
+    "taskCenterShort": "Aufgaben",
+    "scheduledShort": "Geplant",
+    "appMarketShort": "Apps",
+    "ariaLabel": "Hauptnavigation"
+  },
+  "appMarket": {
+    "title": "App-Marktplatz",
+    "comingSoon": "Der App-Marktplatz kommt bald."
+  },
+  "account": {
+    "menuLabel": "Konto",
+    "openMenu": "Konto-Menü öffnen",
+    "appearance": "Darstellung"
+  }
+}

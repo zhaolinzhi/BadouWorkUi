@@ -7,6 +7,7 @@
 import AionModal from '@/renderer/components/base/AionModal';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { iconColors } from '@/renderer/styles/colors';
+import ThumbnailImage from '@/renderer/components/media/ThumbnailImage';
 import { isElectronDesktop, resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { type IExtensionSettingsTab } from '@/common/adapter/ipcBridge';
 import { useExtI18n } from '@/renderer/hooks/system/useExtI18n';
@@ -250,7 +251,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
         key: tab.id,
         label: resolveExtTabName(tab),
         icon: resolvedIcon ? (
-          <img src={resolvedIcon} alt='' className='w-20px h-20px object-contain' />
+          <ThumbnailImage src={resolvedIcon} size={20} alt='' className='w-20px h-20px object-contain' />
         ) : (
           <Puzzle theme='outline' size='20' fill={iconColors.secondary} />
         ),

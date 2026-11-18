@@ -1,0 +1,227 @@
+/**
+ * 录音列表「行」的样式 —— 对齐设计稿 BadouWork-Desktop-Handoff 的
+ * `.rec-table-row`。
+ *
+ * 设计稿里一行是五个网格列:
+ *   名称(播放方块 + 标题 + 副标题) / 时长 / 录制时间 / 状态 / 操作
+ *
+ * 网格列宽由父级 `.tableRow` 定义,这里只管列内元素的排版。
+ */
+
+.row {
+  display: grid;
+  /*
+   * 列宽模板来自页面(`--rec-cols`,见 `RecordingListPage.module.css`)——
+   * 表头用的是同一份模板,两边必须永远对齐。
+   */
+  grid-template-columns: var(--rec-cols);
+  /*
+   * 列间距来自页面(`--rec-col-gap`,见 `RecordingListPage.module.css`)——
+   * 与表头共用同一份,两边才对得上。
+   */
+  column-gap: var(--rec-col-gap);
+  align-items: center;
+  min-height: 77px;
+  padding: 12px 16px;
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--rec-border);
+  cursor: pointer;
+}
+
+.row:hover {
+  background: var(--rec-app-bg);
+}
+
+/* 名称列:32×32 的浅蓝方块 + 标题/副标题 */
+.nameCell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+/* 播放方块:32×32、8px 圆角、浅蓝底。
+   Arco 的 Button 自带底色/圆角/内边距,这里的覆盖必须带 `!important`。 */
+.symbol {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  flex-shrink: 0;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 8px !important;
+  background: var(--rec-brand-soft) !important;
+  color: var(--rec-brand) !important;
+  cursor: pointer;
+}
+
+.symbol:hover {
+  background: var(--rec-brand-border) !important;
+}
+
+.copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.name {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--rec-heading);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.subtitle {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--rec-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.duration,
+.createdAt {
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--rec-heading);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.status {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--rec-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 操作列:「查看」文字按钮 + 「···」菜单 */
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+/* 窄容器下收紧间距,免得两个按钮撑出列宽 */
+@container rec-list (max-width: 880px) {
+  .actions {
+    gap: 8px;
+  }
+}
+
+.viewButton {
+  height: 28px !important;
+  padding: 0 8px !important;
+  border-radius: 6px !important;
+  background: transparent !important;
+  color: var(--rec-heading) !important;
+  font-size: 14px !important;
+  line-height: 28px !important;
+}
+
+.viewButton:hover {
+  background: var(--rec-app-bg) !important;
+}
+
+.viewButton:disabled {
+  color: var(--rec-placeholder) !important;
+}
+
+.moreButton {
+  width: 28px !important;
+  height: 28px !important;
+  padding: 0 !important;
+  border-radius: 6px !important;
+  background: transparent !important;
+  color: var(--rec-muted) !important;
+}
+
+.moreButton:hover {
+  background: var(--rec-app-bg) !important;
+  color: var(--rec-heading) !important;
+}
+
+/* 展开后的片段明细:设计稿没有这一层,保留我们既有的「按片段播放 / 看转写」能力 */
+.chunks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 16px 16px 60px;
+  background: var(--rec-app-bg);
+}
+
+.chunk {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.chunkMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chunkLabel {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--rec-heading);
+}
+
+.chunkDuration {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--rec-muted);
+}
+
+.transcript {
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--rec-muted);
+  white-space: pre-wrap;
+}
+
+.audio {
+  width: 100%;
+}
+
+.empty {
+  text-align: center;
+  color: var(--rec-muted);
+  padding: 24px;
+}
+
+/**
+ * 重新转写按钮的旋转动画。
+ * 转写重试进行中时图标持续旋转,让用户知道后台还有活儿。
+ */
+@keyframes retrySpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spin {
+  display: inline-block;
+  animation: retrySpin 1s linear infinite;
+  transform-origin: 50% 50%;
+  vertical-align: middle;
+  will-change: transform;
+}

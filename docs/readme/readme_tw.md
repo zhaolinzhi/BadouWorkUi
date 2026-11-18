@@ -705,7 +705,7 @@ brew install aionui
 
 ### 開發環境設定
 
-AionUi 本機開發涉及兩個倉庫：AionUi 負責 Electron 前端，AionCore 負責本機後端。完整的 macOS、Linux 和 Windows 設定流程請見 [開發指南](../contributing/development.md)。
+AionUi 本機開發涉及兩個倉庫：AionUi 負責 Electron 前端，BadouWorkCore 負責本機後端。完整的 macOS、Linux 和 Windows 設定流程請見 [開發指南](../contributing/development.md)。
 
 ---
 
