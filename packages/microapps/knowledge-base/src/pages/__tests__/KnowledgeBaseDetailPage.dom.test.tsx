@@ -143,6 +143,43 @@ describe('KnowledgeBaseDetailPage', () => {
     expect(row2).not.toContain('12:18:03');
   });
 
+  it('工具行有「时间排序」与「添加资料」按钮', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => jsonResponse({ Total: 0, Rows: [] }))
+    );
+
+    renderDetail();
+
+    await waitFor(() => expect(screen.getByTestId('kb-detail-sort')).toBeTruthy());
+    expect(screen.getByTestId('kb-detail-add-material')).toBeTruthy();
+  });
+
+  it('「时间排序」按钮切换排序方向并重新请求', async () => {
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
+      jsonResponse({ Total: 2, Rows: [docRow('d1', 'a.md'), docRow('d2', 'b.md')] })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderDetail();
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+
+    const bodyOf = (index: number) =>
+      new URLSearchParams(String((fetchMock.mock.calls[index]?.[1] as RequestInit | undefined)?.body ?? ''));
+
+    // 默认：最新在前（desc），排序字段为 createTime
+    expect(bodyOf(0).get('sortorder')).toBe('desc');
+    expect(bodyOf(0).get('sortname')).toBe('createTime');
+
+    fireEvent.click(screen.getByTestId('kb-detail-sort'));
+
+    // 切到最早在前 → 重新请求第 1 页
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    expect(bodyOf(1).get('sortorder')).toBe('asc');
+    expect(bodyOf(1).get('pageNo')).toBe('1');
+  });
+
   it('文档行按文件类型展示图标', async () => {
     vi.stubGlobal(
       'fetch',

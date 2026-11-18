@@ -11,6 +11,8 @@
 
 import type { KnowledgeBaseRuntime } from './KnowledgeBaseRoutes';
 import DocumentFileIcon, { FILE_FOLDER_ICON } from '../components/kb/DocumentFileIcon';
+import AddMaterialIcon from '../assets/svgs/file-add.svg?component';
+import SortIcon from '../assets/svgs/file-sort.svg?component';
 import { useKnowledgeBaseDocuments } from '../hooks/useKnowledgeBaseDocuments';
 import { interpolateI18n } from '../utils/knowledgeBaseUtils';
 import KnowledgeBaseAvatar from '../components/KnowledgeBaseAvatar';
@@ -42,8 +44,54 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
   const { navigate: shellNavigate } = useAppRuntime();
   const { knowledgeBaseId } = useParams<{ knowledgeBaseId: string }>();
   const [searching, setSearching] = useState(false);
-  const { documents, total, loading, error, keyword, activeKeyword, setKeyword, loadMore, hasMore, reload } =
-    useKnowledgeBaseDocuments(knowledgeBaseId);
+  const {
+    documents,
+    total,
+    loading,
+    error,
+    keyword,
+    activeKeyword,
+    setKeyword,
+    loadMore,
+    hasMore,
+    reload,
+    sortOrder,
+    toggleSortOrder,
+  } = useKnowledgeBaseDocuments(knowledgeBaseId);
+
+  const sortLabel =
+    sortOrder === 'desc'
+      ? t('settings.knowledgeBaseDetailSortDesc', { defaultValue: '按创建时间排序（最新在前）' })
+      : t('settings.knowledgeBaseDetailSortAsc', { defaultValue: '按创建时间排序（最早在前）' });
+
+  /*
+   * 「添加资料」菜单 —— 菜单项按设计稿来（上传文件 / 新建文本）。
+   *
+   * 这两个动作后端还没给接口（文档是随知识库一起保存的），所以先置灰 ——
+   * 接口到位后把 `disabled` 去掉即可。
+   */
+  const addMaterialItems = useMemo(
+    () => [
+      {
+        key: 'upload',
+        label: t('settings.knowledgeBaseDetailUploadFile', { defaultValue: '上传文件' }),
+        icon: <AppIcon name='upload' size={14} />,
+        disabled: true,
+        testId: 'kb-detail-add-menu-upload',
+      },
+      {
+        key: 'new-text',
+        label: t('settings.knowledgeBaseDetailNewText', { defaultValue: '新建文本' }),
+        icon: <AppIcon name='notes' size={14} />,
+        disabled: true,
+        testId: 'kb-detail-add-menu-new-text',
+      },
+    ],
+    [t]
+  );
+
+  // 菜单项目前都是置灰的，走不到这里；接口到位后在这里按 key 分发动作。
+  const handleAddMaterial = useCallback(() => undefined, []);
 
   const knowledgeBase = useMemo(
     () => [...runtime.personalItems, ...runtime.sharedItems].find((item) => item.id === knowledgeBaseId) ?? null,
@@ -217,6 +265,24 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
               <AppIcon name='search' size={16} />
             </Button>
           )}
+          <Button
+            type='text'
+            className={styles.iconButton}
+            onClick={toggleSortOrder}
+            aria-label={sortLabel}
+            title={sortLabel}
+            data-testid='kb-detail-sort'
+          >
+            <SortIcon size={18} />
+          </Button>
+          <MoreMenu
+            items={addMaterialItems}
+            label={t('settings.knowledgeBaseDetailAddMaterial', { defaultValue: '添加资料' })}
+            onSelect={handleAddMaterial}
+            icon={<AddMaterialIcon size={18} />}
+            className={styles.iconButton}
+            data-testid='kb-detail-add-material'
+          />
         </div>
 
         <AsyncBoundary

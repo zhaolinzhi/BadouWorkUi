@@ -63,6 +63,17 @@ const mapDocumentRow = (row: RawDocumentRow): KnowledgeBaseDocument => ({
   createdAt: pickString(row.createTime),
 });
 
+/** 排序方向 —— 接口的 `sortorder` 取值。 */
+export type DocumentSortOrder = 'asc' | 'desc';
+
+/**
+ * 排序字段 —— 接口的 `sortname`。
+ *
+ * 设计稿的按钮文案写的是「按更新时间排序」，但列表接口的排序字段给的是
+ * `createTime`（创建时间），所以这里按接口来，按钮文案也跟实际行为对齐。
+ */
+const SORT_FIELD = 'createTime';
+
 /**
  * 拉某个知识库下的文档列表。
  *
@@ -80,8 +91,17 @@ export const useKnowledgeBaseDocuments = (knowledgeBaseId: string | undefined) =
   const [keyword, setKeyword] = useState('');
   /** 真正落到请求上的搜索词（防抖后的值）。 */
   const [activeKeyword, setActiveKeyword] = useState('');
+  /** 排序方向（随请求发给后端）。 */
+  const [sortOrder, setSortOrder] = useState<DocumentSortOrder>('desc');
   /** 上一次已处理的输入值 —— 用来区分「首次挂载」与「用户改了搜索词」。 */
   const prevKeyword = useRef('');
+  /**
+   * 当前排序方向的「随时可读」副本。
+   *
+   * 搜索防抖那个 effect 要读**最新**的排序，但不能把 `sortOrder` 放进它的依赖 ——
+   * 否则排序一变就会顺带重跑一次带 300ms 防抖的搜索请求。用 ref 绕开这个耦合。
+   */
+  const sortOrderRef = useRef<DocumentSortOrder>('desc');
 
   /**
    * 请求序号。每次发请求自增；响应回来时序号对不上，说明已经有更新的请求了 ——
@@ -97,7 +117,12 @@ export const useKnowledgeBaseDocuments = (knowledgeBaseId: string | undefined) =
    * 据此决定要不要推进页码，避免请求失败后永久跳过一页。
    */
   const fetchPage = useCallback(
-    async (page: number, keywordValue: string, mode: 'replace' | 'append'): Promise<boolean> => {
+    async (
+      page: number,
+      keywordValue: string,
+      sort: DocumentSortOrder,
+      mode: 'replace' | 'append'
+    ): Promise<boolean> => {
       if (!token || !knowledgeBaseId) return false;
       const seq = ++requestSeq.current;
       setLoading(true);
@@ -111,6 +136,8 @@ export const useKnowledgeBaseDocuments = (knowledgeBaseId: string | undefined) =
           searchParam: JSON.stringify(searchParam),
           pageNo: String(page),
           perPageSize: String(DOCUMENT_PAGE_SIZE),
+          sortorder: sort,
+          sortname: SORT_FIELD,
         }).toString();
 
         const response = await fetch(DOCUMENT_LIST_URL, {
@@ -197,33 +224,44 @@ export const useKnowledgeBaseDocuments = (knowledgeBaseId: string | undefined) =
       const trimmed = keyword.trim();
       setActiveKeyword(trimmed);
       setPageNo(1);
-      void fetchPage(1, trimmed, 'replace');
+      void fetchPage(1, trimmed, sortOrderRef.current, 'replace');
     }, SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(timer);
   }, [keyword, fetchPage]);
 
-  // 首次加载 / 换库：重置搜索与页码，拉第 1 页。
+  // 首次加载 / 换库：重置搜索、排序与页码，拉第 1 页。
   //
   // `fetchPage` 的依赖是 [token, knowledgeBaseId]，所以这个 effect 只在
-  // 首次挂载与换库时重跑。
+  // 首次挂载与换库时重跑 —— 排序变化不会走到这里（排序自己发请求）。
   useEffect(() => {
     prevKeyword.current = '';
     setKeyword('');
     setActiveKeyword('');
+    setSortOrder('desc');
+    sortOrderRef.current = 'desc';
     setPageNo(1);
-    void fetchPage(1, '', 'replace');
+    void fetchPage(1, '', 'desc', 'replace');
   }, [fetchPage]);
+
+  /** 切换排序方向（服务端排序）：重新拉第 1 页。 */
+  const toggleSortOrder = useCallback(() => {
+    const next = sortOrderRef.current === 'asc' ? 'desc' : 'asc';
+    sortOrderRef.current = next;
+    setSortOrder(next);
+    setPageNo(1);
+    void fetchPage(1, activeKeyword, next, 'replace');
+  }, [activeKeyword, fetchPage]);
 
   /** 重新拉当前页（错误态的「重试」按钮用）。 */
   const reload = useCallback(() => {
-    void fetchPage(pageNo, activeKeyword, pageNo === 1 ? 'replace' : 'append');
+    void fetchPage(pageNo, activeKeyword, sortOrderRef.current, pageNo === 1 ? 'replace' : 'append');
   }, [activeKeyword, fetchPage, pageNo]);
 
   /** 加载下一页并追加。 */
   const loadMore = useCallback(async () => {
     if (loading) return;
     const next = pageNo + 1;
-    const succeeded = await fetchPage(next, activeKeyword, 'append');
+    const succeeded = await fetchPage(next, activeKeyword, sortOrderRef.current, 'append');
     // 失败时不推进页码 —— 否则下一次「加载更多」会从 pageNo + 1 起拉，
     // 失败的这一页被永久跳过。
     if (succeeded) setPageNo(next);
@@ -241,5 +279,7 @@ export const useKnowledgeBaseDocuments = (knowledgeBaseId: string | undefined) =
     loadMore,
     hasMore: documents.length < total,
     reload,
+    sortOrder,
+    toggleSortOrder,
   };
 };

@@ -91,6 +91,30 @@ describe('useKnowledgeBaseDocuments', () => {
     expect(JSON.parse(body.searchParam)).toEqual([]);
     expect(body.pageNo).toBe('1');
     expect(body.perPageSize).toBe('30');
+    // 排序参数随请求一起发
+    expect(body.sortorder).toBe('desc');
+    expect(body.sortname).toBe('createTime');
+  });
+
+  it('切换排序方向会用新的 sortorder 重新请求第 1 页', async () => {
+    const fetchMock = stubFetch(async () => jsonResponse({ Total: 0, Rows: [] }));
+
+    const { result } = renderHook(() => useKnowledgeBaseDocuments('kb-1'));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(result.current.sortOrder).toBe('desc');
+
+    await act(async () => {
+      result.current.toggleSortOrder();
+    });
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    expect(result.current.sortOrder).toBe('asc');
+
+    const body = parseBody((fetchMock.mock.calls[1] as [string, RequestInit])[1]);
+    expect(body.sortorder).toBe('asc');
+    expect(body.sortname).toBe('createTime');
+    expect(body.pageNo).toBe('1');
   });
 
   it('把接口行映射成领域模型', async () => {

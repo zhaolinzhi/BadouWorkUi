@@ -8,11 +8,14 @@
  * 为什么不用 `@aionui/ui` 的 `AppIcon`
  * ====================================
  * `AppIcon` 那套是**可着色的线性图标**（20×20、`currentColor` 描边）；
- * 而 `src/assets/svgs/` 里这批是 **200×200 的彩色美术稿**（Word 是蓝的、
+ * 而 `src/assets/svgs/mixed/` 里这批是 **200×200 的彩色美术稿**（Word 是蓝的、
  * Excel 是绿的……），颜色是画在图形里的，着不了色。
  *
  * 所以这里走 URL 导入 + `<img>` 渲染 —— 和设计稿 mockup 的做法一致
  * （`preview/file-icons.js` 的 `BadouFileIcons.src()`）。
+ *
+ * 这批多色图标放在 `assets/svgs/mixed/`；`assets/svgs/` 根下是单色描边图标
+ * （走 `?component` 管线，颜色随主题变）。
  *
  * 「扩展名 → 类型」的映射表移植自设计稿的 `preview/file-icons.js`
  * （只取扩展名那部分 —— 我们的接口不给 MIME 类型）。
@@ -20,29 +23,29 @@
 
 import React from 'react';
 
-import file3d from '../../assets/svgs/file-3d.svg';
-import fileArchive from '../../assets/svgs/file-archive.svg';
-import fileAudio from '../../assets/svgs/file-audio.svg';
-import fileCode from '../../assets/svgs/file-code.svg';
-import fileConfig from '../../assets/svgs/file-config.svg';
-import fileDatabase from '../../assets/svgs/file-database.svg';
-import fileExcel from '../../assets/svgs/file-excel.svg';
-import fileExe from '../../assets/svgs/file-exe.svg';
-import fileFolder from '../../assets/svgs/file-folder.svg';
-import fileGif from '../../assets/svgs/file-gif.svg';
-import fileImage from '../../assets/svgs/file-image.svg';
-import fileJpg from '../../assets/svgs/file-jpg.svg';
-import fileLink from '../../assets/svgs/file-link.svg';
-import fileMail from '../../assets/svgs/file-mail.svg';
-import fileMarkdown from '../../assets/svgs/file-markdown.svg';
-import filePdf from '../../assets/svgs/file-pdf.svg';
-import filePpt from '../../assets/svgs/file-ppt.svg';
-import fileSql from '../../assets/svgs/file-sql.svg';
-import fileText from '../../assets/svgs/file-text.svg';
-import fileUnknown from '../../assets/svgs/file-unknown.svg';
-import fileVideo from '../../assets/svgs/file-video.svg';
-import fileWord from '../../assets/svgs/file-word.svg';
-import fileWps from '../../assets/svgs/file-wps.svg';
+import file3d from '../../assets/svgs/mixed/file-3d.svg';
+import fileArchive from '../../assets/svgs/mixed/file-archive.svg';
+import fileAudio from '../../assets/svgs/mixed/file-audio.svg';
+import fileCode from '../../assets/svgs/mixed/file-code.svg';
+import fileConfig from '../../assets/svgs/mixed/file-config.svg';
+import fileDatabase from '../../assets/svgs/mixed/file-database.svg';
+import fileExcel from '../../assets/svgs/mixed/file-excel.svg';
+import fileExe from '../../assets/svgs/mixed/file-exe.svg';
+import fileFolder from '../../assets/svgs/mixed/file-folder.svg';
+import fileGif from '../../assets/svgs/mixed/file-gif.svg';
+import fileImage from '../../assets/svgs/mixed/file-image.svg';
+import fileJpg from '../../assets/svgs/mixed/file-jpg.svg';
+import fileLink from '../../assets/svgs/mixed/file-link.svg';
+import fileMail from '../../assets/svgs/mixed/file-mail.svg';
+import fileMarkdown from '../../assets/svgs/mixed/file-markdown.svg';
+import filePdf from '../../assets/svgs/mixed/file-pdf.svg';
+import filePpt from '../../assets/svgs/mixed/file-ppt.svg';
+import fileSql from '../../assets/svgs/mixed/file-sql.svg';
+import fileText from '../../assets/svgs/mixed/file-text.svg';
+import fileUnknown from '../../assets/svgs/mixed/file-unknown.svg';
+import fileVideo from '../../assets/svgs/mixed/file-video.svg';
+import fileWord from '../../assets/svgs/mixed/file-word.svg';
+import fileWps from '../../assets/svgs/mixed/file-wps.svg';
 
 /** 文件类型 —— 每个类型对应一个图标文件。 */
 export type DocumentIconKind =
