@@ -61,6 +61,7 @@ const docRow = (id: string, name: string) => ({
   fileType: '10',
   processedTaskNum: '268',
   updateTime: '2026-11-17 15:09:47.0',
+  createTime: '2026-11-17',
 });
 
 // 模块级共用对象：用例里不要直接改它的属性，需要变体时用 { ...runtime } 造新的。
@@ -140,6 +141,32 @@ describe('KnowledgeBaseDetailPage', () => {
     expect(row1).not.toContain('15:09:47');
     expect(row2).toContain('2025-08-29 12:18');
     expect(row2).not.toContain('12:18:03');
+  });
+
+  it('文档行展示创建时间与「更多」按钮', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        jsonResponse({
+          Total: 1,
+          // 创建时间给一个与更新时间不同的值，避免断言互相串台
+          Rows: [{ ...docRow('d1', 'AppIcon.md'), createTime: '2025-12-01' }],
+        })
+      )
+    );
+
+    renderDetail();
+
+    await waitFor(() => expect(screen.getByTestId('kb-document-d1')).toBeTruthy());
+
+    const row = screen.getByTestId('kb-document-d1');
+    expect(row.textContent).toContain('2026-11-17 15:09');
+    expect(row.textContent).toContain('2025-12-01');
+
+    // 行内的「更多」按钮（默认透明，悬浮时显现 —— 那部分是 CSS）
+    const more = screen.getByTestId('kb-document-more-d1');
+    expect(more).toBeTruthy();
+    expect(more.getAttribute('aria-label')).toContain('AppIcon.md');
   });
 
   it('共享知识库的副标题是「共享知识库 · 团队共享」', async () => {

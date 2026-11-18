@@ -195,7 +195,14 @@
 /* ── 文档行 ───────────────────────────────────────── */
 .row {
   display: grid;
-  grid-template-columns: minmax(0, 5fr) minmax(64px, 0.8fr) minmax(88px, 1fr) minmax(156px, 1.7fr);
+  /*
+   * 列：文件名 / 类型 / 条数据 / 更新时间 / 创建时间 / 更多
+   * 设计稿的 `.kb-file-row` 是 5 列（名字/格式/条数/日期/更多），这里多一列
+   * 创建时间，所以日期类两列各窄一点。
+   */
+  grid-template-columns:
+    minmax(0, 5fr) minmax(64px, 0.8fr) minmax(88px, 1fr) minmax(140px, 1.4fr) minmax(112px, 1.1fr)
+    36px;
   column-gap: 24px;
   align-items: center;
   min-height: 56px;
@@ -205,6 +212,23 @@
 
 .row:hover {
   background: var(--kb-app-bg);
+}
+
+/*
+ * 「更多」按钮：默认隐藏，悬浮行（或键盘聚焦进行内）时才显现 ——
+ * 对应设计稿的 `.kb-row-more { opacity: 0 }` + `.kb-file-row:hover .kb-row-more { opacity: 1 }`。
+ */
+.rowMore {
+  opacity: 0;
+  width: 36px;
+  height: 28px;
+  justify-content: center;
+  border-radius: 4px !important;
+}
+
+.row:hover .rowMore,
+.row:focus-within .rowMore {
+  opacity: 1;
 }
 
 .rowName {
@@ -235,17 +259,26 @@
   white-space: nowrap;
 }
 
+/* 创建时间列 —— 与更新时间同款样式。 */
+.rowCreated {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--kb-muted);
+  white-space: nowrap;
+}
+
 /*
  * 窄屏响应式 —— 对齐设计稿 @container app-window (max-width:1100px)：
  * 隐藏日期列，栅格同步去掉第 4 轨道。微应用里拿不到 app-window 容器,
  * 用普通媒体查询近似。
  */
 @media (max-width: 1100px) {
+  /* 窄屏藏掉「创建时间」列（保留更新时间），少一列。 */
   .row {
-    grid-template-columns: minmax(0, 5fr) minmax(64px, 0.8fr) minmax(88px, 1fr);
+    grid-template-columns: minmax(0, 5fr) minmax(64px, 0.8fr) minmax(88px, 1fr) minmax(140px, 1.4fr) 36px;
   }
 
-  .rowDate {
+  .rowCreated {
     display: none;
   }
 }

@@ -58,6 +58,20 @@ export type KnowledgeBaseDocument = {
   records: number;
   /** 更新时间,接口原样字符串 */
   updatedAt: string;
+  /** 创建时间,接口原样字符串(一般只到天) */
+  createdAt: string;
+};
+
+/** 新建知识库弹窗的表单值。 */
+export type KnowledgeBaseCreateValues = {
+  /** 知识库名称（必填），保存时映射到接口的 `name` */
+  name: string;
+  /** 描述（选填），保存时映射到接口的 `remarks` */
+  description: string;
+  /** 可见范围 */
+  scope: 'personal' | 'shared';
+  /** 共享对象（`scope` 为 `shared` 时必填） */
+  target?: string;
 };
 
 export type BuiltinIconOption = {

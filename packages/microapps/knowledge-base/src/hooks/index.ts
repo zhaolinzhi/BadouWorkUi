@@ -7,3 +7,4 @@
 export { useKnowledgeBaseEditor } from './useKnowledgeBaseEditor';
 export { useKnowledgeBaseList } from './useKnowledgeBaseList';
 export { useKnowledgeBaseDocuments } from './useKnowledgeBaseDocuments';
+export { useKnowledgeBaseCreate } from './useKnowledgeBaseCreate';

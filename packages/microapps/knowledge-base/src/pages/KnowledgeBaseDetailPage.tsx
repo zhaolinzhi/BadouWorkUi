@@ -15,7 +15,7 @@ import { interpolateI18n } from '../utils/knowledgeBaseUtils';
 import KnowledgeBaseAvatar from '../components/KnowledgeBaseAvatar';
 import { AppIcon, AsyncBoundary, EmptyState, MoreMenu } from '@aionui/ui';
 import { Button, Input } from '@arco-design/web-react';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAppRuntime } from '../AppContext';
@@ -104,6 +104,36 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
       },
     ];
   }, [knowledgeBase, t]);
+
+  /*
+   * 文档行的「更多」菜单 —— 菜单项按设计稿来（重命名 / 删除）。
+   *
+   * 这两个动作后端还没给接口（文档是随知识库一起保存的，没有单文档的
+   * 重命名 / 删除接口），所以先置灰 —— 接口到位后把 `disabled` 去掉、
+   * 在 `handleDocumentAction` 里按 key 分发即可。
+   */
+  const documentMenuItems = useMemo(
+    () => [
+      {
+        key: 'rename',
+        label: t('settings.knowledgeBaseDocumentRename', { defaultValue: '重命名' }),
+        disabled: true,
+        testId: 'kb-document-menu-rename',
+      },
+      {
+        key: 'delete',
+        label: t('common.delete', { defaultValue: '删除' }),
+        icon: <AppIcon name='delete' size={14} />,
+        danger: true,
+        disabled: true,
+        testId: 'kb-document-menu-delete',
+      },
+    ],
+    [t]
+  );
+
+  // 菜单项目前都是置灰的，走不到这里；接口到位后在这里按 key 分发动作。
+  const handleDocumentAction = useCallback(() => undefined, []);
 
   return (
     <div className={styles.page} data-testid='kb-detail'>
@@ -231,6 +261,14 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
                   )}
                 </span>
                 <span className={styles.rowDate}>{formatUpdatedAt(doc.updatedAt)}</span>
+                <span className={styles.rowCreated}>{doc.createdAt}</span>
+                <MoreMenu
+                  items={documentMenuItems}
+                  label={`${doc.name} ${t('settings.knowledgeBaseDocumentMore', { defaultValue: '更多操作' })}`}
+                  onSelect={handleDocumentAction}
+                  className={styles.rowMore}
+                  data-testid={`kb-document-more-${doc.id}`}
+                />
               </div>
             ))}
           </div>

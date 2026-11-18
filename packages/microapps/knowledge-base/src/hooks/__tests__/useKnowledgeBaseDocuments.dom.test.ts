@@ -105,6 +105,7 @@ describe('useKnowledgeBaseDocuments', () => {
             fileType: '10',
             processedTaskNum: '268',
             updateTime: '2026-11-17 15:09:47.0',
+            createTime: '2026-11-17',
           },
         ],
       })
@@ -120,6 +121,7 @@ describe('useKnowledgeBaseDocuments', () => {
       type: 'MD',
       records: 268,
       updatedAt: '2026-11-17 15:09:47.0',
+      createdAt: '2026-11-17',
     });
     expect(result.current.total).toBe(1);
   });

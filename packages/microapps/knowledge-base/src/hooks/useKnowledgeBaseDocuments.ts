@@ -33,6 +33,7 @@ type RawDocumentRow = {
   fileType?: string | null;
   processedTaskNum?: string | number | null;
   updateTime?: string | null;
+  createTime?: string | null;
 };
 
 type ListEnvelope = {
@@ -59,6 +60,7 @@ const mapDocumentRow = (row: RawDocumentRow): KnowledgeBaseDocument => ({
   // 「N 条数据」—— 后端给的是字符串数字。
   records: pickNumber(row.processedTaskNum),
   updatedAt: pickString(row.updateTime),
+  createdAt: pickString(row.createTime),
 });
 
 /**

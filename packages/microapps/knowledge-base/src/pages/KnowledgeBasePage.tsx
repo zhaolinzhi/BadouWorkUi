@@ -8,17 +8,18 @@ import type { KnowledgeBaseEditorViewModel, KnowledgeBaseItem, KnowledgeBaseTab 
 import KnowledgeBaseEditorPage from './KnowledgeBaseEditorPage';
 import { createRouter, KnowledgeBaseRuntimeProvider, type KnowledgeBaseRuntime } from './KnowledgeBaseRoutes';
 import KnowledgeBaseAvatar from '../components/KnowledgeBaseAvatar';
-import { useKnowledgeBaseEditor, useKnowledgeBaseList } from '../hooks';
+import KnowledgeBaseCreateModal from '../components/kb/KnowledgeBaseCreateModal';
+import { useKnowledgeBaseCreate, useKnowledgeBaseEditor, useKnowledgeBaseList } from '../hooks';
 import { useAppRuntime } from '../AppContext';
 import { useManagedAgentRuntimeCatalog } from '../utils/useManagedAgents';
 import { buildAssistantEditorBackends } from '../utils/assistantUtils';
-import { getKnowledgeBaseCreateUrl, getKnowledgeBaseEditUrl } from '../utils/api';
+import { getKnowledgeBaseEditUrl } from '../utils/api';
 import { openExternalUrl } from '../utils/platform';
 import { resolveIconImageSrc } from '../utils/knowledgeBaseUtils';
 import { ConfirmModal } from '@aionui/ui';
 import { useRouter } from '@aionui/microapp-shared';
 import { Message } from '@arco-design/web-react';
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { RouterProvider } from 'react-router-dom';
 
@@ -161,16 +162,23 @@ const KnowledgeBasePage: React.FC = () => {
     [navigate]
   );
 
-  // "New knowledge base" jumps to the vendor's web create page instead of
-  // the in-app editor — knowledge bases live in an admin system we don't
-  // mirror. Reload the list when the user returns to the page so newly
-  // created bases appear without a manual refresh.
-  const handleCreate = useCallback(async () => {
-    try {
-      await openExternalUrl(getKnowledgeBaseCreateUrl());
-    } catch (error) {
-      console.error('Failed to open knowledge base create page:', error);
-    }
+  /*
+   * "新建知识库"打开应用内弹窗 —— 不再跳厂商的创建页（那会在系统浏览器里
+   * 开一个新窗口，用户填完还得切回来刷新）。
+   */
+  const [createVisible, setCreateVisible] = useState(false);
+
+  const handleCreateSuccess = useCallback(() => {
+    setCreateVisible(false);
+    // 新建的库在个人列表里 —— 只刷个人列表。
+    void loadPersonalKnowledgeBases(token);
+    message.success(t('common.createSuccess', { defaultValue: '创建成功' }));
+  }, [loadPersonalKnowledgeBases, message, t, token]);
+
+  const create = useKnowledgeBaseCreate({ onSuccess: handleCreateSuccess });
+
+  const handleCreate = useCallback(() => {
+    setCreateVisible(true);
   }, []);
 
   /*
@@ -259,6 +267,14 @@ const KnowledgeBasePage: React.FC = () => {
               </div>
             ) : null}
           </ConfirmModal>
+
+          <KnowledgeBaseCreateModal
+            visible={createVisible}
+            onCancel={() => setCreateVisible(false)}
+            onSubmit={create.submit}
+            submitting={create.submitting}
+            error={create.error}
+          />
         </div>
       </div>
     </div>
