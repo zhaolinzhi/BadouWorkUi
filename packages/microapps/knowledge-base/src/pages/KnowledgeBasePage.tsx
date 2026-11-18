@@ -6,19 +6,21 @@
 
 import type { KnowledgeBaseEditorViewModel, KnowledgeBaseItem, KnowledgeBaseTab } from '../types';
 import KnowledgeBaseEditorPage from './KnowledgeBaseEditorPage';
-import KnowledgeBaseHomeTabs from './KnowledgeBaseHomeTabs';
+import { createRouter, KnowledgeBaseRuntimeProvider, type KnowledgeBaseRuntime } from './KnowledgeBaseRoutes';
 import KnowledgeBaseAvatar from '../components/KnowledgeBaseAvatar';
 import { useKnowledgeBaseEditor, useKnowledgeBaseList } from '../hooks';
 import { useAppRuntime } from '../AppContext';
 import { useManagedAgentRuntimeCatalog } from '../utils/useManagedAgents';
 import { buildAssistantEditorBackends } from '../utils/assistantUtils';
-import { getKnowledgeBaseCreateUrl, getKnowledgeBaseEditUrl, getKnowledgeBaseViewUrl } from '../utils/api';
+import { getKnowledgeBaseCreateUrl, getKnowledgeBaseEditUrl } from '../utils/api';
 import { openExternalUrl } from '../utils/platform';
 import { resolveIconImageSrc } from '../utils/knowledgeBaseUtils';
 import { ConfirmModal } from '@aionui/ui';
+import { useRouter } from '@aionui/microapp-shared';
 import { Message } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { RouterProvider } from 'react-router-dom';
 
 const KnowledgeBasePage: React.FC = () => {
   const { t } = useTranslation();
@@ -41,6 +43,8 @@ const KnowledgeBasePage: React.FC = () => {
     personalError,
     sharedLoading,
     sharedError,
+    personalLoaded,
+    sharedLoaded,
     activeKnowledgeBaseId,
     setActiveKnowledgeBaseId,
     activeKnowledgeBase,
@@ -64,6 +68,12 @@ const KnowledgeBasePage: React.FC = () => {
     if (!authToken) return;
     void loadPersonalKnowledgeBases(authToken);
   }, [loadPersonalKnowledgeBases]);
+
+  const handleRetryLoadShared = useCallback(() => {
+    const authToken = tokenRef.current;
+    if (!authToken) return;
+    void loadSharedKnowledgeBases(authToken);
+  }, [loadSharedKnowledgeBases]);
 
   const editor = useKnowledgeBaseEditor({
     activeKnowledgeBase,
@@ -138,14 +148,6 @@ const KnowledgeBasePage: React.FC = () => {
     []
   );
 
-  const handleOpenView = useCallback(async (item: KnowledgeBaseItem) => {
-    try {
-      await openExternalUrl(getKnowledgeBaseViewUrl(item.id));
-    } catch (error) {
-      console.error('Failed to open knowledge base view page:', error);
-    }
-  }, []);
-
   // TODO: API - 知识库直接打开对话：根据 KB 的 agentId 跳转到 /guid
   const handleStartChat = useCallback(
     (item: KnowledgeBaseItem) => {
@@ -171,6 +173,53 @@ const KnowledgeBasePage: React.FC = () => {
     }
   }, []);
 
+  /*
+   * 内存路由：卡片点击进详情页，而不是跳厂商外链。
+   *
+   * `useRouter` 来自共享层 —— 它按 base 缓存 router 单例，且用 `useState`
+   * 惰性初值取（render 阶段反复 `createMemoryRouter` 会让子应用第二次打开
+   * 时崩在 react-router 的私有字段上）。
+   */
+  const router = useRouter('/', createRouter);
+
+  // 下发给路由元素的页面级状态；Context 必须包在 RouterProvider 外层。
+  const runtime = useMemo<KnowledgeBaseRuntime>(
+    () => ({
+      personalItems,
+      sharedItems,
+      personalLoading,
+      personalError,
+      sharedLoading,
+      sharedError,
+      // 列表「有结论」= 成功加载过或明确失败过；否则失败路径下标题永远空白。
+      listLoaded: (personalLoaded || Boolean(personalError)) && (sharedLoaded || Boolean(sharedError)),
+      onRetryLoadPersonal: handleRetryLoadPersonal,
+      onRetryLoadShared: handleRetryLoadShared,
+      onRefresh: handleTabRefresh,
+      onDelete: (item) => editor.handleDeleteRequest(item),
+      onOpenEdit: (item) => void handleOpen(item),
+      onCreate: () => void handleCreate(),
+      onStartChat: (item) => handleStartChat(item),
+    }),
+    [
+      personalItems,
+      sharedItems,
+      personalLoading,
+      personalError,
+      sharedLoading,
+      sharedError,
+      personalLoaded,
+      sharedLoaded,
+      handleRetryLoadPersonal,
+      handleRetryLoadShared,
+      handleTabRefresh,
+      editor.handleDeleteRequest,
+      handleOpen,
+      handleCreate,
+      handleStartChat,
+    ]
+  );
+
   return (
     <div className='h-full w-full overflow-hidden bg-bg-0'>
       <div className='flex flex-col h-full w-full'>
@@ -183,22 +232,9 @@ const KnowledgeBasePage: React.FC = () => {
               onBack={() => editor.setEditVisible(false)}
             />
           ) : (
-            <KnowledgeBaseHomeTabs
-              personalItems={personalItems}
-              sharedItems={sharedItems}
-              personalLoading={personalLoading}
-              personalError={personalError}
-              sharedLoading={sharedLoading}
-              sharedError={sharedError}
-              onRetryLoadPersonal={handleRetryLoadPersonal}
-              onRetryLoadShared={() => void loadKnowledgeBases()}
-              onRefresh={handleTabRefresh}
-              onDelete={(item) => editor.handleDeleteRequest(item)}
-              onOpenView={handleOpenView}
-              onOpenEdit={handleOpen}
-              onCreate={() => void handleCreate()}
-              onStartChat={handleStartChat}
-            />
+            <KnowledgeBaseRuntimeProvider value={runtime}>
+              <RouterProvider router={router} />
+            </KnowledgeBaseRuntimeProvider>
           )}
 
           <ConfirmModal

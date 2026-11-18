@@ -135,6 +135,7 @@
   --kb-surface: #ffffff; /* 卡片底色 / 选中胶囊底色 */
   --kb-border: #e8ebf2; /* 卡片描边 */
   --kb-brand: #2764ff; /* 品牌蓝(主按钮、选中态文字) */
+  --kb-on-brand: #ffffff; /* 品牌色按钮上的文字色 */
   --kb-brand-hover: #2058ed; /* 主按钮悬停 */
   --kb-brand-border: #b4d7ff; /* 浅蓝描边(选中胶囊、卡片悬停描边) */
   --kb-focus-ring: #8fb9ff; /* 搜索框聚焦描边 */
@@ -278,6 +279,7 @@
   --kb-surface: #0e0e0e;
   --kb-border: #333333;
   --kb-brand: #7ea6e0;
+  --kb-on-brand: #0d0d0d; /* 品牌色按钮上的文字色（浅蓝底配深字） */
   --kb-brand-hover: #527ff0;
   --kb-brand-border: #536c91;
   --kb-focus-ring: #7396d6;

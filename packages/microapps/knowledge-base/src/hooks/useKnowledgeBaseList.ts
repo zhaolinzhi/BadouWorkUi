@@ -95,6 +95,9 @@ export const useKnowledgeBaseList = () => {
   const [sharedLoading, setSharedLoading] = useState(false);
   const [personalError, setPersonalError] = useState<string | null>(null);
   const [sharedError, setSharedError] = useState<string | null>(null);
+  // 「已完成首次加载」标记 —— 详情页靠它区分「列表还没加载完」与「库已被删除」。
+  const [personalLoaded, setPersonalLoaded] = useState(false);
+  const [sharedLoaded, setSharedLoaded] = useState(false);
   const [activeKnowledgeBaseId, setActiveKnowledgeBaseId] = useState<string | null>(null);
 
   const fetchList = async <TRow>(
@@ -103,6 +106,7 @@ export const useKnowledgeBaseList = () => {
     setLoading: (loading: boolean) => void,
     setError: (error: string | null) => void,
     setItems: (items: KnowledgeBaseItem[]) => void,
+    setLoaded: (loaded: boolean) => void,
     map: (row: TRow) => KnowledgeBaseItem
   ) => {
     setLoading(true);
@@ -135,6 +139,7 @@ export const useKnowledgeBaseList = () => {
       }
       const rows = Array.isArray(data?.Rows) ? data.Rows : [];
       setItems(rows.map(map));
+      setLoaded(true);
     } catch (error) {
       console.error('[useKnowledgeBaseList] failed to load knowledge bases:', error);
       setError((error as Error).message || 'unknown error');
@@ -151,6 +156,7 @@ export const useKnowledgeBaseList = () => {
       setSharedLoading,
       setSharedError,
       setSharedItems,
+      setSharedLoaded,
       mapSharedRemoteRowToItem
     );
   }, []);
@@ -162,6 +168,7 @@ export const useKnowledgeBaseList = () => {
       setPersonalLoading,
       setPersonalError,
       setPersonalItems,
+      setPersonalLoaded,
       mapPersonalRemoteRowToItem
     );
   }, []);
@@ -187,6 +194,8 @@ export const useKnowledgeBaseList = () => {
     sharedLoading,
     personalError,
     sharedError,
+    personalLoaded,
+    sharedLoaded,
     activeKnowledgeBaseId,
     setActiveKnowledgeBaseId,
     activeKnowledgeBase,

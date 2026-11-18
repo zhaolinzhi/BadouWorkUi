@@ -1,0 +1,285 @@
+/**
+ * 知识库详情页 —— 对齐设计稿 BadouWork-Desktop-Handoff 的 `.kb-detail`。
+ *
+ * 设计稿的几何:
+ *   .kb-detail          内边距 12px 16px 24px
+ *   .kb-detail-nav      返回 + 右侧操作,高 32px
+ *   .kb-content         宽 calc(100% - 48px),距顶 16px 居中
+ *   .kb-library-heading 封面 + 库名 + 副标题,间距 20px
+ *   .kb-content-toolbar 上边框 + 内容计数,高 53px
+ *   .kb-file-row        4 列栅格,行高 56px,底边框
+ *
+ * 颜色一律走 `--kb-*` 语义 token(浅色/暗色两套在 default-color-scheme.css 里)。
+ */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding: 12px 16px 24px;
+  overflow: auto;
+}
+
+/* ── 顶部导航 ─────────────────────────────────────── */
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 32px;
+  flex-shrink: 0;
+}
+
+.back {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 4px;
+  height: 32px !important;
+  padding: 0 8px !important;
+  border-radius: 4px !important;
+  color: var(--kb-muted) !important;
+  font-size: 14px !important;
+  line-height: 22px !important;
+}
+
+.navSpacer {
+  flex: 1;
+}
+
+.askButton {
+  height: 32px !important;
+  padding: 0 16px !important;
+  border-radius: 8px !important;
+  border-color: var(--kb-brand) !important;
+  background: var(--kb-brand) !important;
+  color: var(--kb-on-brand) !important;
+  font-size: 14px !important;
+  white-space: nowrap;
+}
+
+.askButton:hover {
+  border-color: var(--kb-brand-hover) !important;
+  background: var(--kb-brand-hover) !important;
+}
+
+/* ── 内容区 ───────────────────────────────────────── */
+.content {
+  width: calc(100% - 48px);
+  margin: 16px auto 0;
+  min-width: 0;
+}
+
+.heading {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.headingTitle {
+  margin: 0 0 8px;
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 34px;
+  color: var(--kb-heading);
+}
+
+.headingSubtitle {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--kb-muted);
+}
+
+/* ── 工具行 ───────────────────────────────────────── */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 53px;
+  padding: 8px 0 4px;
+  margin-top: 16px;
+  margin-bottom: 8px;
+  border-top: 1px solid var(--kb-border);
+}
+
+.toolbarTitle {
+  margin-right: auto;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--kb-heading);
+}
+
+.iconButton {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 32px !important;
+  height: 32px !important;
+  padding: 0 !important;
+  border-radius: 8px !important;
+  color: var(--kb-muted) !important;
+}
+
+/* 行内搜索框:240×32 的浅灰圆角框 */
+.search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  width: 240px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: var(--kb-app-bg);
+  color: var(--kb-muted);
+}
+
+.search:focus-within {
+  border-color: var(--kb-focus-ring);
+}
+
+.searchIcon {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 16px;
+  color: var(--kb-muted);
+}
+
+/*
+ * Arco 的输入链自带底色、描边与聚焦光影,而 shell 的 layout.css 又用
+ * `!important` 压了一层 —— 微应用要盖住它只能同样写 `!important`
+ * (!important 之间不比优先级,只比选择器权重)。
+ */
+.search :global(.arco-input-group-wrapper) {
+  height: 100% !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.search :global(.arco-input-group),
+.search :global(.arco-input-inner-wrapper) {
+  height: 100% !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.search :global(.arco-input) {
+  height: 100% !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  color: var(--kb-heading) !important;
+  font-size: 12px !important;
+  line-height: 20px !important;
+}
+
+.search :global(.arco-input-inner-wrapper-focus),
+.search :global(.arco-input:focus) {
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.search :global(.arco-input::placeholder) {
+  color: var(--kb-placeholder) !important;
+}
+
+/* ── 文档行 ───────────────────────────────────────── */
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(64px, 0.8fr) minmax(88px, 1fr) minmax(156px, 1.7fr);
+  column-gap: 24px;
+  align-items: center;
+  min-height: 56px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--kb-border);
+}
+
+.row:hover {
+  background: var(--kb-app-bg);
+}
+
+.rowName {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.rowNameText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--kb-heading);
+}
+
+.rowMeta {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--kb-muted);
+  white-space: nowrap;
+}
+
+.rowDate {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--kb-muted);
+  white-space: nowrap;
+}
+
+/*
+ * 窄屏响应式 —— 对齐设计稿 @container app-window (max-width:1100px)：
+ * 隐藏日期列，栅格同步去掉第 4 轨道。微应用里拿不到 app-window 容器,
+ * 用普通媒体查询近似。
+ */
+@media (max-width: 1100px) {
+  .row {
+    grid-template-columns: minmax(0, 5fr) minmax(64px, 0.8fr) minmax(88px, 1fr);
+  }
+
+  .rowDate {
+    display: none;
+  }
+}
+
+/* ── 底部 ─────────────────────────────────────────── */
+.footer {
+  display: flex;
+  justify-content: center;
+  padding: 20px 0 8px;
+}
+
+.loadMore {
+  height: 32px !important;
+  border-radius: 8px !important;
+  font-size: 13px !important;
+}
+
+.loadMoreHint {
+  margin-left: 6px;
+  color: var(--kb-muted);
+  font-size: 12px;
+}
+
+.end {
+  padding-top: 20px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--kb-placeholder);
+}
+
+.loading {
+  padding: 28px 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--kb-muted);
+}

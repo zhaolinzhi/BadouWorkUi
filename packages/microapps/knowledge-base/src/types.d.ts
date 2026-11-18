@@ -44,6 +44,22 @@ export type KnowledgeBaseItem = {
 
 export type KnowledgeBaseListItem = KnowledgeBaseItem;
 
+/**
+ * 知识库里的文档（产品设计资料页的行）。
+ * 字段来自 `view_knowledge_relevancy` 接口的 `Rows`。
+ */
+export type KnowledgeBaseDocument = {
+  id: string;
+  /** 文件名,如 `AppIcon.md` */
+  name: string;
+  /** 文件类型(已转大写),如 `MD`;接口未给时为空串 */
+  type: string;
+  /** 数据条数,来自 `processedTaskNum` */
+  records: number;
+  /** 更新时间,接口原样字符串 */
+  updatedAt: string;
+};
+
 export type BuiltinIconOption = {
   id: string;
   label: string;
