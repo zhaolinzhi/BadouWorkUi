@@ -96,6 +96,23 @@ const LoginPage: React.FC = () => {
   //
   // Navigation to /guid is driven by the `status === 'authenticated'` effect
   // above once AuthContext flips its state.
+  // Subscribe to the deep-link callback once on mount so the token arriving
+  // from the OS-routed `badouwork://auth/callback` URL triggers login completion.
+  useEffect(() => {
+    let active = true;
+
+    const unsubscribe = ipcBridge.auth.externalLoginCompleted.on((payload) => {
+      if (!active) return;
+      completeExternalLogin(payload.token, { id: payload.user.id, username: payload.user.username });
+      // Navigation to /guid is driven by the `status === 'authenticated'` effect
+      // above once AuthContext flips its state.
+    });
+
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, [completeExternalLogin]);
 
   const handleStartExternalLogin = useCallback(async () => {
     setLoading(true);
