@@ -90,7 +90,7 @@ export function startExternalLogin(): Promise<ExternalLoginLaunchResult> {
 let pendingExternalLogin: { token: string; user: { id: string; username: string } } | null = null;
 
 /**
- * Called by `process/utils/deepLink.ts` when an `aionui://auth/callback`
+ * Called by `process/utils/deepLink.ts` when a `badouwork://auth/callback`
  * URL arrives. Validates the payload, then emits `externalLoginCompleted`
  * to the renderer. The renderer's AuthProvider listener calls
  * AuthContext.completeExternalLogin and navigates to /guid.

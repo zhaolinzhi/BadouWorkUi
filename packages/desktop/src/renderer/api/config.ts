@@ -33,12 +33,13 @@ export const EXTERNAL_LOGIN_URL_BASE =
 //: 'http://localhost:8910/';
 
 /** Query string appended to the external login URL so `aipaas-front` knows
- *  to deep-link back t Ro AionUi after SSO instead of staying on its own
- *  success page. */
-export const EXTERNAL_LOGIN_FLAG = 'from=aionui';
+ *  to deep-link back to BadouWork after SSO instead of staying on its own
+ *  success page. The value doubles as the deep-link scheme — AIPaaS maps
+ *  `from=<x>` to the `<x>://` callback URL. */
+export const EXTERNAL_LOGIN_FLAG = 'from=badouwork';
 
 /** Deep-link action for the auth callback. `aipaas-front` redirects here:
- *   aionui://auth/callback?token=<token>&userId=<id>&username=<name> */
+ *   badouwork://auth/callback?token=<token>&userId=<id>&username=<name> */
 export const EXTERNAL_LOGIN_DEEPLINK_PATH = 'auth/callback';
 
 /** Maximum time (ms) the renderer waits for the deep-link callback before
