@@ -180,18 +180,18 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
   }, [knowledgeBase, t]);
 
   /*
-   * 文档行的「更多」菜单 —— 菜单项按设计稿来（重命名 / 删除）。
+   * 文档行的「更多」菜单 —— 菜单项按设计稿来（重新解析 / 删除）。
    *
-   * 重命名还没有接口（文档是随知识库一起保存的），先置灰；删除有接口了
+   * 重新解析还没有接口（文档是随知识库一起保存的），先置灰；删除有接口了
    * （`cancelUsingKnowledge.do`），点开会弹二次确认。
    */
   const documentMenuItems = useMemo(
     () => [
       {
-        key: 'rename',
-        label: t('settings.knowledgeBaseDocumentRename', { defaultValue: '重命名' }),
+        key: 'reparse',
+        label: t('settings.knowledgeBaseDocumentReparse', { defaultValue: '重新解析' }),
         disabled: true,
-        testId: 'kb-document-menu-rename',
+        testId: 'kb-document-menu-reparse',
       },
       {
         key: 'delete',

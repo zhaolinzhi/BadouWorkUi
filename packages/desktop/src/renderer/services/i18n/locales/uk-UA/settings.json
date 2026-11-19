@@ -212,7 +212,7 @@
   "knowledgeBaseDetailLoadFailed": "Не вдалося завантажити документи",
   "knowledgeBaseDetailLoading": "Завантаження документів…",
   "knowledgeBaseDetailMissing": "База знань не існує або була видалена",
-  "knowledgeBaseDocumentRename": "Перейменувати",
+  "knowledgeBaseDocumentReparse": "Повторний розбір",
   "knowledgeBaseDocumentMore": "Інші дії",
   "knowledgeBaseDetailSortDesc": "Сортування за часом створення (спочатку нові)",
   "knowledgeBaseDetailSortAsc": "Сортування за часом створення (спочатку старі)",

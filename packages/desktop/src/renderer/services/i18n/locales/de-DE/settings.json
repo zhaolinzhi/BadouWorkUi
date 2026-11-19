@@ -237,7 +237,7 @@
   "knowledgeBaseDetailLoadFailed": "Dokumente konnten nicht geladen werden",
   "knowledgeBaseDetailLoading": "Dokumente werden geladen…",
   "knowledgeBaseDetailMissing": "Diese Wissensdatenbank existiert nicht oder wurde gelöscht",
-  "knowledgeBaseDocumentRename": "Umbenennen",
+  "knowledgeBaseDocumentReparse": "Erneut analysieren",
   "knowledgeBaseDocumentMore": "Weitere Aktionen",
   "knowledgeBaseDetailSortDesc": "Nach Erstellungszeit sortieren (neueste zuerst)",
   "knowledgeBaseDetailSortAsc": "Nach Erstellungszeit sortieren (älteste zuerst)",

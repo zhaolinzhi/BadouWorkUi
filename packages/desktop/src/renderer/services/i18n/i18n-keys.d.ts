@@ -1973,7 +1973,7 @@ export type I18nKey =
   | 'settings.knowledgeBaseDocumentDeleteSuccess'
   | 'settings.knowledgeBaseDocumentDeleteTitle'
   | 'settings.knowledgeBaseDocumentMore'
-  | 'settings.knowledgeBaseDocumentRename'
+  | 'settings.knowledgeBaseDocumentReparse'
   | 'settings.knowledgeBaseEdit'
   | 'settings.knowledgeBaseEffectiveImmediately'
   | 'settings.knowledgeBaseEmptyBody'

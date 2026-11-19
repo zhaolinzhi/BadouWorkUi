@@ -212,7 +212,7 @@
   "knowledgeBaseDetailLoadFailed": "加载文档失败",
   "knowledgeBaseDetailLoading": "正在加载文档…",
   "knowledgeBaseDetailMissing": "知识库不存在或已被删除",
-  "knowledgeBaseDocumentRename": "重命名",
+  "knowledgeBaseDocumentReparse": "重新解析",
   "knowledgeBaseDocumentMore": "更多操作",
   "knowledgeBaseDetailSortDesc": "按创建时间排序（最新在前）",
   "knowledgeBaseDetailSortAsc": "按创建时间排序（最早在前）",

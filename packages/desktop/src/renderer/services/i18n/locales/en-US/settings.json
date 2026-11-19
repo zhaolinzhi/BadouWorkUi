@@ -212,7 +212,7 @@
   "knowledgeBaseDetailLoadFailed": "Failed to load documents",
   "knowledgeBaseDetailLoading": "Loading documents…",
   "knowledgeBaseDetailMissing": "The knowledge base does not exist or has been deleted",
-  "knowledgeBaseDocumentRename": "Rename",
+  "knowledgeBaseDocumentReparse": "Re-parse",
   "knowledgeBaseDocumentMore": "More actions",
   "knowledgeBaseDetailSortDesc": "Sort by created time (newest first)",
   "knowledgeBaseDetailSortAsc": "Sort by created time (oldest first)",

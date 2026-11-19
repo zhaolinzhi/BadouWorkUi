@@ -1405,7 +1405,7 @@
   "knowledgeBaseDetailLoadFailed": "Échec du chargement des documents",
   "knowledgeBaseDetailLoading": "Chargement des documents…",
   "knowledgeBaseDetailMissing": "Cette base de connaissances n'existe pas ou a été supprimée",
-  "knowledgeBaseDocumentRename": "Renommer",
+  "knowledgeBaseDocumentReparse": "Réanalyser",
   "knowledgeBaseDocumentMore": "Autres actions",
   "knowledgeBaseDetailSortDesc": "Trier par date de création (plus récentes d'abord)",
   "knowledgeBaseDetailSortAsc": "Trier par date de création (plus anciennes d'abord)",

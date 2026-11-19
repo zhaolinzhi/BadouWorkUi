@@ -212,7 +212,7 @@
   "knowledgeBaseDetailLoadFailed": "Не удалось загрузить документы",
   "knowledgeBaseDetailLoading": "Загрузка документов…",
   "knowledgeBaseDetailMissing": "База знаний не существует или была удалена",
-  "knowledgeBaseDocumentRename": "Переименовать",
+  "knowledgeBaseDocumentReparse": "Повторный разбор",
   "knowledgeBaseDocumentMore": "Другие действия",
   "knowledgeBaseDetailSortDesc": "Сортировка по времени создания (сначала новые)",
   "knowledgeBaseDetailSortAsc": "Сортировка по времени создания (сначала старые)",

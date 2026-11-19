@@ -212,7 +212,7 @@
   "knowledgeBaseDetailLoadFailed": "بارگذاری اسناد ناموفق بود",
   "knowledgeBaseDetailLoading": "در حال بارگذاری اسناد…",
   "knowledgeBaseDetailMissing": "پایگاه دانش وجود ندارد یا حذف شده است",
-  "knowledgeBaseDocumentRename": "تغییر نام",
+  "knowledgeBaseDocumentReparse": "تحلیل مجدد",
   "knowledgeBaseDocumentMore": "عملیات بیشتر",
   "knowledgeBaseDetailSortDesc": "مرتب‌سازی بر اساس زمان ایجاد (جدیدترین اول)",
   "knowledgeBaseDetailSortAsc": "مرتب‌سازی بر اساس زمان ایجاد (قدیمی‌ترین اول)",

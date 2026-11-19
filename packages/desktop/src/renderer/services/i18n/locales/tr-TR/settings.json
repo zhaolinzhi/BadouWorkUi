@@ -212,7 +212,7 @@
   "knowledgeBaseDetailLoadFailed": "Belgeler yüklenemedi",
   "knowledgeBaseDetailLoading": "Belgeler yükleniyor…",
   "knowledgeBaseDetailMissing": "Bilgi tabanı mevcut değil veya silinmiş",
-  "knowledgeBaseDocumentRename": "Yeniden adlandır",
+  "knowledgeBaseDocumentReparse": "Yeniden ayrıştır",
   "knowledgeBaseDocumentMore": "Diğer işlemler",
   "knowledgeBaseDetailSortDesc": "Oluşturma zamanına göre sırala (en yeni önce)",
   "knowledgeBaseDetailSortAsc": "Oluşturma zamanına göre sırala (en eski önce)",

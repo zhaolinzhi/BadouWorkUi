@@ -212,7 +212,7 @@
   "knowledgeBaseDetailLoadFailed": "문서 불러오기 실패",
   "knowledgeBaseDetailLoading": "문서 불러오는 중…",
   "knowledgeBaseDetailMissing": "이 지식 베이스가 존재하지 않거나 삭제되었습니다",
-  "knowledgeBaseDocumentRename": "이름 바꾸기",
+  "knowledgeBaseDocumentReparse": "다시 분석",
   "knowledgeBaseDocumentMore": "더 많은 작업",
   "knowledgeBaseDetailSortDesc": "생성 시간순 정렬(최신순)",
   "knowledgeBaseDetailSortAsc": "생성 시간순 정렬(오래된순)",

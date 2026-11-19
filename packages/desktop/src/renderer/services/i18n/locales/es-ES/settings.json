@@ -212,7 +212,7 @@
   "knowledgeBaseDetailLoadFailed": "No se pudieron cargar los documentos",
   "knowledgeBaseDetailLoading": "Cargando documentos…",
   "knowledgeBaseDetailMissing": "Esta base de conocimiento no existe o ha sido eliminada",
-  "knowledgeBaseDocumentRename": "Cambiar nombre",
+  "knowledgeBaseDocumentReparse": "Volver a analizar",
   "knowledgeBaseDocumentMore": "Más acciones",
   "knowledgeBaseDetailSortDesc": "Ordenar por fecha de creación (más recientes primero)",
   "knowledgeBaseDetailSortAsc": "Ordenar por fecha de creación (más antiguos primero)",
