@@ -83,6 +83,7 @@ const KnowledgeBaseUploadModal: React.FC<KnowledgeBaseUploadModalProps> = ({
       onCancel={onCancel}
       unmountOnExit
       className={styles.modal}
+      wrapClassName={styles.wrapper}
       title={
         <div className={styles.header}>
           <h2 className={styles.title}>{t('settings.knowledgeBaseUploadTitle', { defaultValue: '上传文件' })}</h2>
@@ -167,39 +168,41 @@ const KnowledgeBaseUploadModal: React.FC<KnowledgeBaseUploadModalProps> = ({
                 { count: files.length }
               )}
             </div>
-            {files.map((item, index) => (
-              <div key={item.uid} className={styles.pendingFile} data-testid={`kb-upload-file-${index}`}>
-                <DocumentFileIcon name={item.name} size={28} className={styles.pendingIcon} />
-                <div className={styles.pendingInfo}>
-                  <p className={styles.pendingName}>{item.name}</p>
-                  <span className={styles.pendingMeta}>
-                    {formatOf(item.name)} · {t('settings.knowledgeBaseUploadReady', { defaultValue: '准备导入' })}
-                  </span>
+            <div className={styles.pendingList} data-testid='kb-upload-pending-list'>
+              {files.map((item, index) => (
+                <div key={item.uid} className={styles.pendingFile} data-testid={`kb-upload-file-${index}`}>
+                  <DocumentFileIcon name={item.name} size={28} className={styles.pendingIcon} />
+                  <div className={styles.pendingInfo}>
+                    <p className={styles.pendingName}>{item.name}</p>
+                    <span className={styles.pendingMeta}>
+                      {formatOf(item.name)} · {t('settings.knowledgeBaseUploadReady', { defaultValue: '准备导入' })}
+                    </span>
+                  </div>
+                  <Button
+                    type='text'
+                    className={styles.removeButton}
+                    onClick={() => onRemoveFile(item.uid)}
+                    aria-label={interpolateI18n(
+                      t('settings.knowledgeBaseUploadRemoveFile', {
+                        name: item.name,
+                        defaultValue: '移除 {{name}}',
+                      }),
+                      { name: item.name }
+                    )}
+                    title={interpolateI18n(
+                      t('settings.knowledgeBaseUploadRemoveFile', {
+                        name: item.name,
+                        defaultValue: '移除 {{name}}',
+                      }),
+                      { name: item.name }
+                    )}
+                    data-testid={`kb-upload-remove-${index}`}
+                  >
+                    <AppIcon name='delete' size={14} />
+                  </Button>
                 </div>
-                <Button
-                  type='text'
-                  className={styles.removeButton}
-                  onClick={() => onRemoveFile(item.uid)}
-                  aria-label={interpolateI18n(
-                    t('settings.knowledgeBaseUploadRemoveFile', {
-                      name: item.name,
-                      defaultValue: '移除 {{name}}',
-                    }),
-                    { name: item.name }
-                  )}
-                  title={interpolateI18n(
-                    t('settings.knowledgeBaseUploadRemoveFile', {
-                      name: item.name,
-                      defaultValue: '移除 {{name}}',
-                    }),
-                    { name: item.name }
-                  )}
-                  data-testid={`kb-upload-remove-${index}`}
-                >
-                  <AppIcon name='delete' size={14} />
-                </Button>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         ) : null}
       </div>

@@ -16,16 +16,61 @@
  * 覆写。Arco 的样式表由 shell 在运行时注入（排在模块样式之后），所以要用
  * `!important` 才能盖住 —— 与本微应用既有的 Arco 覆写做法一致。
  */
+/*
+ * 遮罩层 —— 垂直居中且**不滚动**。
+ *
+ * Arco 默认 `.arco-modal-wrapper` 是 `position: fixed; overflow: auto` 的滚动
+ * 容器，弹窗还带 `top: 100px` 的偏移：文件一多，弹窗比视口还高，遮罩层就
+ * 变成滚动条，标题被顶出屏幕（内容「出页面」）。
+ *
+ * 这里改成 flex 居中 + `overflow: hidden`，居中与「不滚动」一次做完。
+ * 弹窗自身的高度由 `max-height` 封顶，所以裁掉滚动条也不会丢内容。
+ */
+.wrapper {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+}
+
 .modal {
   width: 600px !important;
   max-width: 100%;
+  /*
+   * 视口高度封顶（上下各留 24px）—— 弹窗永远完整可见，超出的部分由
+   * 中间的待上传清单自己滚动。
+   */
+  max-height: calc(100vh - 48px);
+  /* Arco 默认 `top: 100px` + `margin: 0 auto` —— 居中交给遮罩层，这里归零。 */
+  top: auto !important;
+  margin: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
   border-radius: 16px !important;
+}
+
+/*
+ * Arco 把 header / content / footer 统统包在一个 focus-lock 的 div 里
+ * （`<div data-focus-lock-disabled="false" tabindex="-1">`）—— 所以真正
+ * 需要变成竖向 flex 的不是 `.arco-modal` 根元素，而是那层包裹。
+ *
+ * 这层不限制高度的话，它会按内容高度撑开，把弹窗的 max-height 顶穿 ——
+ * 表现就是「清单不滚动、整页一起长高」。
+ */
+.modal :global([data-focus-lock-disabled]) {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .modal :global(.arco-modal-header) {
   /* Arco 的普通 modal header 是固定 48px 高 —— 标题 + 副标题装不下。 */
   height: auto !important;
   padding: 24px 24px 20px !important;
+  /* 设计稿的 `.kb-dialog-header` 没有分隔线（只有 footer 有）。 */
+  border-bottom: none !important;
+  flex-shrink: 0;
 }
 
 /* Arco 默认把标题居中 —— 设计稿是左对齐。要作用在标题元素上。 */
@@ -35,11 +80,18 @@
 
 .modal :global(.arco-modal-content) {
   padding: 0 24px 24px !important;
+  /* 内容区吃掉剩余高度，多出来的部分由内部的清单滚动，不撑弹窗。 */
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .modal :global(.arco-modal-footer) {
   padding: 20px 24px !important;
   border-top: 1px solid var(--kb-border);
+  flex-shrink: 0;
 }
 
 .header {
@@ -66,6 +118,8 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  flex: 1;
+  min-height: 0;
 }
 
 /* ── 拖拽区 ─────────────────────────────────────────── */
@@ -133,9 +187,25 @@
 }
 
 /* ── 待上传清单 ─────────────────────────────────────── */
+/*
+ * 文件多的时候只有文件行这一块滚动：标题、拖拽区、计数与底部按钮始终不动。
+ * `flex: 1 + min-height: 0` 是关键 —— 只写 flex: 1 的话，flex item 的
+ * 默认 `min-height: auto` 会让它被内容顶开，滚动条就不会出现。
+ */
 .pending {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.pendingList {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .pendingLabel {
@@ -144,6 +214,8 @@
   font-weight: 500;
   line-height: 22px;
   color: var(--kb-heading);
+  /* 计数不跟着滚走 —— 滚到列表底部时还能看到「一共几个」。 */
+  flex-shrink: 0;
 }
 
 .pendingFile {

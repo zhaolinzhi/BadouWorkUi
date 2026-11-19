@@ -34,6 +34,8 @@
    */
   height: auto !important;
   padding: 28px 28px 20px !important;
+  /* 设计稿的 `.kb-dialog-header` 没有分隔线（只有 footer 有）。 */
+  border-bottom: none !important;
 }
 
 /*
