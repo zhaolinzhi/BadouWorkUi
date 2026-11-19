@@ -16,7 +16,7 @@ type MessageState = {
 const LoginPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const { status, completeExternalLogin } = useAuth();
+  const { status } = useAuth();
 
   const [message, setMessage] = useState<MessageState | null>(null);
   const [loading, setLoading] = useState(false);
@@ -90,6 +90,12 @@ const LoginPage: React.FC = () => {
     });
   }, []);
 
+  // The deep-link callback is handled by AuthProvider — it is mounted for the
+  // whole app lifetime, so a callback that arrives before this page has
+  // finished loading is not lost, and this page does not have to claim it.
+  //
+  // Navigation to /guid is driven by the `status === 'authenticated'` effect
+  // above once AuthContext flips its state.
   // Subscribe to the deep-link callback once on mount so the token arriving
   // from the OS-routed `badouwork://auth/callback` URL triggers login completion.
   useEffect(() => {

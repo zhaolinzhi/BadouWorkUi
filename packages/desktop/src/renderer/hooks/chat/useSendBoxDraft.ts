@@ -115,6 +115,18 @@ export const useConversationSendBoxPrefill = (
   }, [conversation_id]);
 };
 
+/**
+ * Drop the pending prefill and its listeners.
+ *
+ * A pending prefill carries prompt text for a conversation that belongs to the
+ * account that is being signed out; delivering it to whoever signs in next
+ * would leak that account's content.
+ */
+export const resetConversationSendBoxPrefill = (): void => {
+  pendingConversationPrefill = undefined;
+  conversationPrefillListeners.clear();
+};
+
 const setDraft = <K extends DraftConversationType>(
   type: K,
   conversation_id: string,

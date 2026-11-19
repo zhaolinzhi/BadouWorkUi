@@ -43,6 +43,7 @@
   "saveFailed": "저장 실패",
   "unknownError": "알 수 없는 오류",
   "sessionExpired": "세션이 만료되었습니다. 다시 로그인해 주세요.",
+  "accountSwitchFailed": "이 계정의 데이터 디렉터리로 전환하지 못했습니다. 앱을 다시 시작한 후 시도해 주세요.",
   "confirmDelete": "삭제 확인",
   "deleteSuccess": "삭제 성공",
   "deleteFailed": "삭제 실패",

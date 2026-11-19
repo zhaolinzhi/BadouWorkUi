@@ -529,7 +529,8 @@ const drainBackgroundCommandQueue = async (runner: BackgroundCommandQueueRunner)
   }
 };
 
-export const resetConversationCommandQueueBackgroundRunnerForTest = (): void => {
+/** Drop the background turn runners and stop listening for turn completions. */
+export const resetConversationCommandQueueBackgroundRunner = (): void => {
   backgroundRunners.clear();
   backgroundTurnCompletedUnsubscribe?.();
   backgroundTurnCompletedUnsubscribe = null;

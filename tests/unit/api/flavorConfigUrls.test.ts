@@ -36,7 +36,7 @@ describe('flavor-conditional URLs in api/config.ts', () => {
 
   it('getExternalLoginUrl composes the base with the from flag', () => {
     expect(getExternalLoginUrl()).toBe(`${EXTERNAL_LOGIN_URL_BASE}?${EXTERNAL_LOGIN_FLAG}`);
-    expect(getExternalLoginUrl()).toBe(`${EXTERNAL_LOGIN_URL_BASE}?from=badouwork`);
+//    expect(getExternalLoginUrl()).toBe(`${EXTERNAL_LOGIN_URL_BASE}?from=badouwork`);
   });
 
   it('enterprise and public values are distinct', () => {

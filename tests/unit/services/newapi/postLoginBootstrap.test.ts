@@ -5,6 +5,7 @@ import { BackendHttpError } from '@/common/adapter/httpBridge';
 const listProvidersInvoke = vi.fn();
 const createProviderInvoke = vi.fn();
 const updateProviderInvoke = vi.fn();
+const swrMutate = vi.fn();
 
 vi.mock('@/common', () => ({
   ipcBridge: {
@@ -16,11 +17,15 @@ vi.mock('@/common', () => ({
   },
 }));
 
+vi.mock('swr', () => ({
+  mutate: swrMutate,
+}));
+
 vi.mock('@/renderer/api/config', () => ({
   AIPAAS_BASE_URL: 'http://aipaas.test',
 }));
 
-const { NEWAPI_PROVIDER_ID, NEWAPI_BASE_URL, NEWAPI_DEFAULT_MODEL } =
+const { NEWAPI_PROVIDER_ID, NEWAPI_PROVIDER_NAME, NEWAPI_BASE_URL, NEWAPI_DEFAULT_MODEL } =
   await import('@/renderer/services/newapi/postLoginBootstrap.constants');
 
 // 用 NUL-padded 模拟 aipaas 加密,保证 decryptNewapiKey 能解出原明文
@@ -49,6 +54,7 @@ beforeEach(async () => {
   listProvidersInvoke.mockReset();
   createProviderInvoke.mockReset();
   updateProviderInvoke.mockReset();
+  swrMutate.mockReset();
   vi.unstubAllGlobals();
   const mod = await import('@/renderer/services/newapi/postLoginBootstrap');
   runNewapiPostLogin = mod.runNewapiPostLogin;
@@ -87,12 +93,13 @@ describe('runNewapiPostLogin — happy path', () => {
     expect(createProviderInvoke).toHaveBeenCalledWith({
       id: NEWAPI_PROVIDER_ID,
       platform: 'new-api',
-      name: '默认token',
+      name: NEWAPI_PROVIDER_NAME,
       base_url: NEWAPI_BASE_URL,
       api_key: plain,
       models: [NEWAPI_DEFAULT_MODEL],
       enabled: true,
-      is_full_url: true,
+      // base_url 是基础地址(不含 /chat/completions),由后端拼接请求路径
+      is_full_url: false,
       model_settings: { [NEWAPI_DEFAULT_MODEL]: { tool_wire_shape: 'open_ai_flat_function' } },
     });
   });
@@ -123,7 +130,7 @@ describe('runNewapiPostLogin — happy path', () => {
         id: NEWAPI_PROVIDER_ID,
         api_key: expectedStoredKey,
         platform: 'new-api',
-        name: '默认token',
+        name: NEWAPI_PROVIDER_NAME,
         base_url: NEWAPI_BASE_URL,
         models: [NEWAPI_DEFAULT_MODEL],
       },
@@ -202,7 +209,7 @@ describe('runNewapiPostLogin — skip paths', () => {
         id: NEWAPI_PROVIDER_ID,
         api_key: plain,
         platform: 'new-api',
-        name: '默认token',
+        name: NEWAPI_PROVIDER_NAME,
         base_url: NEWAPI_BASE_URL,
         models: [NEWAPI_DEFAULT_MODEL],
         // 注意: 故意没设 model_settings,模拟老数据
@@ -229,7 +236,7 @@ describe('runNewapiPostLogin — skip paths', () => {
         id: NEWAPI_PROVIDER_ID,
         api_key: 'sk-old-stale-key-9999',
         platform: 'new-api',
-        name: '默认token',
+        name: NEWAPI_PROVIDER_NAME,
         base_url: NEWAPI_BASE_URL,
         models: [NEWAPI_DEFAULT_MODEL],
       },
@@ -277,12 +284,12 @@ describe('runNewapiPostLogin — skip paths', () => {
     expect(createProviderInvoke).toHaveBeenCalledWith({
       id: NEWAPI_PROVIDER_ID,
       platform: 'new-api',
-      name: '默认token',
+      name: NEWAPI_PROVIDER_NAME,
       base_url: NEWAPI_BASE_URL,
       api_key: plain,
       models: [NEWAPI_DEFAULT_MODEL],
       enabled: true,
-      is_full_url: true,
+      is_full_url: false,
       model_settings: { [NEWAPI_DEFAULT_MODEL]: { tool_wire_shape: 'open_ai_flat_function' } },
     });
     expect(updateProviderInvoke).not.toHaveBeenCalled();
@@ -298,7 +305,7 @@ describe('runNewapiPostLogin — skip paths', () => {
         id: NEWAPI_PROVIDER_ID,
         api_key: 'sk-old-stale',
         platform: 'new-api',
-        name: '默认token',
+        name: NEWAPI_PROVIDER_NAME,
         base_url: NEWAPI_BASE_URL,
         models: [NEWAPI_DEFAULT_MODEL],
       },
@@ -311,6 +318,72 @@ describe('runNewapiPostLogin — skip paths', () => {
     expect(updateProviderInvoke).toHaveBeenCalledTimes(1);
     const callArg = updateProviderInvoke.mock.calls[0][0] as { api_key: string };
     expect(callArg.api_key).toBe(expectedStoredKey);
+  });
+});
+
+describe('runNewapiPostLogin — provider cache invalidation', () => {
+  it('invalidates the providers cache after creating the provider', async () => {
+    const plain = 'sk-cache-1234567890abcdef';
+    const enc = aipaasLikeEncrypt(plain);
+    stubFetchOnce({ hasOk: true, message: 'ok', bean: { enc } });
+    listProvidersInvoke.mockResolvedValue([]);
+    createProviderInvoke.mockResolvedValue({ id: NEWAPI_PROVIDER_ID });
+
+    await runNewapiPostLogin('T');
+
+    expect(swrMutate).toHaveBeenCalledWith('providers');
+  });
+
+  it('invalidates the providers cache after rotating the api_key', async () => {
+    const newPlain = 'sk-new-rotated-cache-12345';
+    const enc = aipaasLikeEncrypt(newPlain);
+    stubFetchOnce({ hasOk: true, message: 'ok', bean: { enc } });
+    listProvidersInvoke.mockResolvedValue([
+      {
+        id: NEWAPI_PROVIDER_ID,
+        api_key: 'sk-old-stale-key-9999',
+        platform: 'new-api',
+        name: '默认',
+        base_url: NEWAPI_BASE_URL,
+        models: [NEWAPI_DEFAULT_MODEL],
+      },
+    ]);
+    updateProviderInvoke.mockResolvedValue({ id: NEWAPI_PROVIDER_ID });
+
+    await runNewapiPostLogin('T');
+
+    expect(swrMutate).toHaveBeenCalledWith('providers');
+  });
+
+  it('does not invalidate the providers cache when nothing was written', async () => {
+    const enc = aipaasLikeEncrypt('sk-zzz-1234567890abcdef');
+    stubFetchOnce({ hasOk: true, message: 'ok', bean: { enc } });
+    // 已有 provider 且 api_key 相同 → 只可能回填 model_settings,不写 provider
+    listProvidersInvoke.mockResolvedValue([
+      {
+        id: NEWAPI_PROVIDER_ID,
+        api_key: 'sk-zzz-1234567890abcdef',
+        platform: 'new-api',
+        name: '默认',
+        base_url: NEWAPI_BASE_URL,
+        models: [NEWAPI_DEFAULT_MODEL],
+        model_settings: { [NEWAPI_DEFAULT_MODEL]: { tool_wire_shape: 'open_ai_flat_function' } },
+      },
+    ]);
+
+    await runNewapiPostLogin('T');
+
+    expect(createProviderInvoke).not.toHaveBeenCalled();
+    expect(updateProviderInvoke).not.toHaveBeenCalled();
+    expect(swrMutate).not.toHaveBeenCalled();
+  });
+
+  it('does not invalidate the providers cache when the bootstrap fails before writing', async () => {
+    stubFetchOnce({ hasOk: false, message: '未登录', bean: null });
+
+    await runNewapiPostLogin('T');
+
+    expect(swrMutate).not.toHaveBeenCalled();
   });
 });
 
@@ -355,7 +428,7 @@ describe('runNewapiPostLogin — model_settings backfill edge cases', () => {
         id: NEWAPI_PROVIDER_ID,
         api_key: plain,
         platform: 'new-api',
-        name: '默认token',
+        name: NEWAPI_PROVIDER_NAME,
         base_url: NEWAPI_BASE_URL,
         models: [NEWAPI_DEFAULT_MODEL],
         model_settings: { [NEWAPI_DEFAULT_MODEL]: { tool_wire_shape: 'open_ai_flat_function' } },
@@ -377,7 +450,7 @@ describe('runNewapiPostLogin — model_settings backfill edge cases', () => {
         id: NEWAPI_PROVIDER_ID,
         api_key: plain,
         platform: 'new-api',
-        name: '默认token',
+        name: NEWAPI_PROVIDER_NAME,
         base_url: NEWAPI_BASE_URL,
         models: [NEWAPI_DEFAULT_MODEL, 'gpt-4o'],
         // 用户手动给 gpt-4o 设过 settings,但 deepseek 缺
@@ -403,7 +476,7 @@ describe('runNewapiPostLogin — model_settings backfill edge cases', () => {
         id: NEWAPI_PROVIDER_ID,
         api_key: 'sk-old-stale-key-9999',
         platform: 'new-api',
-        name: '默认token',
+        name: NEWAPI_PROVIDER_NAME,
         base_url: NEWAPI_BASE_URL,
         models: [NEWAPI_DEFAULT_MODEL],
         // 即使 model_settings 是空,key 轮换路径也不回填
@@ -430,7 +503,7 @@ describe('runNewapiPostLogin — model_settings backfill edge cases', () => {
         id: NEWAPI_PROVIDER_ID,
         api_key: plain,
         platform: 'new-api',
-        name: '默认token',
+        name: NEWAPI_PROVIDER_NAME,
         base_url: NEWAPI_BASE_URL,
         models: [NEWAPI_DEFAULT_MODEL],
         model_settings: {},

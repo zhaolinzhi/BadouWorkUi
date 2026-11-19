@@ -42,6 +42,7 @@
   "saveFailed": "Speichern fehlgeschlagen",
   "unknownError": "Unbekannter Fehler",
   "sessionExpired": "Ihre Sitzung ist abgelaufen. Bitte melden Sie sich erneut an.",
+  "accountSwitchFailed": "Wechsel zum Datenverzeichnis dieses Kontos fehlgeschlagen. Bitte starten Sie die App neu und versuchen Sie es erneut.",
   "confirmDelete": "Löschen bestätigen",
   "deleteSuccess": "Erfolgreich gelöscht",
   "deleteFailed": "Löschen fehlgeschlagen",

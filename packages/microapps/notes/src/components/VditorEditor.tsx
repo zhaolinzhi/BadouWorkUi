@@ -82,6 +82,21 @@ const buildToolbar = (moreTip: string): Array<string | IMenuItem> => [
   },
 ];
 
+/**
+ * 估算提示框的宽度。
+ *
+ * Vditor 的提示框是 CSS 伪元素(`::after`),量不到真实宽度 —— 只能按文案长度
+ * 估:中文一个字约 12px,英文约 7px,再加上内边距。
+ */
+const estimateTipWidth = (label: string): number => {
+  let width = 24;
+  for (const char of label) {
+    // CJK 与全角字符按 12px 估,其余按 7px。
+    width += /[⺀-鿿＀-￯]/.test(char) ? 12 : 7;
+  }
+  return width;
+};
+
 const VditorEditor: React.FC<VditorEditorProps> = ({
   value,
   onChange,
@@ -290,6 +305,36 @@ const VditorEditor: React.FC<VditorEditorProps> = ({
         leaveDebounceRef.current = null;
       }
     };
+  }, [containerId]);
+
+  /*
+   * 工具栏的悬停提示框:按按钮在工具栏**可见区域**里的位置,决定显示在按钮
+   * 左边还是右边。
+   *
+   * 提示框是 Vditor 的 CSS 伪元素(挂在按钮上),而工具栏是横向滚动的容器 ——
+   * 一律朝右显示的话,靠右边的按钮的提示框会被工具栏的可见边缘裁掉。
+   * 悬停时量一下:放右边会不会超出可见区域,超了就翻到左边(样式见
+   * `NotesPage.module.css` 里的 `.notes-tip-left`)。
+   */
+  useEffect(() => {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const handleMouseOver = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      const tip = target?.closest?.('.vditor-tooltipped') as HTMLElement | null;
+      container.querySelectorAll('.notes-tip-left').forEach((el) => el.classList.remove('notes-tip-left'));
+      if (!tip) return;
+      const toolbar = tip.closest('.vditor-toolbar');
+      if (!toolbar) return;
+      const visibleRight = toolbar.getBoundingClientRect().right;
+      const tipRight = tip.getBoundingClientRect().right;
+      const label = tip.getAttribute('aria-label') ?? '';
+      if (tipRight + estimateTipWidth(label) > visibleRight) {
+        tip.classList.add('notes-tip-left');
+      }
+    };
+    container.addEventListener('mouseover', handleMouseOver);
+    return () => container.removeEventListener('mouseover', handleMouseOver);
   }, [containerId]);
 
   useEffect(() => {

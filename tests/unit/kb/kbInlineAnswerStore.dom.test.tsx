@@ -7,7 +7,7 @@ import React from 'react';
 import { act, render } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
-  _resetKbInlineAnswerStoreForTest,
+  resetKbInlineAnswerStore,
   getKbInlineAnswerSnapshot,
   useKbInlineAnswer,
 } from '@/renderer/utils/kb/kbInlineAnswerStore';
@@ -34,7 +34,7 @@ describe('kbInlineAnswerStore', () => {
   });
 
   afterEach(() => {
-    _resetKbInlineAnswerStoreForTest();
+    resetKbInlineAnswerStore();
     (globalThis as Record<string, unknown>).__ctrls = new Map<string, KbInlineAnswerController>();
   });
 

@@ -2,12 +2,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   getCurrentProject,
-  resetCurrentProjectForTest,
+  resetCurrentProjectStore,
   setCurrentProject,
   subscribeCurrentProject,
 } from '@/renderer/pages/conversation/explorer/currentProjectStore';
 
-afterEach(() => resetCurrentProjectForTest());
+afterEach(() => resetCurrentProjectStore());
 
 describe('currentProjectStore', () => {
   it('sets and reads the current project id', () => {

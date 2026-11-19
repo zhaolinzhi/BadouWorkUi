@@ -8,7 +8,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAionrsMessage } from '@/renderer/pages/conversation/platforms/aionrs/useAionrsMessage';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
-import { resetConversationTurnClockForTests } from '@/renderer/pages/conversation/utils/conversationTurnClock';
+import { resetConversationTurnClock } from '@/renderer/pages/conversation/utils/conversationTurnClock';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 
 const { addOrUpdateMessageMock, conversationUpdateInvokeMock, responseStreamOnMock, responseStreamHandlerRef } =
@@ -49,7 +49,7 @@ vi.mock('@/common', () => ({
 describe('useAionrsMessage turn clock', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    resetConversationTurnClockForTests();
+    resetConversationTurnClock();
     conversationUpdateInvokeMock.mockResolvedValue(undefined);
     responseStreamHandlerRef.current = undefined;
   });

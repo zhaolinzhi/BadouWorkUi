@@ -32,6 +32,75 @@
         padding: 0;
         overflow: hidden;
       }
+
+      /*
+       * Boot splash — the first paint, before the React bundle has loaded and
+       * mounted. Without it the window shows a blank white page for as long as
+       * the module graph takes to parse (and again after every
+       * `window.location.reload()`, which is what an account switch triggers).
+       *
+       * The values mirror the `--bg-1` / `--bg-8` tokens in
+       * `styles/themes/default-color-scheme.css`. They are duplicated here on
+       * purpose: the theme stylesheet is not loaded yet at boot, so the CSS
+       * variables are still undefined and `var(--bg-1)` would resolve to
+       * nothing and leave the page transparent (white). `data-theme` is set
+       * synchronously by the script above, so the dark variant can be
+       * selected the same way.
+       */
+      #boot-splash {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f9fafb;
+      }
+
+      [data-theme='dark'] #boot-splash {
+        background: #1a1a1a;
+      }
+
+      #boot-splash-spinner {
+        width: 32px;
+        height: 32px;
+        border: 2px solid #c9cdd4;
+        border-top-color: #4e5969;
+        border-radius: 50%;
+        animation: boot-splash-spin 0.8s linear infinite;
+      }
+
+      [data-theme='dark'] #boot-splash-spinner {
+        border-color: #404040;
+        border-top-color: #737373;
+      }
+
+      @keyframes boot-splash-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /*
+       * Respect the OS "reduce motion" setting — the spinner is decorative,
+       * so a static ring is a better outcome than continuous animation.
+       */
+      @media (prefers-reduced-motion: reduce) {
+        #boot-splash-spinner {
+          animation: none;
+        }
+      }
+
+      /*
+       * The splash is hidden by CSS rather than removed from the DOM, so the
+       * hand-off to React is atomic with the first painted frame: there is no
+       * moment where neither the splash nor the app is on screen.
+       *
+       * `data-app-ready` is set by `main.tsx` once React has committed its
+       * first render.
+       */
+      html[data-app-ready='true'] #boot-splash {
+        display: none;
+      }
     </style>
   </head>
   <body>
@@ -42,6 +111,15 @@
         if (t) document.body.setAttribute('arco-theme', t);
       } catch (e) {}
     </script>
+    <!--
+      The splash lives outside #root on purpose: `createRoot` appends to its
+      container rather than replacing its children, so markup placed inside
+      #root would survive the mount and sit on top of the app. `main.tsx`
+      removes this element once React has rendered.
+    -->
+    <div id="boot-splash" aria-hidden="true">
+      <div id="boot-splash-spinner"></div>
+    </div>
     <div id="root"></div>
     <script type="module" src="./main.tsx"></script>
   </body>

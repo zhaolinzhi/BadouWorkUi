@@ -7,7 +7,7 @@ import {
   cancelSearch,
   configureSearchStore,
   getSearchSnapshot,
-  resetSearchStoreForTest,
+  resetSearchStore,
   type SearchPort,
   type SearchResult,
   startSearch,
@@ -42,7 +42,7 @@ const ROOTS: DirRef[] = [{ pe_id: 'pe1', relative_path: '' }];
 const OWNER = 'test';
 const hit = (name: string): SearchHit => ({ pe_id: 'pe1', relative_path: `src/${name}`, name });
 
-afterEach(() => resetSearchStoreForTest());
+afterEach(() => resetSearchStore());
 
 describe('searchStore lifecycle', () => {
   it('starts a search, accumulates matches, and settles on the terminal response', async () => {
@@ -96,7 +96,7 @@ describe('searchStore lifecycle', () => {
   });
 
   it('errors when no port is configured', () => {
-    resetSearchStoreForTest();
+    resetSearchStore();
     startSearch(OWNER, ROOTS, 'btn');
     expect(getSearchSnapshot().status).toBe('error');
   });

@@ -15,6 +15,7 @@
  *   → `{"type":"done"}` (server closes after), or `{"type":"error","code","msg"}` then close.
  */
 
+import { getBackendPort, isWebUiBrowserMode } from '@/common/adapter/httpBridge';
 import { STREAM_SAMPLE_RATE } from './pcmRecorder';
 
 // ---------------------------------------------------------------------------
@@ -82,27 +83,15 @@ type ServerFrame = {
 // ---------------------------------------------------------------------------
 
 /**
- * Mirror of httpBridge's (non-exported) getBackendPort / isWebUiBrowserMode /
- * getWsUrl — see packages/desktop/src/common/adapter/httpBridge.ts:
+ * The bridge owns the backend port: it follows the backend when it restarts on
+ * another port, which the frozen `window.__backendPort` cannot do. See
+ * packages/desktop/src/common/adapter/httpBridge.ts:
  * - Electron renderer: the preload bridge injects `window.__backendPort`,
  *   and the backend listens on loopback.
  * - WebUI browser: no preload, so no `__backendPort`; use same-origin URLs —
  *   web-host's static-server proxies/upgrades to the backend and session
  *   cookies ride along automatically.
  */
-const getBackendPort = (): number => {
-  if (typeof window !== 'undefined') {
-    const w = window as Window & { __backendPort?: number };
-    if (w.__backendPort) return w.__backendPort;
-  }
-  const g = globalThis as typeof globalThis & { __backendPort?: number };
-  return g.__backendPort ?? 13400;
-};
-
-const isWebUiBrowserMode = (): boolean =>
-  typeof window !== 'undefined' &&
-  typeof document !== 'undefined' &&
-  !(window as Window & { __backendPort?: number }).__backendPort;
 
 /** Resolve the streaming endpoint URL for the current runtime mode. */
 export const getSpeechStreamUrl = (): string => {

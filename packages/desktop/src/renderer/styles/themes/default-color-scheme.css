@@ -114,6 +114,7 @@
   --notes-focus-ring: #8fb9ff; /* 搜索框聚焦描边 */
   --notes-muted: #6b7280; /* 次要文字(摘要、元信息、状态) */
   --notes-heading: #0d0d0d; /* 面板标题 */
+  --notes-star: #ffc53d; /* 收藏标记(条目左侧的黄色星星) */
 
   /* 录音模块 —— 设计稿 BadouWork-Desktop-Handoff 的录音列表页 */
   --rec-app-bg: #f5f7fa; /* 页面底色 / 表头与搜索框底色 */
@@ -257,6 +258,7 @@
   --notes-focus-ring: #7396d6;
   --notes-muted: #a8a8a8;
   --notes-heading: #f1f1f1;
+  --notes-star: #ffd666; /* 收藏标记(条目左侧的黄色星星) */
 
   /* 录音模块（暗色沿用设计稿 dark.css 的深蓝灰浅蓝底） */
   --rec-app-bg: #1a1a1a;

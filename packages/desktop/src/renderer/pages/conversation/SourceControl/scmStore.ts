@@ -653,8 +653,8 @@ export const getScmInternalsForTest = (): { subscribed: string[]; appliedSeq: Re
   appliedSeq: Object.fromEntries(appliedSeq),
 });
 
-/** Test hook: reset all module state. */
-export const resetScmStoreForTest = (): void => {
+/** Reset all module state: no port, no repositories, no selection. */
+export const resetScmStore = (): void => {
   port = null;
   projectId = null;
   repositories = [];

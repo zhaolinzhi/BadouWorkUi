@@ -32,10 +32,7 @@ vi.mock('@/renderer/utils/platform', async (orig) => ({
 import type { DirRef, Entry, PeKey } from '@/renderer/pages/conversation/explorer/explorerModel';
 import { peKey, refToKey } from '@/renderer/pages/conversation/explorer/explorerModel';
 import type { MonitorPort } from '@/renderer/pages/conversation/explorer/explorerStore';
-import {
-  configureExplorerStore,
-  resetExplorerStoreForTest,
-} from '@/renderer/pages/conversation/explorer/explorerStore';
+import { configureExplorerStore, resetExplorerStore } from '@/renderer/pages/conversation/explorer/explorerStore';
 import { ExplorerPanel } from '@/renderer/pages/conversation/explorer/ExplorerPanel';
 
 const REVEAL_LABEL = 'conversation.workspace.contextMenu.openLocation';
@@ -60,7 +57,7 @@ const renderPanel = (onRevealInFolder?: (peId: string, rel: string) => void, onO
 };
 
 beforeEach(() => {
-  resetExplorerStoreForTest();
+  resetExplorerStore();
   localStorage.clear();
   platformMock.isDesktop = true;
 });

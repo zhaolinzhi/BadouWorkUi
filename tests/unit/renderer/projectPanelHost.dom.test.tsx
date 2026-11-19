@@ -16,12 +16,12 @@ vi.mock('@/renderer/pages/conversation/explorer/ExplorerContainer', () => ({
 import { ProjectPanelHost } from '@/renderer/components/layout/ProjectPanelHost';
 import {
   setCurrentProject,
-  resetCurrentProjectForTest,
+  resetCurrentProjectStore,
 } from '@/renderer/pages/conversation/explorer/currentProjectStore';
 
 const noop = () => {};
 
-beforeEach(() => resetCurrentProjectForTest());
+beforeEach(() => resetCurrentProjectStore());
 afterEach(() => cleanup());
 
 describe('ProjectPanelHost (Layout-level host chrome)', () => {

@@ -20,7 +20,7 @@ import {
   localStopAcknowledgedConversationRuntimeView,
   localStopRequested,
   localStopRequestedConversationRuntimeView,
-  resetConversationRuntimeViewStoreForTest,
+  resetConversationRuntimeViewStore,
   turnCompleted,
   turnCompletedConversationRuntimeView,
 } from '@/renderer/pages/conversation/runtime/conversationRuntimeViewStore';
@@ -229,7 +229,7 @@ describe('conversationRuntimeViewStore', () => {
   });
 
   it('keeps an unaccepted local send busy when a stale idle hydrate arrives', () => {
-    resetConversationRuntimeViewStoreForTest();
+    resetConversationRuntimeViewStore();
 
     localSendStarted(conversation_id);
     const logs = hydrateSucceeded(conversation_id, runtime({}));
@@ -246,7 +246,7 @@ describe('conversationRuntimeViewStore', () => {
   });
 
   it('releases an accepted local send when a later hydrate confirms the backend is idle', () => {
-    resetConversationRuntimeViewStoreForTest();
+    resetConversationRuntimeViewStore();
 
     localSendStarted(conversation_id);
     localSendAccepted(
@@ -311,7 +311,7 @@ describe('conversationRuntimeViewStore', () => {
   });
 
   it('ignores a late running send acceptance after turn completion already released the same turn', () => {
-    resetConversationRuntimeViewStoreForTest();
+    resetConversationRuntimeViewStore();
 
     localSendStarted(conversation_id);
     turnCompleted(conversation_id, 'turn-1', runtime({}));
@@ -419,7 +419,7 @@ describe('conversationRuntimeViewStore', () => {
   });
 
   it('keeps next local send gate when stale stop acknowledgement returns running runtime', () => {
-    resetConversationRuntimeViewStoreForTest();
+    resetConversationRuntimeViewStore();
 
     localSendStarted(conversation_id);
     localSendAccepted(

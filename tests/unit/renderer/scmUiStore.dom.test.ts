@@ -17,7 +17,7 @@ import {
   clearSectionHeight,
   getScmUiSnapshot,
   openScmUi,
-  resetScmUiStoreForTest,
+  resetScmUiStore,
   setScmTreeExpanded,
   setScmViewMode,
   setSectionCollapsed,
@@ -31,7 +31,7 @@ const readRaw = (id: string): Record<string, unknown> => {
 };
 
 beforeEach(() => {
-  resetScmUiStoreForTest();
+  resetScmUiStore();
   localStorage.clear();
 });
 afterEach(() => localStorage.clear());
@@ -61,7 +61,7 @@ describe('scmUiStore persistence (per project)', () => {
     setSectionCollapsed('repositories', true);
     expect(readRaw('p1').collapsed).toEqual({ repositories: true });
 
-    resetScmUiStoreForTest();
+    resetScmUiStore();
     openScmUi('p1');
     expect(getScmUiSnapshot().collapsed).toEqual({ repositories: true });
   });
@@ -71,7 +71,7 @@ describe('scmUiStore persistence (per project)', () => {
     setSectionHeight('repositories', 180);
     expect(getScmUiSnapshot().heights).toEqual({ repositories: 180 });
 
-    resetScmUiStoreForTest();
+    resetScmUiStore();
     openScmUi('p1');
     expect(getScmUiSnapshot().heights).toEqual({ repositories: 180 });
 
@@ -83,7 +83,7 @@ describe('scmUiStore persistence (per project)', () => {
   it('persists and restores view mode', () => {
     openScmUi('p1');
     setScmViewMode('tree');
-    resetScmUiStoreForTest();
+    resetScmUiStore();
     openScmUi('p1');
     expect(getScmUiSnapshot().viewMode).toBe('tree');
   });
@@ -95,7 +95,7 @@ describe('scmUiStore persistence (per project)', () => {
     setScmTreeExpanded(['src', 'src/nested']);
     expect(readRaw('p1').treeExpanded).toEqual(['src', 'src/nested']);
 
-    resetScmUiStoreForTest();
+    resetScmUiStore();
     openScmUi('p1');
     expect(getScmUiSnapshot().treeExpanded).toEqual(['src', 'src/nested']);
   });

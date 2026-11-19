@@ -17,6 +17,9 @@ vi.mock('node:child_process', () => ({
 vi.mock('node:fs', () => ({
   mkdirSync: vi.fn(),
   statSync: vi.fn(),
+  lstatSync: vi.fn(),
+  readlinkSync: vi.fn(),
+  unlinkSync: vi.fn(),
 }));
 
 vi.mock('node:net', () => ({
@@ -29,7 +32,7 @@ vi.mock('./agent-process-registry.js', () => ({
 }));
 
 import { spawn } from 'node:child_process';
-import { mkdirSync, statSync } from 'node:fs';
+import { lstatSync, mkdirSync, readlinkSync, statSync, unlinkSync } from 'node:fs';
 import { connect, createServer } from 'node:net';
 import { cleanupRegisteredAgentProcesses } from './agent-process-registry.js';
 import {
@@ -455,6 +458,61 @@ describe('BackendLifecycleManager.start (health timeout)', () => {
 
     expect(spawn).not.toHaveBeenCalled();
     expect(mgr.status).toBe('error');
+  });
+
+  it('recreates a broken symlink work dir instead of failing startup', async () => {
+    // The CLI-safe symlink in the home directory points at the account's data
+    // directory. When that directory is removed (the legacy-directory
+    // adoption deletes it), the symlink is left dangling. `statSync` follows
+    // the link and reports "not found", and `mkdirSync` on the dangling link
+    // path fails with ENOENT — which used to abort every backend start.
+    const brokenLink = '/home/.aionui-accounts/abc123';
+    const brokenTarget = '/home/.aionui-accounts/real-target';
+    vi.mocked(statSync).mockImplementation(((p: unknown) => {
+      // The link itself exists (lstat semantics), but its target does not.
+      if (p === brokenLink) return { isDirectory: () => false, isSymbolicLink: () => true };
+      return undefined;
+    }) as unknown as typeof statSync);
+    vi.mocked(lstatSync).mockImplementation(((p: unknown) => {
+      if (p === brokenLink) return { isDirectory: () => false, isSymbolicLink: () => true };
+      return undefined;
+    }) as unknown as typeof lstatSync);
+    vi.mocked(readlinkSync).mockImplementation(((p: unknown) => {
+      if (p === brokenLink) return brokenTarget;
+      return '';
+    }) as unknown as typeof readlinkSync);
+    vi.mocked(unlinkSync).mockImplementation((() => undefined) as unknown as typeof unlinkSync);
+    vi.mocked(mkdirSync).mockImplementation(((p: unknown) => {
+      if (p === brokenLink) throw new Error(`ENOENT: no such file or directory, mkdir '${p}'`);
+      return undefined;
+    }) as unknown as typeof mkdirSync);
+    // Halt startup deterministically right after directory preparation: a
+    // spawn that throws proves preparation passed without hanging on health.
+    vi.mocked(spawn).mockImplementationOnce(() => {
+      throw new Error('halted by test after directory preparation');
+    });
+
+    try {
+      const mgr = new BackendLifecycleManager(APP_META_PACKAGED, () => '/abs/path/aioncore');
+      const error = await mgr
+        .start('/db/path', '/log/dir', { cacheDir: '/cache', workDir: brokenLink, logDir: '/log' })
+        .catch((e: unknown) => e as Error);
+
+      // Startup got PAST directory preparation and reached spawn.
+      expect((error as Error).message).toContain('spawn threw before startup');
+      expect((error as Error).message).not.toContain('directory preparation failed');
+      expect(spawn).toHaveBeenCalled();
+      // The dangling link was removed and its target recreated.
+      expect(unlinkSync).toHaveBeenCalledWith(brokenLink);
+      expect(mkdirSync).toHaveBeenCalledWith(brokenTarget, { recursive: true });
+    } finally {
+      vi.mocked(statSync).mockReset();
+      vi.mocked(mkdirSync).mockReset();
+      vi.mocked(lstatSync).mockReset();
+      vi.mocked(readlinkSync).mockReset();
+      vi.mocked(unlinkSync).mockReset();
+      vi.mocked(spawn).mockReset();
+    }
   });
 
   it('skips mkdir for a pre-existing work dir so a Windows drive root can start (ELECTRON-3S4)', async () => {
@@ -1055,6 +1113,46 @@ describe('BackendLifecycleManager.stop', () => {
     fetchSpy.mockRestore();
   });
 
+  it('does not wait for the kill timeout when the child already exited', async () => {
+    // A child that already exited will not emit 'exit' again, so waiting for
+    // that event blocks for the full 5s kill timeout. That delay is long
+    // enough for the next start to be racing the stop, and it is why an
+    // account switch could cancel the backend it had just started.
+    const platformSpy = vi.spyOn(process, 'platform', 'get').mockReturnValue('darwin');
+    vi.mocked(createServer).mockImplementation(
+      () => makeSyncFakeServer(22223) as unknown as ReturnType<typeof createServer>
+    );
+    const child = makeFakeChild();
+    vi.mocked(spawn).mockReturnValue(child as unknown as ChildProcess);
+
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response('ok', { status: 200 }) as unknown as Response);
+
+    const mgr = new BackendLifecycleManager(APP_META, () => '/x');
+    const started = mgr.start('/db');
+    await Promise.resolve();
+    emitListening(child, 22223);
+    await started;
+
+    // The backend dies on its own (not a crash — that would schedule a
+    // restart and change what is being measured).
+    (child as unknown as EventEmitter).emit('exit', 0, 'SIGTERM');
+    await Promise.resolve();
+
+    // The manager still holds the dead child. Stopping it must return
+    // immediately rather than waiting for an 'exit' event that will never
+    // come again.
+    const startedAt = Date.now();
+    await mgr.stop();
+
+    // It must return immediately, not after the kill timeout.
+    expect(Date.now() - startedAt).toBeLessThan(1000);
+
+    fetchSpy.mockRestore();
+    platformSpy.mockRestore();
+  });
+
   it('sends SIGTERM then resolves when child emits exit', async () => {
     const platformSpy = vi.spyOn(process, 'platform', 'get').mockReturnValue('darwin');
     vi.mocked(createServer).mockImplementation(
@@ -1400,5 +1498,73 @@ describe('BackendLifecycleManager.start peer retry', () => {
 
     await expect(mgr.start('/data/aionui-backend.db')).rejects.toBe(nonPeerError);
     expect(attemptStart).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('BackendLifecycleManager concurrent start/stop', () => {
+  it('does not orphan a backend when a second start overlaps the first', async () => {
+    // Two account switches can overlap: the renderer fires `setActive` again
+    // without waiting for the previous one to finish, and `start()` resolves
+    // only after the health check (seconds later).
+    //
+    // The second start must not overwrite the manager's `childProcess` while
+    // the first is still awaiting readiness — the first backend would be
+    // orphaned: nobody holds a reference to it, so it keeps its port and its
+    // data directory open forever.
+    const platformSpy = vi.spyOn(process, 'platform', 'get').mockReturnValue('darwin');
+    const killSpy = vi.spyOn(process, 'kill').mockImplementation(() => true);
+    vi.mocked(createServer).mockImplementation(
+      () => makeSyncFakeServer(33333) as unknown as ReturnType<typeof createServer>
+    );
+
+    const first = makeFakeChild();
+    const second = makeFakeChild();
+    // Distinct pids so the kill assertion can tell the two backends apart.
+    (first as unknown as { pid: number }).pid = 11111;
+    (second as unknown as { pid: number }).pid = 22222;
+    vi.mocked(spawn).mockReturnValueOnce(first as unknown as ChildProcess);
+    vi.mocked(spawn).mockReturnValueOnce(second as unknown as ChildProcess);
+
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response('ok', { status: 200 }) as unknown as Response);
+
+    const mgr = new BackendLifecycleManager(APP_META, () => '/x');
+
+    // Switch #1 starts and is still waiting for its health check.
+    const firstStart = mgr.start('/db/one');
+    await Promise.resolve();
+    emitListening(first, 33333);
+
+    // Switch #2 begins while #1 is still in flight.
+    const secondStart = mgr.start('/db/two');
+    await Promise.resolve();
+
+    // The second start must not have spawned yet — it waits its turn.
+    expect(vi.mocked(spawn).mock.calls.length).toBe(1);
+
+    // Let #1 finish.
+    await firstStart;
+
+    // Now #2 runs: it stops the first backend (which exits on SIGTERM) and
+    // spawns its own. The exit event arrives once the kill has been sent.
+    await vi.waitFor(() => expect(killSpy.mock.calls.map((call) => Math.abs(Number(call[0])))).toContain(first.pid));
+    (first as unknown as EventEmitter).emit('exit', 0, 'SIGTERM');
+    await vi.waitFor(() => expect(vi.mocked(spawn).mock.calls.length).toBe(2));
+    emitListening(second, 33334);
+    await secondStart;
+
+    // The manager now tracks the second backend. Stopping it must reach that
+    // process — and the first one must not still be running.
+    await mgr.stop();
+    // The kill targets the process group, so the pid is negated.
+    const killedPids = killSpy.mock.calls.map((call) => Math.abs(Number(call[0])));
+    expect(killedPids).toContain(second.pid);
+    // The first backend must not still be running: it was superseded.
+    expect(killedPids).toContain(first.pid);
+
+    fetchSpy.mockRestore();
+    platformSpy.mockRestore();
+    killSpy.mockRestore();
   });
 });

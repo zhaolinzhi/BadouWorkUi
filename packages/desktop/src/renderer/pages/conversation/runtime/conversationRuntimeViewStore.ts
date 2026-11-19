@@ -597,7 +597,8 @@ export const resetLocalGate = (conversation_id: string, reason: string): Convers
     resetLocalGateConversationRuntimeView(runtimeViews.get(conversation_id), conversation_id, reason)
   );
 
-export const resetConversationRuntimeViewStoreForTest = () => {
+/** Drop every cached runtime view and fallback snapshot. */
+export const resetConversationRuntimeViewStore = () => {
   runtimeViews.clear();
   fallbackSnapshots.clear();
   runtimeMetadata.clear();

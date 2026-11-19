@@ -75,9 +75,24 @@ export function startExternalLogin(): Promise<ExternalLoginLaunchResult> {
 }
 
 /**
+ * The auth payload that arrived but has not been claimed by the renderer yet.
+ *
+ * The renderer subscribes to `externalLoginCompleted` from AuthProvider's
+ * mount effect, which runs after the app's first render. A deep link that
+ * lands before that effect runs would be emitted into the void — the event
+ * is delivered straight through IPC, with no buffering on either side — and
+ * the user would sit on the login page forever with a valid token.
+ *
+ * Holding the payload here and letting the renderer claim it closes that
+ * window: the provider asks for the pending token as soon as it mounts, and
+ * gets it whether the event arrived before or after.
+ */
+let pendingExternalLogin: { token: string; user: { id: string; username: string } } | null = null;
+
+/**
  * Called by `process/utils/deepLink.ts` when a `badouwork://auth/callback`
  * URL arrives. Validates the payload, then emits `externalLoginCompleted`
- * to the renderer. The renderer's LoginPage listener calls
+ * to the renderer. The renderer's AuthProvider listener calls
  * AuthContext.completeExternalLogin and navigates to /guid.
  *
  * Returns `{ ok: true }` on success or `{ ok: false, reason }` on a bad
@@ -89,12 +104,31 @@ export function handleExternalLoginDeepLink(params: Record<string, string>): { o
     return { ok: false, reason: parsed.reason };
   }
 
-  ipcBridge.auth.externalLoginCompleted.emit({
+  const payload = {
     token: parsed.value.token,
     user: { id: parsed.value.userId, username: parsed.value.username },
-  });
+  };
+
+  // Hold it as well as emitting it: the emitter covers the case where the
+  // renderer is already listening, and the held copy covers the case where it
+  // is not (the payload is claimed on mount).
+  pendingExternalLogin = payload;
+  ipcBridge.auth.externalLoginCompleted.emit(payload);
 
   return { ok: true };
+}
+
+/**
+ * Claim the pending external-login payload, if any.
+ *
+ * Called by the renderer when the provider mounts. Returns the payload once
+ * — a second call returns null, so a provider that remounts cannot replay
+ * an already-consumed token.
+ */
+export function claimPendingExternalLogin(): { token: string; user: { id: string; username: string } } | null {
+  const payload = pendingExternalLogin;
+  pendingExternalLogin = null;
+  return payload;
 }
 
 /**
@@ -111,4 +145,7 @@ export function isExternalLoginAction(action: string): boolean {
  */
 export function registerExternalLoginBridge(): void {
   ipcBridge.auth.startExternalLogin.provider(() => startExternalLogin());
+  // The renderer pulls the pending payload when the provider mounts, so a
+  // deep link that arrived before it was listening is not lost.
+  ipcBridge.auth.claimPending.provider(() => claimPendingExternalLogin());
 }

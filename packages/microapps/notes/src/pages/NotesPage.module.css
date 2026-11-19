@@ -26,6 +26,13 @@
 
 .editorContainer :global(.vditor) {
   /*
+   * 去掉 Vditor 自带的外框(`border: 1px solid var(--border-color)` +
+   * `border-radius: 3px`):设计稿的笔记编辑区是**无框**的,只有工具栏下方
+   * 一条 1px 分隔线。这圈自带边框会让整个编辑器看起来像一张卡片。
+   */
+  border: none;
+  border-radius: 0;
+  /*
    * `position: relative` 把下拉面板(标题/更多)的**包含块**上移到 `.vditor`。
    *
    * 为什么要上移:面板是绝对定位的,默认包含块是工具栏项
@@ -146,6 +153,87 @@
 /* 文档区:32px 48px 内边距、1280px 最大宽度 */
 .editorContainer :global(.vditor-content) {
   background-color: var(--notes-panel-bg);
+}
+
+/*
+ * Vditor 在**聚焦**时把编辑区底色换成自己的 `--textarea-background-color`
+ * (`#fafbfc`,浅灰),失焦才恢复 —— 于是笔记一被点进编辑状态,整片正文底色就变灰。
+ * 笔记页的编辑区要一直保持面板底色(白),聚焦与否都一样。
+ *
+ * 选择器上要带 `.editorContainer` 才能压过 Vditor 的
+ * `.vditor-wysiwyg pre.vditor-reset:focus`(0,3,1 → 0,4,1)。
+ */
+.editorContainer :global(.vditor-wysiwyg pre.vditor-reset:focus) {
+  background-color: var(--notes-panel-bg);
+}
+
+/*
+ * 工具栏的悬停提示框:改成显示在按钮**右侧**。
+ *
+ * Vditor 默认让提示框朝上(`__n` / `__nw` / `__ne`),而工具栏就贴在面板的
+ * 最上沿 —— 朝上的提示框有一半在面板外面,被 `.editorContainer` 的
+ * `overflow: hidden` 裁掉(只剩条下沿)。朝下也不行:工具栏要横向滚动
+ * (`overflow-x: auto`),纵向同样会被裁。
+ *
+ * 横向正好落在工具栏这一行的范围内,完整显示。偏移量跟 Vditor 自带的 `__e`
+ * 变体一致;箭头颜色用 `currentColor`(Vditor 把提示框底色写在自己的
+ * `color` 上,跟着走就行)。
+ */
+.editorContainer :global(.vditor-toolbar__item .vditor-tooltipped__n::after),
+.editorContainer :global(.vditor-toolbar__item .vditor-tooltipped__nw::after),
+.editorContainer :global(.vditor-toolbar__item .vditor-tooltipped__ne::after) {
+  top: auto;
+  right: auto;
+  bottom: 50%;
+  left: 100%;
+  margin-right: 0;
+  margin-bottom: 0;
+  margin-left: 5px;
+  transform: translateY(50%);
+}
+
+.editorContainer :global(.vditor-toolbar__item .vditor-tooltipped__n::before),
+.editorContainer :global(.vditor-toolbar__item .vditor-tooltipped__nw::before),
+.editorContainer :global(.vditor-toolbar__item .vditor-tooltipped__ne::before) {
+  top: 50%;
+  right: -5px;
+  bottom: 50%;
+  left: auto;
+  margin-top: -5px;
+  margin-right: 0;
+  border-top-color: transparent;
+  border-right-color: currentColor;
+}
+
+/*
+ * 靠按钮**左边**显示的提示框。
+ *
+ * 工具栏是横向滚动的容器,一律朝右显示的话,靠右边的按钮的提示框会被工具栏的
+ * 可见边缘裁掉。`VditorEditor` 在悬停时量一下放右边会不会超出,超了就给按钮
+ * 加上 `notes-tip-left`,这里把它翻到左边。
+ *
+ * 规则要写在上面「朝右」那条之后 —— 两者优先级相同,靠后者生效。
+ */
+.editorContainer :global(.vditor-toolbar__item .notes-tip-left::after) {
+  top: auto;
+  right: 100%;
+  bottom: 50%;
+  left: auto;
+  margin-right: 5px;
+  margin-left: 0;
+  transform: translateY(50%);
+}
+
+.editorContainer :global(.vditor-toolbar__item .notes-tip-left::before) {
+  top: 50%;
+  right: auto;
+  bottom: 50%;
+  left: -5px;
+  margin-top: -5px;
+  margin-right: 0;
+  border-top-color: transparent;
+  border-right-color: transparent;
+  border-left-color: currentColor;
 }
 
 .editorContainer :global(.vditor-reset) {

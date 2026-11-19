@@ -28,10 +28,7 @@ vi.mock('@/renderer/utils/platform', () => ({ isElectronDesktop: () => false }))
 import type { DirRef, Entry, PeKey } from '@/renderer/pages/conversation/explorer/explorerModel';
 import { peKey, refToKey } from '@/renderer/pages/conversation/explorer/explorerModel';
 import type { MonitorPort } from '@/renderer/pages/conversation/explorer/explorerStore';
-import {
-  configureExplorerStore,
-  resetExplorerStoreForTest,
-} from '@/renderer/pages/conversation/explorer/explorerStore';
+import { configureExplorerStore, resetExplorerStore } from '@/renderer/pages/conversation/explorer/explorerStore';
 import { ExplorerPanel } from '@/renderer/pages/conversation/explorer/ExplorerPanel';
 
 const makePort = (snapshots: Record<PeKey, Entry[]>): MonitorPort => ({
@@ -42,7 +39,7 @@ const makePort = (snapshots: Record<PeKey, Entry[]>): MonitorPort => ({
 });
 
 beforeEach(() => {
-  resetExplorerStoreForTest();
+  resetExplorerStore();
   localStorage.clear();
 });
 afterEach(() => cleanup());

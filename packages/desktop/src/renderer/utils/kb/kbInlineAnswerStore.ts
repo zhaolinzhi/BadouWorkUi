@@ -131,8 +131,8 @@ export const clearKbInlineAnswer = (conversationId: string): void => {
   emit(conversationId);
 };
 
-/** Test-only reset. Production code never calls this. */
-export const _resetKbInlineAnswerStoreForTest = (): void => {
+/** Drop every cached inline answer. */
+export const resetKbInlineAnswerStore = (): void => {
   byConversation.clear();
   listeners.clear();
 };

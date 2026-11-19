@@ -36,6 +36,16 @@ function setCachedCommands(conversation_id: string, commands: SlashCommandItem[]
   slashCommandCache.set(conversation_id, { commands, timestamp: Date.now() });
 }
 
+/**
+ * Drop the cached slash commands.
+ *
+ * The cache is keyed by conversation id, so it holds commands belonging to the
+ * account that is being signed out.
+ */
+export function resetSlashCommandCache(): void {
+  slashCommandCache.clear();
+}
+
 interface UseSlashCommandsOptions {
   conversation_type?: string;
   codexStatus?: string | null;

@@ -43,6 +43,7 @@
   "saveFailed": "Failed to save",
   "unknownError": "未知錯誤",
   "sessionExpired": "登入已過期，請重新登入",
+  "accountSwitchFailed": "切換至該帳號的資料目錄失敗，請重新啟動應用程式後再試。",
   "confirmDelete": "確認刪除",
   "deleteSuccess": "刪除成功",
   "deleteFailed": "刪除失敗",
