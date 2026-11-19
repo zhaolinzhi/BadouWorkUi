@@ -10,7 +10,7 @@ import { getEventBus, type MicroAppEventBus } from './event-bus';
  * so they need a fully-qualified URL. The main app's `getBaseUrl()` already
  * resolves the right base across runtimes:
  *
- * - Electron (renderer at `aionui://...` or `http://localhost:5173` in dev):
+ * - Electron (renderer at `badouwork://...` or `http://localhost:5173` in dev):
  *   `http://127.0.0.1:<__backendPort>` — aioncore's listening port, injected
  *   by the preload bridge.
  * - WebUI browser (renderer at webui host): `''` — same-origin; webui host
