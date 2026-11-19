@@ -1,3 +1,4 @@
+import { getBaseUrl as getBridgeBaseUrl } from '@/common/adapter/httpBridge';
 import type { ConfigKey, ConfigKeyMap } from './configKeys';
 
 type Subscriber = (value: unknown) => void;
@@ -9,13 +10,9 @@ declare global {
 }
 
 function getBaseUrl(): string {
-  // WebUI browser mode: no preload, fetch same-origin so web-host's
-  // static-server reverse-proxies /api/* to the backend.
-  if (typeof window !== 'undefined' && typeof document !== 'undefined' && !(window as Window).__backendPort) {
-    return '';
-  }
-  const port = typeof window !== 'undefined' ? (window as Window).__backendPort || 13400 : 13400;
-  return `http://127.0.0.1:${port}`;
+  // The bridge owns the port: it follows the backend when it restarts on
+  // another port, which the frozen `window.__backendPort` cannot do.
+  return getBridgeBaseUrl();
 }
 
 async function fetchJson<T>(method: string, path: string, body?: unknown): Promise<T> {
@@ -64,6 +61,11 @@ class ConfigServiceImpl {
         }
       }
       this.initialized = true;
+      // Notify subscribers for every key that just landed. Without this, a
+      // consumer that mounted before the initial fetch finished would keep
+      // rendering its stale value forever: `useSyncExternalStore` only
+      // re-renders on a notification, and the cache was updated silently.
+      this.notifyAll();
     })();
     this.initPromise.catch(() => {
       // Allow a future caller to retry after a transient failure
@@ -129,6 +131,20 @@ class ConfigServiceImpl {
   private notify(key: ConfigKey, value: unknown): void {
     const subs = this.subscribers.get(key);
     if (subs) {
+      for (const cb of subs) {
+        cb(value);
+      }
+    }
+  }
+
+  /**
+   * Notify every subscriber with its key's current value.
+   *
+   * Used after the initial bulk load, which replaces the whole cache at once.
+   */
+  private notifyAll(): void {
+    for (const [key, subs] of this.subscribers) {
+      const value = this.cache.get(key);
       for (const cb of subs) {
         cb(value);
       }

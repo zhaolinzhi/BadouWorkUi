@@ -124,6 +124,14 @@ type ConversationListSyncSnapshot = {
   conversations: TChatConversation[];
   generatingConversationIds: Set<string>;
   completionUnreadConversationIds: Set<string>;
+  /**
+   * Whether the app is switching to another account.
+   *
+   * While this is true the list belongs to nobody: the backend is being
+   * restarted against the new account's data directory, so the rows on screen
+   * are the previous account's. The sidebar shows a loading state instead.
+   */
+  switching: boolean;
 };
 
 const listeners = new Set<() => void>();
@@ -143,10 +151,19 @@ let conversation_idsState = new Set<string>();
 // backfilled); a missing key = not loaded yet (caller placeholders).
 let projectIdByIdState = new Map<string, string | null>();
 let activeConversationIdState: string | null = null;
+/**
+ * Whether the app is switching to another account.
+ *
+ * Set while the backend is restarted against the new account's data
+ * directory. The rows on screen belong to the previous account for that
+ * whole window, so the sidebar shows a loading state instead.
+ */
+let switchingState = false;
 let snapshotState: ConversationListSyncSnapshot = {
   conversations: conversationsState,
   generatingConversationIds: generatingConversationIdsState,
   completionUnreadConversationIds: completionUnreadConversationIdsState,
+  switching: switchingState,
 };
 
 const emitStoreChange = () => {
@@ -154,8 +171,36 @@ const emitStoreChange = () => {
     conversations: conversationsState,
     generatingConversationIds: generatingConversationIdsState,
     completionUnreadConversationIds: completionUnreadConversationIdsState,
+    switching: switchingState,
   };
   listeners.forEach((listener) => listener());
+};
+
+/**
+ * Mark the account switch as in progress (or finished).
+ *
+ * The flag lives in the store because it has to change in the same tick as
+ * the list it describes: the previous account's rows must disappear at the
+ * moment the switch starts, not a moment later when the reset runs.
+ *
+ * Starting a switch therefore also drops the list. Doing it here rather than
+ * leaving it to the caller means there is no window in which the flag says
+ * "switching" while the previous account's conversations are still on
+ * screen — the whole point of the flag.
+ */
+export const setConversationListSwitching = (switching: boolean): void => {
+  if (switchingState === switching) return;
+  switchingState = switching;
+  if (switching) {
+    // The rows belong to the account being switched away from. Drop them
+    // and invalidate any request still in flight — its response describes
+    // that same previous account.
+    storeGeneration += 1;
+    conversationsState = [];
+    conversation_idsState = new Set();
+    projectIdByIdState = new Map();
+  }
+  emitStoreChange();
 };
 
 const subscribeConversationListSync = (listener: () => void) => {
@@ -186,6 +231,27 @@ export const setConversationProjectMapForTest = (entries: Array<[string, string 
 };
 
 /**
+ * Test hook: forget that the store was initialized.
+ *
+ * The store subscribes to backend events exactly once, and the subscriptions
+ * live for the life of the module. A test that needs the store to behave as
+ * if it had just mounted — fetching the conversation list, for instance —
+ * needs the init latch cleared; without it the mount-time fetch is skipped
+ * and the test would see a store that never loads anything.
+ *
+ * The refresh cooldown is cleared too: it is keyed on the last fetch's
+ * completion time, so a test that runs right after another one would have its
+ * mount-time fetch suppressed as a duplicate.
+ */
+export const resetConversationListSyncInitForTest = (): void => {
+  isStoreInitialized = false;
+  inflightRefresh = null;
+  lastRefreshFinishedAt = 0;
+  switchingState = false;
+  storeGeneration += 1;
+};
+
+/**
  * In-flight deduplication for `refreshConversations`.
  *
  * 16+ emitters across the app fire `chat.history.refresh` and three backend
@@ -207,6 +273,14 @@ let inflightRefresh: Promise<void> | null = null;
 let lastRefreshFinishedAt = 0;
 
 /**
+ * Bumped whenever the store is reset (an account switch).
+ *
+ * A request that was issued before the bump belongs to the previous account;
+ * its response must not be applied to the new account's list.
+ */
+let storeGeneration = 0;
+
+/**
  * Stable-function trick for `isConversationGenerating` / `hasCompletionUnread`.
  *
  * Both depend on module-level Sets that are replaced wholesale on every store
@@ -223,11 +297,21 @@ const isConversationGeneratingFn = (conversation_id: string): boolean =>
 const hasCompletionUnreadFn = (conversation_id: string): boolean =>
   completionUnreadConversationIdsState.has(conversation_id);
 
-const doRefresh = (): Promise<void> =>
-  perfTimeAsync({ tag: 'perf.chatHistory', message: 'refresh_fetch' }, () =>
+const doRefresh = (): Promise<void> => {
+  // Capture the generation this request belongs to. A response that arrives
+  // after the generation moved on belongs to a previous account (or to a
+  // backend that has since been replaced) and must not be applied.
+  const generation = storeGeneration;
+  return perfTimeAsync({ tag: 'perf.chatHistory', message: 'refresh_fetch' }, () =>
     ipcBridge.database.getUserConversations.invoke({ limit: 10000 })
   )
     .then((result) => {
+      if (generation !== storeGeneration) {
+        // A reset happened while this request was in flight — its result
+        // describes the previous account. Drop it.
+        mark('perf.chatHistory.refresh', 'refresh_stale_dropped');
+        return;
+      }
       const items = result?.items;
       mark('perf.chatHistory.refresh', 'refresh_fetched', { count: Array.isArray(items) ? items.length : 0 });
       if (items && Array.isArray(items)) {
@@ -255,6 +339,10 @@ const doRefresh = (): Promise<void> =>
       emitStoreChange();
     })
     .catch((error) => {
+      if (generation !== storeGeneration) {
+        // The failure belongs to a request for a previous account.
+        return;
+      }
       console.error('[WorkspaceGroupedHistory] Failed to load conversations:', error);
       conversationsState = [];
       conversation_idsState = new Set();
@@ -262,9 +350,15 @@ const doRefresh = (): Promise<void> =>
       emitStoreChange();
     })
     .finally(() => {
-      inflightRefresh = null;
-      lastRefreshFinishedAt = Date.now();
+      // Only the newest request may clear the in-flight latch: a stale
+      // request's `finally` must not wipe the latch of the request that
+      // replaced it, or the next refresh would be issued on top of it.
+      if (generation === storeGeneration) {
+        inflightRefresh = null;
+        lastRefreshFinishedAt = Date.now();
+      }
     });
+};
 
 const refreshConversations = (options: { force?: boolean } = {}) => {
   // In-flight: every concurrent caller awaits the same promise. This collapses
@@ -433,12 +527,64 @@ const initializeConversationListSyncStore = () => {
   });
 };
 
+/**
+ * Drop everything the store holds about the previous account.
+ *
+ * An account switch restarts the backend against a different data directory,
+ * so the conversation list, the per-conversation flags and the id → project
+ * map all belong to an account that is no longer signed in.
+ *
+ * @param options.reload Whether to immediately load the new account's list.
+ *   The store fetches once on mount (`initializeConversationListSyncStore`
+ *   early-returns once initialized), so an account SWITCH must ask for a
+ *   refresh — without it the list stays empty until some unrelated event
+ *   happens to trigger a fetch. The page reload this replaced used to
+ *   provide that re-fetch for free.
+ *
+ *   A sign-out does not want one: there is no account to load yet, and the
+ *   backend is on its way down.
+ *
+ * @param options.switching Whether the app is switching accounts. The flag
+ *   rides along with the reset so the two cannot disagree: a reset that
+ *   clears the list but leaves the flag set would show a loading state for a
+ *   list that is not coming back.
+ */
+export const resetConversationListSyncStore = (options: { reload?: boolean; switching?: boolean } = {}): void => {
+  // Invalidate any request that is still in flight — its response describes
+  // the previous account.
+  storeGeneration += 1;
+
+  switchingState = options.switching ?? false;
+
+  conversationsState = [];
+  generatingConversationIdsState = new Set();
+  completionUnreadConversationIdsState = new Set();
+  completedConversationIdsState = new Set();
+  conversation_idsState = new Set();
+  projectIdByIdState = new Map();
+  completedTurnIdByConversation.clear();
+  activeConversationIdState = null;
+  // The in-flight latch is released so a refresh is not skipped, and the
+  // cooldown is cleared so the new request is not suppressed as a
+  // "duplicate" of the one that just finished.
+  inflightRefresh = null;
+  lastRefreshFinishedAt = 0;
+  emitStoreChange();
+
+  if (!options.reload) return;
+
+  // Load the new account's list. `force` bypasses the cooldown — the previous
+  // request's result belonged to a different account, so it is not a
+  // duplicate of this one.
+  refreshConversations({ force: true });
+};
+
 export const useConversationListSync = () => {
   useEffect(() => {
     initializeConversationListSyncStore();
   }, []);
 
-  const { conversations, generatingConversationIds, completionUnreadConversationIds } = useSyncExternalStore(
+  const { conversations, generatingConversationIds, completionUnreadConversationIds, switching } = useSyncExternalStore(
     subscribeConversationListSync,
     getConversationListSyncSnapshot,
     getConversationListSyncSnapshot
@@ -466,11 +612,12 @@ export const useConversationListSync = () => {
   return useMemo(
     () => ({
       conversations,
+      switching,
       isConversationGenerating,
       hasCompletionUnread,
       clearCompletionUnread,
       setActiveConversation,
     }),
-    [conversations, clearCompletionUnread, setActiveConversation]
+    [conversations, switching, clearCompletionUnread, setActiveConversation]
   );
 };

@@ -6,6 +6,9 @@
  * so existing renderer code works without changes.
  */
 
+import { bridge } from '@/common/platform/bridge';
+import { ACCOUNT_PORT_CHANGED_EVENT } from './constant';
+
 // ---------------------------------------------------------------------------
 // Base URL
 // ---------------------------------------------------------------------------
@@ -17,10 +20,56 @@ declare global {
 }
 
 /**
+ * The backend port this context talks to.
+ *
+ * The renderer cannot write to `window.__backendPort`: the preload installs it
+ * with `contextBridge.exposeInMainWorld`, which copies primitives across the
+ * context isolation boundary as a frozen, read-only property. Assigning to it
+ * throws in a module (strict mode), so the port could never follow a backend
+ * restart. This module keeps its own mutable copy instead.
+ */
+let currentBackendPort = 0;
+
+/**
+ * Point this context at a different backend port.
+ *
+ * Called when the backend is restarted against another account's data
+ * directory, which moves it to a new port.
+ */
+export function setBackendPort(port: number): void {
+  if (!Number.isFinite(port) || port <= 0) return;
+  currentBackendPort = port;
+}
+
+/**
+ * Follow the port the main process publishes.
+ *
+ * The backend listens on an ephemeral port, so a restart moves it. The main
+ * process publishes the new port on `account:port-changed`; the renderer's
+ * `window.__backendPort` cannot carry it (contextBridge freezes it), so the
+ * bridge keeps its own copy and this subscription keeps it current.
+ *
+ * @returns A function that stops the subscription.
+ */
+export function subscribeToBackendPortChanges(): () => void {
+  return bridge.on(ACCOUNT_PORT_CHANGED_EVENT, (payload: unknown) => {
+    const port = (payload as { backendPort?: unknown } | undefined)?.backendPort;
+    if (typeof port !== 'number') return;
+    setBackendPort(port);
+  });
+}
+
+/** Reset the tracked port. Test-only. */
+export function __resetBackendPortForTests(): void {
+  currentBackendPort = 0;
+}
+
+/**
  * Resolve the backend port, honoring both renderer and main-process contexts.
  *
- * - Renderer (Electron): the preload bridge writes `window.__backendPort` before
- *   the first HTTP call, so reading from window is authoritative.
+ * - Renderer (Electron): the preload injects `window.__backendPort` before the
+ *   first HTTP call; a later `setBackendPort` overrides it when the backend
+ *   moves to another port.
  * - Renderer (WebUI browser): no preload, so `window.__backendPort` is missing.
  *   Requests must go to the same origin that served the page; web-host's
  *   static-server reverse-proxies `/api/*` and upgrades `/ws` to the backend
@@ -32,7 +81,8 @@ declare global {
  * - Fallback `13400` only applies when neither is initialized — the request
  *   will still fail cleanly with ECONNREFUSED rather than masking the bug.
  */
-function getBackendPort(): number {
+export function getBackendPort(): number {
+  if (currentBackendPort > 0) return currentBackendPort;
   if (typeof window !== 'undefined' && (window as Window).__backendPort) {
     return (window as Window).__backendPort as number;
   }
@@ -45,7 +95,8 @@ function getBackendPort(): number {
  * injected. Use same-origin URLs; web-host's static-server handles the reverse
  * proxy / WS upgrade to the backend.
  */
-function isWebUiBrowserMode(): boolean {
+export function isWebUiBrowserMode(): boolean {
+  if (currentBackendPort > 0) return false;
   return typeof window !== 'undefined' && typeof document !== 'undefined' && !(window as Window).__backendPort;
 }
 
@@ -440,6 +491,29 @@ function ensureWs(): void {
       // ignore non-JSON
     }
   });
+}
+
+/**
+ * Drop the current WebSocket so the next `ensureWs()` dials a new port.
+ *
+ * Used after the backend is restarted for an account switch: the socket
+ * points at the old port and would keep failing until the server closed it.
+ */
+export function resetWsForBackendRestart(): void {
+  if (wsReconnectTimer) {
+    clearTimeout(wsReconnectTimer);
+    wsReconnectTimer = null;
+  }
+  const current = ws;
+  ws = null;
+  wsHasOpened = false;
+  if (current && current.readyState <= WebSocket.OPEN) {
+    try {
+      current.close();
+    } catch (e) {
+      console.warn('[ensureWs] failed to close the previous socket:', e);
+    }
+  }
 }
 
 function scheduleWsReconnect(): void {

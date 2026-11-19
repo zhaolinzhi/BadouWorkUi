@@ -42,6 +42,7 @@
   "saveFailed": "Error al guardar",
   "unknownError": "Error desconocido",
   "sessionExpired": "Su sesión ha expirado. Inicie sesión de nuevo.",
+  "accountSwitchFailed": "No se pudo cambiar al directorio de datos de esta cuenta. Reinicie la aplicación e inténtelo de nuevo.",
   "confirmDelete": "Confirmar eliminación",
   "deleteSuccess": "Eliminado correctamente",
   "deleteFailed": "Error al eliminar",

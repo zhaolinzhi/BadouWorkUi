@@ -77,3 +77,15 @@ export function useExtensionSettingsTabs(): IExtensionSettingsTab[] {
 
   return tabs;
 }
+
+/**
+ * Drop the cached tabs.
+ *
+ * Extensions live in the signed-in account's data directory, so the tab list
+ * belongs to that account: after a switch the previous account's extensions
+ * must not be offered.
+ */
+export function resetExtensionSettingsTabs(): void {
+  cachedTabs = null;
+  inflight = null;
+}

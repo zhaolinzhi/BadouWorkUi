@@ -14,6 +14,7 @@ import { initWebuiBridge } from './webuiBridge';
 import { initThemeBridge } from './themeBridge';
 import { registerKbChatBridge } from './kbChatBridge';
 import { registerMeetingRecordingBridge } from './meetingRecordingBridge';
+import { initAccountBridge } from '../account/accountBridge';
 
 export type BridgeDependencies = Record<string, never>;
 
@@ -26,6 +27,7 @@ export function initAllBridges(_deps: BridgeDependencies = {}): void {
   initNotificationBridge();
   initWebuiBridge();
   initThemeBridge();
+  initAccountBridge();
   registerKbChatBridge();
   registerMeetingRecordingBridge();
 }

@@ -44,8 +44,8 @@ const subscribe = (listener: () => void): (() => void) => {
 export const useCurrentConversation = (): string | null =>
   useSyncExternalStore(subscribe, getCurrentConversation, getCurrentConversation);
 
-/** Test hook: reset module state. */
-export const resetCurrentConversationForTest = (): void => {
+/** Reset the module state: no current conversation. */
+export const resetCurrentConversationStore = (): void => {
   currentConversationId = null;
   listeners.clear();
 };

@@ -229,6 +229,7 @@
 
 .itemMain {
   display: flex !important;
+  /* 标题 / 摘要 / 元信息竖着排 */
   flex-direction: column;
   align-items: stretch;
   gap: 6px;
@@ -242,6 +243,54 @@
   text-align: left !important;
 }
 
+/*
+ * 收藏标记 —— 标题行最左边的黄色星星,点它取消收藏。
+ *
+ * 整行本身就是个 button(button 里不能再塞 button),所以星星是**独立按钮**,
+ * 绝对定位在行上:按钮盒子 24×24,里面的星星 14px 居中 ——
+ * 于是星星正好落在标题行(22px 高)的垂直中点上,左边贴着标题文字的起点。
+ *
+ * 标题文字用 padding 给它让位(见 .itemStarred),摘要 / 元信息那一列不受影响;
+ * 没收藏的条目不渲染它,标题直接从左边起。
+ */
+.itemStar {
+  /*
+   * `position` 必须带 !important —— Arco 的 `.arco-btn` 自带
+   * `position: relative`,同优先级下会盖掉这里的 `absolute`,
+   * 星星就会掉进 flex 流里、把整行挤窄。
+   */
+  position: absolute !important;
+  top: 9px;
+  left: 7px;
+  width: 24px !important;
+  height: 24px !important;
+  padding: 0 !important;
+  border-radius: 6px !important;
+  background: transparent !important;
+  color: var(--notes-star) !important;
+}
+
+/* 悬停别把星星染成品牌蓝 —— Arco 的 text 按钮悬停会改色。 */
+.itemStar:hover,
+.itemStar:active {
+  background: var(--bg-hover) !important;
+  color: var(--notes-star) !important;
+}
+
+/*
+ * icon-park 的 Star 在 outline 主题下是描边的,这里要的是**实心**星星。
+ * path 上的 fill="none" 是表现属性,CSS 的 fill 能盖掉它 —— 于是同一枚星星
+ * 变成实心的,形状还是 icon-park 那一份(和右键菜单里的「收藏」一致)。
+ */
+.itemStar svg path {
+  fill: currentColor;
+}
+
+/* 收藏过的条目:标题文字给星星让出位置(星星 14px + 4px 间距)。 */
+.itemStarred .itemTitleText {
+  padding-left: 18px;
+}
+
 .itemMain:hover {
   background: var(--bg-hover) !important;
 }
@@ -251,12 +300,22 @@
   background: var(--notes-selected-bg) !important;
 }
 
+/* 标题行:可选的星星 + 标题文字 */
 .itemTitle {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 4px;
   height: 22px;
+  min-width: 0;
   font-size: 14px;
   font-weight: 500;
   line-height: 22px;
+}
+
+/* 标题文字自己负责省略号 —— 标题行是 flex,省略得落在文字这一层。 */
+.itemTitleText {
+  flex: 1;
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -321,4 +380,239 @@
   font-size: 12px;
   line-height: 19px;
   color: var(--notes-muted);
+}
+
+/*
+ * 分组区 —— 笔记列表下方的「分类文件夹」。
+ *
+ * 设计稿里没有这一块(左栏是纯扁平列表),它是旧版「笔记本树」能力的平替:
+ * 列表照旧按时间分组,分组信息挪到列表下方单独一块,点一行按分组筛列表。
+ */
+.groups {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--notes-panel-border);
+}
+
+.groupsHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.groupsTitle {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 20px;
+  color: var(--notes-muted);
+}
+
+/* 标题行兼折叠开关:点标题收 / 放分组列表 */
+.groupsToggle {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  height: 24px !important;
+  padding: 0 !important;
+  background: transparent !important;
+  color: var(--notes-muted) !important;
+  font-size: 12px !important;
+  line-height: 24px !important;
+}
+
+.groupsChevron {
+  flex: 0 0 auto;
+  color: var(--notes-muted);
+}
+
+.groupsCreate {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 24px !important;
+  height: 24px !important;
+  padding: 0 !important;
+}
+
+/*
+ * 折叠动画
+ * ========
+ * 用 grid 的行高做过渡:`grid-template-rows` 在 `0fr` ↔ `1fr` 之间插值,
+ * 高度就跟着内容平滑变化 —— 不用写死 max-height(内容多高就动多高)。
+ * 内容不能卸载:卸载了就量不到高度,动画会变成「啪」的一下。
+ * 收起时用 `visibility: hidden` 把它从焦点顺序和读屏里摘掉,
+ * 但延迟到高度收完(0.2s)再隐藏,否则动画会被一刀切掉。
+ */
+.groupsCollapse {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.groupsCollapseClosed {
+  grid-template-rows: 0fr;
+}
+
+.groupsCollapseInner {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+  overflow: hidden;
+  visibility: visible;
+  transition:
+    opacity 0.12s ease,
+    visibility 0s linear 0s;
+}
+
+/* 子项不许被压扁 —— 高度变化靠外层裁剪,不是靠把行挤扁 */
+.groupsCollapseInner > * {
+  flex-shrink: 0;
+}
+
+.groupsCollapseClosed .groupsCollapseInner {
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.12s ease,
+    visibility 0s linear 0.2s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .groupsCollapse,
+  .groupsCollapseInner {
+    transition: none;
+  }
+}
+
+.groupsList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  /* 分组多了自己滚动,不把上面的笔记列表挤没。 */
+  max-height: 148px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.groupsEmpty {
+  margin: 0;
+  font-size: 12px;
+  line-height: 19px;
+  color: var(--notes-muted);
+}
+
+.groupRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 6px;
+}
+
+.groupRow:hover {
+  background: var(--bg-hover);
+}
+
+.groupRowActive,
+.groupRowActive:hover {
+  background: var(--notes-selected-bg);
+}
+
+.groupRowMain {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  /* 宽度跟着内容走 —— 「✕」要能紧跟在分组名后面,不能被推到行尾。 */
+  flex: 0 1 auto;
+  min-width: 0;
+  height: 28px !important;
+  padding: 0 6px !important;
+  border-radius: 6px !important;
+  background: transparent !important;
+  color: var(--text-primary) !important;
+  font-size: 12px !important;
+  line-height: 28px !important;
+  text-align: left !important;
+}
+
+.groupRowIcon {
+  flex: 0 0 14px;
+  color: var(--notes-muted);
+}
+
+.groupRowName {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 笔记数推到行右 —— 「✕」占的是分组名旁边的位置。 */
+.groupRowCount {
+  flex: 0 0 auto;
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--notes-muted);
+}
+
+/*
+ * 被选中的分组,名字后面的「✕」——取消这一组的筛选。
+ *
+ * 平时隐着(不占鼠标),悬停整行才显形,列表平时是干净的。
+ *
+ * 用 `.groupRow .groupRowClear` 两级选择器:共享层的 IconButton 自带
+ * `!rounded-8px`(UnoCSS 工具类,带 !important),单级类选择器压不过它,
+ * 两级才够特异性。
+ */
+.groupRow .groupRowClear {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 20px;
+  width: 20px !important;
+  min-width: 20px !important;
+  height: 20px !important;
+  padding: 0 !important;
+  border-radius: 4px !important;
+  background: transparent !important;
+  color: var(--notes-muted) !important;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+}
+
+.groupRow:hover .groupRowClear,
+.groupRow .groupRowClear:focus-within {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.groupRow .groupRowClear:hover {
+  background: var(--bg-hover) !important;
+  color: var(--text-primary) !important;
+}
+
+/* 「⋯」菜单:悬停分组行时浮现在右侧 */
+.groupRowMenu {
+  flex: 0 0 24px;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.groupRow:hover .groupRowMenu,
+.groupRowMenu:focus-within {
+  opacity: 1;
+}
+
+/* 分组的新建 / 重命名输入框 */
+.groupInput {
+  flex: 1;
+  min-width: 0;
 }

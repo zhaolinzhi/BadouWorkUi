@@ -13,10 +13,10 @@ import { SWRConfig } from 'swr';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   type ConversationCommandQueueRuntimeGate,
-  resetConversationCommandQueueBackgroundRunnerForTest,
+  resetConversationCommandQueueBackgroundRunner,
   useConversationCommandQueue,
 } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
-import { resetConversationRuntimeViewStoreForTest } from '@/renderer/pages/conversation/runtime/conversationRuntimeViewStore';
+import { resetConversationRuntimeViewStore } from '@/renderer/pages/conversation/runtime/conversationRuntimeViewStore';
 
 const turnCompletedListeners = vi.hoisted(() => ({
   current: [] as Array<
@@ -163,15 +163,15 @@ describe('useConversationCommandQueue drain', () => {
   beforeEach(() => {
     sessionStorage.clear();
     turnCompletedListeners.current = [];
-    resetConversationRuntimeViewStoreForTest();
-    resetConversationCommandQueueBackgroundRunnerForTest();
+    resetConversationRuntimeViewStore();
+    resetConversationCommandQueueBackgroundRunner();
     vi.clearAllMocks();
     vi.spyOn(console, 'info').mockImplementation(() => {});
   });
 
   afterEach(() => {
-    resetConversationRuntimeViewStoreForTest();
-    resetConversationCommandQueueBackgroundRunnerForTest();
+    resetConversationRuntimeViewStore();
+    resetConversationCommandQueueBackgroundRunner();
     vi.restoreAllMocks();
     sessionStorage.clear();
   });

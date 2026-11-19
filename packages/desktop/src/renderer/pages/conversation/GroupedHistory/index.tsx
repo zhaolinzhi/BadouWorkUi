@@ -11,7 +11,7 @@ import { useCronJobsMap } from '@/renderer/pages/cron';
 import { restrictToVerticalAxis } from '@/renderer/utils/ui/dndModifiers';
 import { DndContext, closestCenter } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { Button, Dropdown, Empty, Input, Menu, Modal, Tooltip } from '@arco-design/web-react';
+import { Button, Dropdown, Empty, Input, Menu, Modal, Spin, Tooltip } from '@arco-design/web-react';
 import { Delete, MoreOne, Plus, Right } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import classNames from 'classnames';
@@ -45,6 +45,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
 
   const {
     conversations,
+    switching,
     isConversationGenerating,
     hasCompletionUnread,
     expandedWorkspaces,
@@ -278,6 +279,22 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
         .filter((section) => section.items.length > 0),
     [timelineSections]
   );
+
+  // The app is switching to another account. The conversations on screen
+  // belong to the account being switched away from, so they are hidden until
+  // the new account's list arrives. This comes before the empty-state check:
+  // during a switch the list IS empty, and "暂无对话历史" would read as "this
+  // account has no conversations" rather than "still loading".
+  if (switching) {
+    return (
+      <>
+        {afterPinnedContent}
+        <div className='py-48px flex-center' data-testid='conversation-list-switching'>
+          <Spin size={14} />
+        </div>
+      </>
+    );
+  }
 
   if (timelineSections.length === 0 && pinnedConversations.length === 0) {
     return (

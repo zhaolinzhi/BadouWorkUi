@@ -43,6 +43,7 @@
   "saveFailed": "保存失败",
   "unknownError": "未知错误",
   "sessionExpired": "登录已过期，请重新登录",
+  "accountSwitchFailed": "切换到该账号的数据目录失败，请重启应用后重试。",
   "confirmDelete": "确认删除",
   "deleteSuccess": "删除成功",
   "deleteFailed": "删除失败",

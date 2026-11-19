@@ -49,7 +49,7 @@ vi.mock('@/common', () => ({ ipcBridge: { conversation: { listChanged: { on: () 
 import ChatConversationIndex from '@/renderer/pages/conversation/index';
 import {
   getCurrentProject,
-  resetCurrentProjectForTest,
+  resetCurrentProjectStore,
 } from '@/renderer/pages/conversation/explorer/currentProjectStore';
 import { setConversationProjectMapForTest } from '@/renderer/pages/conversation/GroupedHistory/hooks/useConversationListSync';
 
@@ -61,7 +61,7 @@ const renderIndex = () =>
   );
 
 beforeEach(() => {
-  resetCurrentProjectForTest();
+  resetCurrentProjectStore();
   getConversationOrNull.mockClear();
   currentId = 'c1';
   // snapshot loaded from GET /api/conversations — every row carries project_id.

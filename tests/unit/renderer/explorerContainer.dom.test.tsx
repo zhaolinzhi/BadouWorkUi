@@ -29,7 +29,7 @@ vi.mock('@/common', () => ({
 }));
 
 import { ExplorerContainer } from '@/renderer/pages/conversation/explorer/ExplorerContainer';
-import { resetExplorerStoreForTest } from '@/renderer/pages/conversation/explorer/explorerStore';
+import { resetExplorerStore } from '@/renderer/pages/conversation/explorer/explorerStore';
 
 const entry = (over: Partial<ProjectEntryDto>): ProjectEntryDto => ({
   pe_id: 'peA',
@@ -59,7 +59,7 @@ const renderContainer = (projectId: string) =>
   );
 
 beforeEach(() => {
-  resetExplorerStoreForTest();
+  resetExplorerStore();
   initExplorerRuntime.mockClear();
   projectGet.mockReset();
   try {

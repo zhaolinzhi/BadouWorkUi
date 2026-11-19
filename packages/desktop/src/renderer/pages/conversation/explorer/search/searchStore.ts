@@ -248,8 +248,8 @@ export const subscribeSearch = (listener: () => void): (() => void) => {
 /** Subscribe a React component to the search view. */
 export const useSearch = (): SearchView => useSyncExternalStore(subscribeSearch, getSearchSnapshot, getSearchSnapshot);
 
-/** Test hook: reset module state (port + data). */
-export const resetSearchStoreForTest = (): void => {
+/** Reset the module state: no port, no results. */
+export const resetSearchStore = (): void => {
   port = null;
   resetState();
   snapshot = IDLE_SNAPSHOT;

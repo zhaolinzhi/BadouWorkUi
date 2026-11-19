@@ -54,9 +54,11 @@ import { IconApps } from '@icon-park/react';
 | `book-one`            | `BookOne`               |                                                                                                    |
 | `check`               | `Check`                 | 录音列表底部的「已同步」标记                                                                       |
 | `close-small`         | `CloseSmall`            | 录音列表搜索框里的「清除搜索」                                                                     |
+| `copy`                | `Copy`                  | 笔记右键菜单的「创建副本」                                                                         |
 | `delete`              | `Delete`                |                                                                                                    |
 | `download`            | `Download`              |                                                                                                    |
 | `down`                | `Down`                  |                                                                                                    |
+| `extend`              | `Extend`                | 笔记右键菜单的「独立窗口打开」                                                                     |
 | `file-text`           | `FileText`              |                                                                                                    |
 | `folder-open`         | `FolderOpen`            |                                                                                                    |
 | `info`                | `Info`                  |                                                                                                    |
@@ -66,6 +68,7 @@ import { IconApps } from '@icon-park/react';
 | `play`                | `Play`                  | 录音列表行左侧的播放方块                                                                           |
 | `plus`                | `Plus`                  |                                                                                                    |
 | `refresh`             | `Refresh`               |                                                                                                    |
+| `right`               | `Right`                 | 笔记「笔记分组」区折叠时的箭头                                                                     |
 | `robot`               | `Robot`                 |                                                                                                    |
 | `search`              | `Search`                | 笔记列表面板的搜索框                                                                               |
 | `star`                | `Star`                  | 笔记的「收藏」标记                                                                                 |
@@ -77,7 +80,7 @@ import { IconApps } from '@icon-park/react';
 | `recording`           | `Microphone`            | 录音（产品语义别名）                                                                               |
 | `record`              | `Record`                |                                                                                                    |
 | `microphone`          | `Microphone`            |                                                                                                    |
-| `new-chat`            | `NewChatIcon`           | 定制图标（`svg/new-chat.svg`）：「新会话」按钮；气泡与加号都是 `currentColor`，颜色跟随主题与样式  |
+| `new-chat`            | `NewChatIcon`           | 定制图标（`svg/new-chat.svg`）：「新会话」按钮；气泡描边、加号品牌蓝（`var(--primary)`）           |
 | `nav-task`            | `NavTaskIcon`           | 定制图标（`svg/nav-task.svg`）：侧栏「任务」入口；填充型图标，`fill` 为 `currentColor`             |
 | `nav-workbench`       | `NavWorkbenchIcon`      | 定制图标（`svg/nav-workbench.svg`）：侧栏「工作台」入口；描边型图标，粗细按设计稿比例换算          |
 | `nav-note`            | `NavNoteIcon`           | 定制图标（`svg/nav-note.svg`）：侧栏「笔记」入口；图形在 SVG 内已按设计稿旋转 180°                 |

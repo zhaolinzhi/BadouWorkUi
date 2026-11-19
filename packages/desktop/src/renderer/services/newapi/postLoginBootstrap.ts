@@ -1,8 +1,11 @@
 import { AIPAAS_BASE_URL } from '@/renderer/api/config';
-import { BackendHttpError, isBackendHttpError } from '@/common/adapter/httpBridge';
+import type { BackendHttpError } from '@/common/adapter/httpBridge';
+import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import { ipcBridge } from '@/common';
 import type { ModelSettings } from '@/common/config/storage';
 import { decryptNewapiKey } from '@/renderer/utils/crypto';
+import { PROVIDERS_SWR_KEY } from '@/renderer/hooks/agent/useModelProviderList';
+import { mutate } from 'swr';
 import {
   NEWAPI_BASE_URL,
   NEWAPI_DEFAULT_MODEL,
@@ -55,12 +58,32 @@ function ensureSkPrefix(rawKey: string): string {
 }
 
 /**
+ * 让 provider 列表的 SWR 缓存重新拉取。
+ *
+ * provider 列表的 SWR 配置关闭了自动刷新(`revalidateOnFocus: false`,
+ * 见 `PROVIDERS_SWR_OPTIONS`),只有显式 `mutate()` 才会重新拉取。
+ * 设置页里的增删改都会调它,但登录后自动建 provider 这条路径以前没有调 ——
+ * 于是 provider 明明建好了,界面却一直看不到(用户表现为"登录后没有添加默认token")。
+ *
+ * 失败无所谓:缓存失效只是让它下次读的时候重新拉,拉不动也不影响已落库的数据。
+ */
+async function invalidateProvidersCache(): Promise<void> {
+  try {
+    await mutate(PROVIDERS_SWR_KEY);
+  } catch (e) {
+    console.warn('[newapi-postlogin] provider cache invalidation failed:', e);
+  }
+}
+
+/**
  * 登录后自动建 NewAPI provider 的编排函数。
  *
  * 流程:fetch 密文 → 解密 → 补 `sk-` 前缀 → 查找本地 id='newapi-default' 的 provider:
  *   - 找到 + api_key 相同 → 跳过
  *   - 找到 + api_key 不同 → updateProvider(仅更新 api_key,其它字段不动)
  *   - 没找到 → createProvider
+ * 写入 provider 后必须让 provider 列表的 SWR 缓存失效,否则新建的 provider
+ * 在界面上看不见(provider 列表关闭了自动刷新,只认显式 mutate)。
  * 任意步骤失败一律 console.warn,不抛、不弹 UI。
  *
  * 该函数应当以 fire-and-forget 方式被调用(不 await)。
@@ -90,6 +113,7 @@ export async function runNewapiPostLogin(token: string): Promise<void> {
               id: NEWAPI_PROVIDER_ID,
               model_settings: { [NEWAPI_DEFAULT_MODEL]: NEWAPI_DEFAULT_MODEL_SETTINGS },
             });
+            await invalidateProvidersCache();
           } catch (e) {
             // 回填失败不阻塞登录主流程
             console.warn('[newapi-postlogin] model_settings backfill failed:', e);
@@ -102,6 +126,7 @@ export async function runNewapiPostLogin(token: string): Promise<void> {
         id: NEWAPI_PROVIDER_ID,
         api_key: apiKey,
       });
+      await invalidateProvidersCache();
       return;
     }
 
@@ -119,6 +144,7 @@ export async function runNewapiPostLogin(token: string): Promise<void> {
           [NEWAPI_DEFAULT_MODEL]: NEWAPI_DEFAULT_MODEL_SETTINGS,
         },
       });
+      await invalidateProvidersCache();
     } catch (e) {
       // 409 = 同 id 已存在(并发/竞态),按成功处理
       if (isBackendHttpError(e) && (e as BackendHttpError).status === 409) return;

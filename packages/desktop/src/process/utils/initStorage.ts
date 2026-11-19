@@ -28,6 +28,7 @@ import {
   verifyDirectoryFiles,
 } from './utils';
 import { runLegacyDatabaseMigrations } from '@process/services/database/runLegacyDatabaseMigrations';
+import { getActiveScope } from '@process/account/accountScope';
 import { BUILTIN_IMAGE_GEN_ID } from '../resources/builtinMcp/constants';
 // Platform and architecture types (moved from deleted updateConfig)
 type PlatformType = 'win32' | 'darwin' | 'linux';
@@ -49,7 +50,14 @@ const STORAGE_PATH = {
  * backend took ownership of the corpus. */
 const LEGACY_BUILTIN_SKILLS_DIR = 'builtin-skills';
 
-const getHomePage = getConfigPath;
+/**
+ * The config directory for the active account.
+ *
+ * A function, not a constant: `getConfigPath()` resolves through the active
+ * account scope, so binding it at module load would freeze the shared
+ * directory before any account is known.
+ */
+const getHomePage = (): string => getConfigPath();
 
 const mkdirSync = (path: string) => {
   return _mkdirSync(path, { recursive: true });
@@ -234,19 +242,68 @@ const JsonFileBuilder = <S extends object = Record<string, unknown>>(file_path: 
   };
 };
 
-const envFile = JsonFileBuilder<IEnvStorageRefer>(path.join(getHomePage(), STORAGE_PATH.env));
-
-const dirConfig = envFile.getSync('aionui.dir');
-
-const cacheDir = dirConfig?.cacheDir || getHomePage();
-
-const configFile = JsonFileBuilder<ILegacyConfigStorageRefer>(path.join(cacheDir, STORAGE_PATH.config));
 type ConversationHistoryData = Record<string, TMessage[]>;
 
-const _chatMessageFile = JsonFileBuilder<ConversationHistoryData>(path.join(cacheDir, STORAGE_PATH.chatMessage));
-const _chatFile = JsonFileBuilder<IChatConversationRefer>(path.join(cacheDir, STORAGE_PATH.chat));
+type StorageHandle<T extends object> = ReturnType<typeof JsonFileBuilder<T>>;
 
-const chatFile = _chatFile;
+/**
+ * Storage handles, resolved against the account that is active when
+ * `initStorage()` runs.
+ *
+ * These used to be module-level constants, which froze `cacheDir` at import
+ * time — before any account was known. Per-account isolation needs them to
+ * follow the active account scope, so they are built lazily and can be
+ * rebuilt when the account changes.
+ */
+type StorageHandles = {
+  envFile: StorageHandle<IEnvStorageRefer>;
+  configFile: StorageHandle<ILegacyConfigStorageRefer>;
+  chatFile: StorageHandle<IChatConversationRefer>;
+  chatMessageFile: StorageHandle<ConversationHistoryData>;
+  cacheDir: string;
+  dirConfig: { cacheDir?: string; workDir?: string; logDir?: string } | undefined;
+};
+
+let storageHandles: StorageHandles | null = null;
+/** The account scope the current handles were built for. */
+let storageHandlesScopeKey: string | null = null;
+
+function buildStorageHandles(): StorageHandles {
+  const envFile = JsonFileBuilder<IEnvStorageRefer>(path.join(getHomePage(), STORAGE_PATH.env));
+  const dirConfig = envFile.getSync('aionui.dir');
+  const cacheDir = dirConfig?.cacheDir || getHomePage();
+  const configFile = JsonFileBuilder<ILegacyConfigStorageRefer>(path.join(cacheDir, STORAGE_PATH.config));
+  const chatFile = JsonFileBuilder<IChatConversationRefer>(path.join(cacheDir, STORAGE_PATH.chat));
+  const chatMessageFile = JsonFileBuilder<ConversationHistoryData>(path.join(cacheDir, STORAGE_PATH.chatMessage));
+  return { envFile, configFile, chatFile, chatMessageFile, cacheDir, dirConfig };
+}
+
+/**
+ * The current storage handles.
+ *
+ * Falls back to building them on demand so that a caller which runs before
+ * `initStorage()` still gets a usable handle instead of a crash.
+ *
+ * The handles are rebuilt when the active account changes — the account's
+ * directories are different, so the old handles would write into the
+ * previous account's files.
+ */
+function handles(): StorageHandles {
+  const scopeKey = getActiveScope()?.key ?? null;
+  if (!storageHandles || storageHandlesScopeKey !== scopeKey) {
+    storageHandles = buildStorageHandles();
+    storageHandlesScopeKey = scopeKey;
+  }
+  return storageHandles;
+}
+
+/**
+ * Discard the current handles so the next access rebuilds them against the
+ * currently active account scope. Used when the signed-in account changes.
+ */
+export function resetStorageHandles(): void {
+  storageHandles = null;
+}
 
 const buildMessageListStorage = (conversation_id: string, dir: string) => {
   const fullName = path.join(dir, 'aionui-chat-history', conversation_id + '.txt');
@@ -256,7 +313,7 @@ const buildMessageListStorage = (conversation_id: string, dir: string) => {
   return JsonFileBuilder<TMessage[]>(path.join(dir, 'aionui-chat-history', conversation_id + '.txt'));
 };
 
-const conversationHistoryProxy = (options: typeof _chatMessageFile, dir: string) => {
+const conversationHistoryProxy = (options: StorageHandle<ConversationHistoryData>, dir: string) => {
   return {
     ...options,
     async set(key: string, data: TMessage[]) {
@@ -280,14 +337,18 @@ const conversationHistoryProxy = (options: typeof _chatMessageFile, dir: string)
   };
 };
 
-const chatMessageFile = conversationHistoryProxy(_chatMessageFile, cacheDir);
+/**
+ * The per-conversation message history, proxied onto the current account's
+ * cache directory.
+ */
+const getChatMessageFile = () => conversationHistoryProxy(handles().chatMessageFile, handles().cacheDir);
 
 /**
  * 获取助手规则目录路径
  * Get assistant rules directory path
  */
 const getAssistantsDir = () => {
-  return path.join(cacheDir, STORAGE_PATH.assistants);
+  return path.join(handles().cacheDir, STORAGE_PATH.assistants);
 };
 
 /**
@@ -295,7 +356,7 @@ const getAssistantsDir = () => {
  * Get skills scripts directory path
  */
 const getSkillsDir = () => {
-  return path.join(cacheDir, STORAGE_PATH.skills);
+  return path.join(handles().cacheDir, STORAGE_PATH.skills);
 };
 
 /**
@@ -303,7 +364,7 @@ const getSkillsDir = () => {
  * Each cron job gets its own subdirectory: {cronSkillsDir}/{job_id}/SKILL.md
  */
 const getCronSkillsDir = () => {
-  return path.join(cacheDir, STORAGE_PATH.cronSkills);
+  return path.join(handles().cacheDir, STORAGE_PATH.cronSkills);
 };
 
 /**
@@ -312,7 +373,7 @@ const getCronSkillsDir = () => {
  * corpus. Failures are swallowed — at worst a stale copy lingers on disk.
  */
 const cleanupLegacyBuiltinSkillsDir = () => {
-  const legacyDir = path.join(cacheDir, LEGACY_BUILTIN_SKILLS_DIR);
+  const legacyDir = path.join(handles().cacheDir, LEGACY_BUILTIN_SKILLS_DIR);
   if (!existsSync(legacyDir)) return;
   fs.rm(legacyDir, { recursive: true, force: true })
     .then(() => console.log('[AionUi] Cleaned up legacy builtin-skills cache'))
@@ -368,6 +429,12 @@ const initStorage = async () => {
   const mark = (label: string) => console.log(`[AionUi:init] ${label} +${Math.round(performance.now() - t0)}ms`);
   mark('start');
 
+  // 0. Build the storage handles against the account that is active now.
+  // The account scope must already be set by the caller (see index.ts) before
+  // this runs, otherwise the handles freeze on the shared directory.
+  storageHandles = buildStorageHandles();
+  mark('0. buildStorageHandles');
+
   // 1. 先执行数据迁移（在任何目录创建之前）
   await migrateLegacyData();
   mark('1. migrateLegacyData');
@@ -378,8 +445,8 @@ const initStorage = async () => {
   ensureDirectory(getDataPath());
 
   // 3. 初始化存储系统
-  ConfigStorage.interceptor(configFile);
-  EnvStorage.interceptor(envFile);
+  ConfigStorage.interceptor(handles().configFile);
+  EnvStorage.interceptor(handles().envFile);
   mark('3. storage interceptors');
 
   mark('4. MCP config initialization skipped');
@@ -424,15 +491,59 @@ const initStorage = async () => {
   mark('done');
 };
 
-export const ProcessConfig = configFile;
+/**
+ * The local config file, forwarded to the handle of the active account.
+ *
+ * The exported object is stable for the lifetime of the process, but every
+ * call resolves against the handles built for the account that is active at
+ * call time. `get` stays async and `getSync` stays sync — callers depend on
+ * both shapes.
+ */
+export const ProcessConfig = {
+  get: <K extends keyof ILegacyConfigStorageRefer>(key: K) => handles().configFile.get(key),
+  getSync: <K extends keyof ILegacyConfigStorageRefer>(key: K) => handles().configFile.getSync(key),
+  set: <K extends keyof ILegacyConfigStorageRefer>(key: K, value: ILegacyConfigStorageRefer[K]) =>
+    handles().configFile.set(key, value),
+  remove: <K extends keyof ILegacyConfigStorageRefer>(key: K) => handles().configFile.remove(key),
+  update: <K extends keyof ILegacyConfigStorageRefer>(
+    key: K,
+    updateFn: (
+      value: ILegacyConfigStorageRefer[K],
+      data: ILegacyConfigStorageRefer
+    ) => Promise<ILegacyConfigStorageRefer[K]>
+  ) => handles().configFile.update(key, updateFn),
+  toJson: () => handles().configFile.toJson(),
+  toJsonSync: () => handles().configFile.toJsonSync(),
+  setJson: (data: ILegacyConfigStorageRefer) => handles().configFile.setJson(data),
+  clear: () => handles().configFile.clear(),
+  backup: (fullName: string) => handles().configFile.backup(fullName),
+};
 
-export const ProcessChat = chatFile;
+export const ProcessChat = {
+  get: <K extends keyof IChatConversationRefer>(key: K) => handles().chatFile.get(key),
+  getSync: <K extends keyof IChatConversationRefer>(key: K) => handles().chatFile.getSync(key),
+  set: <K extends keyof IChatConversationRefer>(key: K, value: IChatConversationRefer[K]) =>
+    handles().chatFile.set(key, value),
+  remove: <K extends keyof IChatConversationRefer>(key: K) => handles().chatFile.remove(key),
+  toJson: () => handles().chatFile.toJson(),
+  toJsonSync: () => handles().chatFile.toJsonSync(),
+};
 
-export const ProcessChatMessage = chatMessageFile;
+export const ProcessChatMessage = {
+  get: (conversation_id: string) => getChatMessageFile().get(conversation_id),
+  set: (conversation_id: string, data: TMessage[]) => getChatMessageFile().set(conversation_id, data),
+  backup: (conversation_id: string) => getChatMessageFile().backup(conversation_id),
+};
 
-export const ProcessEnv = envFile;
+export const ProcessEnv = {
+  get: <K extends keyof IEnvStorageRefer>(key: K) => handles().envFile.get(key),
+  getSync: <K extends keyof IEnvStorageRefer>(key: K) => handles().envFile.getSync(key),
+  set: <K extends keyof IEnvStorageRefer>(key: K, value: IEnvStorageRefer[K]) => handles().envFile.set(key, value),
+  remove: <K extends keyof IEnvStorageRefer>(key: K) => handles().envFile.remove(key),
+};
 
 export const getSystemDir = () => {
+  const { dirConfig, cacheDir } = handles();
   // electron-log writes to the platform-standard logs directory
   const logDir = dirConfig?.logDir || getPlatformServices().paths.getLogsDir();
 

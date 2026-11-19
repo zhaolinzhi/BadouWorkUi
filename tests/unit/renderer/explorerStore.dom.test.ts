@@ -10,7 +10,7 @@ import {
   getExplorerSnapshot,
   onReconnect,
   openProject,
-  resetExplorerStoreForTest,
+  resetExplorerStore,
   reveal,
   select,
   setExpanded,
@@ -107,7 +107,7 @@ const childNames = (tree: TreeNode[], key: PeKey): string[] | undefined => {
 };
 
 beforeEach(() => {
-  resetExplorerStoreForTest();
+  resetExplorerStore();
   localStorage.clear();
 });
 
@@ -338,7 +338,7 @@ describe('per-project persistence', () => {
     await flush();
 
     // Reopen the same project → expanded 'a' restored, so it re-subscribes.
-    resetExplorerStoreForTest();
+    resetExplorerStore();
     const h2 = makePort({ [peKey('pe1', '')]: [dir('a')], [peKey('pe1', 'a')]: [] });
     configureExplorerStore(h2.port);
     openProject('proj1', roots);
@@ -563,7 +563,7 @@ describe('switch project (openProject A → B without reset)', () => {
     setExpanded(peKey('pe1', 'a'), true);
     await flush();
 
-    // Switch to project B (same store instance, NO resetExplorerStoreForTest).
+    // Switch to project B (same store instance, NO resetExplorerStore).
     const hB = makePort({ [peKey('pe2', '')]: [dir('x')] });
     configureExplorerStore(hB.port);
     openProject('projB', [{ pe_id: 'pe2', title: 'lib' }]);
@@ -778,7 +778,7 @@ describe('selection + misc edge paths', () => {
     await flush();
     select(peKey('pe1', 'a.ts'));
 
-    resetExplorerStoreForTest();
+    resetExplorerStore();
     const h2 = makePort({ [peKey('pe1', '')]: [file('a.ts')] });
     configureExplorerStore(h2.port);
     openProject('proj-sel', roots);

@@ -91,6 +91,47 @@ describe('BackendStartupGate — lifecycle-driven view switching (AC-4 / AC-11)'
     expect(screen.queryByTestId('view-starting')).toBeNull();
     expect(screen.queryByTestId('view-failure')).toBeNull();
   });
+
+  it('renders its children alongside the App, so the boot-splash hand-off runs', () => {
+    // The hand-off hides the static splash. It must run whichever way the
+    // gate resolves, otherwise the splash can cover a live app forever.
+    installBridge(null);
+
+    render(
+      <BackendStartupGate {...gateProps}>
+        <div data-testid='handoff' />
+      </BackendStartupGate>
+    );
+
+    expect(screen.getByTestId('handoff')).toBeTruthy();
+    expect(screen.getByTestId('view-app')).toBeTruthy();
+  });
+
+  it('renders its children alongside the starting view', () => {
+    installBridge({ reason: 'backend_startup_pending_slow' });
+
+    render(
+      <BackendStartupGate {...gateProps}>
+        <div data-testid='handoff' />
+      </BackendStartupGate>
+    );
+
+    expect(screen.getByTestId('handoff')).toBeTruthy();
+    expect(screen.getByTestId('view-starting')).toBeTruthy();
+  });
+
+  it('renders its children alongside the failure view', () => {
+    installBridge({ reason: 'backend_startup_exited' });
+
+    render(
+      <BackendStartupGate {...gateProps}>
+        <div data-testid='handoff' />
+      </BackendStartupGate>
+    );
+
+    expect(screen.getByTestId('handoff')).toBeTruthy();
+    expect(screen.getByTestId('view-failure')).toBeTruthy();
+  });
 });
 
 describe('BackendStartupGate — port report timeout is fatal (Sentry 136646113)', () => {

@@ -7,7 +7,7 @@ import {
   localSendStarted,
   localStopAcknowledged,
   localStopRequested,
-  resetConversationRuntimeViewStoreForTest,
+  resetConversationRuntimeViewStore,
   turnCompleted,
 } from '@/renderer/pages/conversation/runtime/conversationRuntimeViewStore';
 
@@ -43,7 +43,7 @@ const cancellingRuntime = (turn_id: string): TConversationRuntimeSummary => ({
 
 describe('conversationRuntimeViewStore turn id contract', () => {
   beforeEach(() => {
-    resetConversationRuntimeViewStoreForTest();
+    resetConversationRuntimeViewStore();
   });
 
   it('ignores a stale turn.completed for a turn that is no longer active (codex background exec)', () => {

@@ -15,6 +15,7 @@
 import type { IConfirmation } from '@/common/chat/chatLib';
 import type { AcpSlashCommandApiItem } from '@/common/chat/slash/types';
 import { bridge } from '@/common/platform/bridge';
+import { ACCOUNT_PORT_CHANGED_EVENT } from './constant';
 import { buildListTasksPath } from './teamTaskPath';
 import type { OpenDialogOptions } from 'electron';
 import type {
@@ -194,10 +195,45 @@ export const auth = {
    *  the token itself arrives asynchronously via `externalLoginCompleted`. */
   startExternalLogin: bridge.buildProvider<{ success: boolean; message?: string }, void>('auth:start-external-login'),
   /** Main → renderer: aipaas-front redirected back with a validated token
-   *  via the `aionui://auth/callback` deep link. */
+   *  via the `badouwork://auth/callback` deep link. */
   externalLoginCompleted: bridge.buildEmitter<{ token: string; user: { id: string; username: string } }>(
     'auth:external-login-completed'
   ),
+  /** Renderer → main: claim the auth payload that arrived before the
+   *  provider was listening. Returns null once it has been claimed.
+   *
+   *  The deep link is delivered straight through IPC with no buffering, and
+   *  the provider subscribes from its mount effect — so a deep link that
+   *  lands first would be lost, leaving the user on the login page with a
+   *  valid token. This lets the provider pick it up instead. */
+  claimPending: bridge.buildProvider<{ token: string; user: { id: string; username: string } } | null, void>(
+    'auth:claim-pending'
+  ),
+};
+
+// ---------------------------------------------------------------------------
+// Account — Electron-native (per-account data directory ownership)
+// ---------------------------------------------------------------------------
+
+export type AccountActiveResult = {
+  /** The backend port to use from now on. May differ from the previous one. */
+  backendPort: number;
+  /** True when the backend was stopped and restarted against a new directory. */
+  restarted: boolean;
+};
+
+export const account = {
+  /** Renderer → main: sign in as this account. Switches the data directory and
+   *  restarts the backend when the account differs from the active one. */
+  setActive: bridge.buildProvider<AccountActiveResult, { userId: string; username: string }>('account:set-active'),
+  /** Renderer → main: sign out. Stops the backend and clears the active scope,
+   *  but keeps `active-account.json` so the same account can resume without a
+   *  backend restart. */
+  clearActive: bridge.buildProvider<void, void>('account:clear-active'),
+  /** Any window → main: read the active account scope (null in local mode). */
+  getActive: bridge.buildProvider<{ userId: string; username: string } | null, void>('account:get-active'),
+  /** Main → renderer: the backend was restarted and now listens on a new port. */
+  portChanged: bridge.buildEmitter<{ backendPort: number }>(ACCOUNT_PORT_CHANGED_EVENT),
 };
 
 // ---------------------------------------------------------------------------

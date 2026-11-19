@@ -26,6 +26,8 @@ import { initMainAdapterWithWindow } from './common/adapter/main';
 import { ipcBridge } from './common';
 import { initializeProcess } from './process';
 import { startBackendOrExit } from './process/startup/backendStartup';
+import { registerBackendControl } from './process/account/backendControl';
+import { publishBackendPort } from './process/account/backendPortChange';
 import { assertStartupArchitectureCompatible } from './process/startup/architectureCompatibility';
 import { classifyBackendStartupFailure } from './process/startup/backendStartupFailure';
 import { installQuitCleanup } from './process/startup/quitCleanup';
@@ -210,7 +212,62 @@ const backendManager = new BackendLifecycleManager(
   },
   resolveBinaryPath
 );
+/** The data directory the running backend was started against. */
+let currentBackendDataDir = '';
 let disposeCronResumeListener: (() => void) | null = null;
+
+/**
+ * Let the account bridge stop and start the backend against a different data
+ * directory.
+ *
+ * Registered here because the lifecycle manager is created in this module and
+ * the bridge registry is imported by it — importing the manager back into the
+ * bridge would create a cycle.
+ */
+registerBackendControl({
+  getCurrentDataDir: () => currentBackendDataDir,
+  start: async (dataDir: string) => {
+    const { getSystemDir } = await import('./process/utils/initStorage');
+    const sysDir = getSystemDir();
+    const port = await backendManager.start(
+      dataDir,
+      sysDir.logDir,
+      {
+        cacheDir: sysDir.cacheDir,
+        workDir: sysDir.workDir,
+        logDir: sysDir.logDir,
+      },
+      {
+        allowPendingOnHealthTimeout: !(isWebUIMode || isResetPasswordMode),
+        onHealthTimeout: async (error) => {
+          markBackendStartupFailed(error);
+          if (backendStartupFailureInfo?.reason === 'backend_startup_pending_slow') {
+            return;
+          }
+          await captureBackendStartupFailure(error);
+        },
+        onPendingExit: async (error) => {
+          markBackendStartupFailed(error);
+          await captureBackendStartupFailure(error);
+        },
+        onReady: (backendPort) => {
+          markBackendReady(backendPort, 'backendManager.accountSwitch');
+        },
+      }
+    );
+    currentBackendDataDir = dataDir;
+    return port;
+  },
+  stop: async () => {
+    try {
+      await backendManager.stop();
+    } catch (error) {
+      console.warn('[Account] Failed to stop the backend:', error);
+    } finally {
+      currentBackendDataDir = '';
+    }
+  },
+});
 
 // Flag tracking whether the backend subprocess started successfully. Read by
 // the deferred runBackendMigrations trigger in createWindow().
@@ -352,7 +409,11 @@ function exposeBackendPort(backendPort: number): void {
   // one-shot assistant migration hook below). Must land BEFORE any
   // ipcBridge.* invoke from the main process — the renderer side reads
   // window.__backendPort via preload, but main has no `window`.
-  (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort = backendPort;
+  //
+  // The renderer is notified too: its `window.__backendPort` is frozen by
+  // contextBridge and can only hold the value from preload time, so it needs
+  // the new port pushed to it.
+  publishBackendPort(backendPort);
 }
 
 function ensureAdminUserOnce(backendPort: number): Promise<void> {
@@ -370,9 +431,13 @@ function ensureAdminUserOnce(backendPort: number): Promise<void> {
 }
 
 function markBackendReady(backendPort: number, source: string): void {
+  // A restart on another port (the account switch restarts the backend against
+  // another account's data directory) must still publish the new port — the
+  // renderer has to follow it, and so does every main-process caller. Only
+  // the one-time startup bookkeeping below is skipped.
+  exposeBackendPort(backendPort);
   if (backendStartedOk) return;
   console.log(`[AionUi] ${source} ready (port=${backendPort})`);
-  exposeBackendPort(backendPort);
   registerCronResumeBridge(backendPort);
   backendStartedOk = true;
   backendStartupFailed = false;
@@ -680,6 +745,19 @@ const handleAppReady = async (): Promise<void> => {
 
   setSentryDeviceId();
 
+  // Resolve the account scope BEFORE initStorage() and before the backend
+  // starts: both resolve their directories from the active account scope.
+  try {
+    const { resolveStartupAccountScope } = await import('./process/account/startupScope');
+    const scope = await resolveStartupAccountScope();
+    if (scope) {
+      console.log('[Account] Starting with account %s (%s)', scope.username, scope.key);
+    }
+  } catch (error) {
+    console.error('[Account] Failed to resolve the startup account scope:', error);
+  }
+  mark('resolveStartupAccountScope');
+
   try {
     await initializeProcess();
     rendererInitialLanguage = ProcessConfig.getSync('language') ?? null;
@@ -689,6 +767,21 @@ const handleAppReady = async (): Promise<void> => {
     app.exit(1);
     return;
   }
+
+  // In development the renderer loads the Vite dev server over HTTP. Vite
+  // re-bundles its optimized dependencies with new content hashes on every
+  // restart, so a cached module graph from the previous run keeps importing a
+  // chunk that no longer exists — the import fails, the module graph never
+  // finishes loading, and the window stays blank. Drop the cache before the
+  // window is created. Production loads the built files from disk and is
+  // unaffected.
+  try {
+    const { disableRendererHttpCacheInDev } = await import('./process/startup/devRendererCache');
+    await disableRendererHttpCacheInDev();
+  } catch (error) {
+    console.warn('[AionUi] Failed to disable the renderer HTTP cache in development:', error);
+  }
+  mark('disableRendererHttpCacheInDev');
 
   /**
    * 启动单目标 CDP 通道，并把端口/口令写进自己的 env。
@@ -777,8 +870,10 @@ const handleAppReady = async (): Promise<void> => {
         const { getDataPath } = await import('./process/utils/utils');
         const { getSystemDir } = await import('./process/utils/initStorage');
         const sysDir = getSystemDir();
+        const dataDir = getDataPath();
+        currentBackendDataDir = dataDir;
         return backendManager.start(
-          getDataPath(),
+          dataDir,
           sysDir.logDir,
           {
             cacheDir: sysDir.cacheDir,
@@ -1019,7 +1114,7 @@ const handleAppReady = async (): Promise<void> => {
 };
 
 // ============ Protocol Registration ============
-// Register aionui:// as the default protocol client
+// Register badouwork:// as the default protocol client
 if (process.defaultApp) {
   // Dev mode: need to pass execPath explicitly
   app.setAsDefaultProtocolClient(PROTOCOL_SCHEME, process.execPath, [path.resolve(process.argv[1])]);
@@ -1027,7 +1122,7 @@ if (process.defaultApp) {
   app.setAsDefaultProtocolClient(PROTOCOL_SCHEME);
 }
 
-// macOS: handle aionui:// URLs via the open-url event
+// macOS: handle badouwork:// URLs via the open-url event
 app.on('open-url', (event, url) => {
   event.preventDefault();
   handleDeepLinkUrl(url);

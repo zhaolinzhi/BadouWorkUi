@@ -7,6 +7,7 @@
 import type { IDirOrFile } from '@/common/adapter/ipcBridge';
 import { getPlatformServices } from '@/common/platform';
 import { getEnvAwareName } from '@/common/config/appEnv';
+import { getActiveScope } from '@/process/account/accountScope';
 import { existsSync, lstatSync, mkdirSync, readlinkSync, realpathSync, symlinkSync, unlinkSync } from 'fs';
 import fs from 'fs/promises';
 import os from 'os';
@@ -82,6 +83,15 @@ const ensureCliSafeSymlink = (targetPath: string, symlinkName: string): string =
     if (!existsSync(targetPath)) {
       mkdirSync(targetPath, { recursive: true });
     }
+    // The symlink may live in a subdirectory of the home directory — the
+    // per-account names are `.aionui-accounts/<key>`. `symlinkSync` does not
+    // create missing parents, so it fails with ENOENT and the account's data
+    // path would keep the spaces in "Application Support" that this symlink
+    // exists to avoid.
+    const symlinkParent = path.dirname(symlinkPath);
+    if (!existsSync(symlinkParent)) {
+      mkdirSync(symlinkParent, { recursive: true });
+    }
     symlinkSync(targetPath, symlinkPath);
     return symlinkPath;
   } catch (error) {
@@ -90,26 +100,51 @@ const ensureCliSafeSymlink = (targetPath: string, symlinkName: string): string =
 };
 
 /**
+ * The Electron `userData` directory — the root that holds the shared
+ * application-level state and the per-account roots.
+ */
+export const getUserDataRoot = (): string => getElectronPathOrFallback('userData');
+
+/**
+ * Symlink names for an account's directories.
+ *
+ * macOS gets a `~/.aionui` symlink so CLI agents can use a path without
+ * spaces. With per-account directories a single fixed name would collide
+ * across accounts, so the account key is part of the name.
+ */
+export const getAccountSymlinkNames = (scope: { key: string }): { data: string; config: string } => ({
+  data: getEnvAwareName(`.aionui-accounts/${scope.key}`),
+  config: getEnvAwareName(`.aionui-config-accounts/${scope.key}`),
+});
+
+/**
  * Get data path, using CLI-safe symlink on macOS.
- * Release builds use ~/.aionui; dev builds use ~/.aionui-dev.
- * 获取数据目录路径，macOS 上使用符号链接。
- * Release 使用 ~/.aionui，Dev 模式使用 ~/.aionui-dev。
+ *
+ * Resolves to the active account's directory when an account is signed in,
+ * and to the legacy shared directory otherwise (local mode / signed out).
+ *
+ * 后端数据目录。已登录时指向当前账号的独立目录，未登录时回落到共享目录。
  */
 export const getDataPath = (): string => {
-  const rootPath = getElectronPathOrFallback('userData');
-  const dataPath = path.join(rootPath, 'aionui');
+  const scope = getActiveScope();
+  if (scope) {
+    return ensureCliSafeSymlink(scope.dataDir, getAccountSymlinkNames(scope).data);
+  }
+  const dataPath = path.join(getUserDataRoot(), 'aionui');
   return ensureCliSafeSymlink(dataPath, getEnvAwareName('.aionui'));
 };
 
 /**
  * Get config path, using CLI-safe symlink on macOS.
- * Release builds use ~/.aionui-config; dev builds use ~/.aionui-config-dev.
- * 获取配置目录路径，macOS 上使用符号链接。
- * Release 使用 ~/.aionui-config，Dev 模式使用 ~/.aionui-config-dev。
+ *
+ * 配置目录。已登录时指向当前账号的独立目录，未登录时回落到共享目录。
  */
 export const getConfigPath = (): string => {
-  const rootPath = getElectronPathOrFallback('userData');
-  const configPath = path.join(rootPath, 'config');
+  const scope = getActiveScope();
+  if (scope) {
+    return ensureCliSafeSymlink(scope.configDir, getAccountSymlinkNames(scope).config);
+  }
+  const configPath = path.join(getUserDataRoot(), 'config');
   return ensureCliSafeSymlink(configPath, getEnvAwareName('.aionui-config'));
 };
 

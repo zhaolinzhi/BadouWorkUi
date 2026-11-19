@@ -242,7 +242,7 @@ export const useScmUi = (): ScmUiView => useSyncExternalStore(subscribeScmUi, ge
  * reload — should clear it themselves; a bare reset is what the persistence tests
  * rely on to model a reload that must survive.
  */
-export const resetScmUiStoreForTest = (): void => {
+export const resetScmUiStore = (): void => {
   projectId = null;
   collapsed = new Map();
   heights = new Map();
