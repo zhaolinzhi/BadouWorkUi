@@ -14,9 +14,11 @@ import type { KnowledgeBaseDocument } from '../types';
 import DocumentFileIcon, { FILE_FOLDER_ICON } from '../components/kb/DocumentFileIcon';
 import KnowledgeBaseUploadModal from '../components/kb/KnowledgeBaseUploadModal';
 import AddMaterialIcon from '../assets/svgs/file-add.svg?component';
+import ReparseIcon from '../assets/svgs/file-reparse.svg?component';
 import SortIcon from '../assets/svgs/file-sort.svg?component';
 import { useKnowledgeBaseDocuments } from '../hooks/useKnowledgeBaseDocuments';
 import { useKnowledgeBaseDocumentDelete } from '../hooks/useKnowledgeBaseDocumentDelete';
+import { useKnowledgeBaseDocumentReparse } from '../hooks/useKnowledgeBaseDocumentReparse';
 import { useKnowledgeBaseUpload } from '../hooks/useKnowledgeBaseUpload';
 import { interpolateI18n } from '../utils/knowledgeBaseUtils';
 import KnowledgeBaseAvatar from '../components/KnowledgeBaseAvatar';
@@ -63,6 +65,7 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
     hasMore,
     reload,
     refresh,
+    pollRefresh,
     pollUntilTotalGrows,
     sortOrder,
     toggleSortOrder,
@@ -182,15 +185,15 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
   /*
    * 文档行的「更多」菜单 —— 菜单项按设计稿来（重新解析 / 删除）。
    *
-   * 重新解析还没有接口（文档是随知识库一起保存的），先置灰；删除有接口了
-   * （`cancelUsingKnowledge.do`），点开会弹二次确认。
+   * 两个动作都有接口了：重新解析走 `reParseKnowledges.do`，删除走
+   * `cancelUsingKnowledge.do`，点开都是二次确认。
    */
   const documentMenuItems = useMemo(
     () => [
       {
         key: 'reparse',
         label: t('settings.knowledgeBaseDocumentReparse', { defaultValue: '重新解析' }),
-        disabled: true,
+        icon: <ReparseIcon size={14} />,
         testId: 'kb-document-menu-reparse',
       },
       {
@@ -219,8 +222,24 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
     onSuccess: handleDeleteSuccess,
   });
 
+  /* 重新解析：同样先记住目标文档，确认后再发请求。 */
+  const [reparseTarget, setReparseTarget] = useState<KnowledgeBaseDocument | null>(null);
+
+  const handleReparseSuccess = useCallback(() => {
+    setReparseTarget(null);
+    message.success(t('settings.knowledgeBaseDocumentReparseSuccess', { defaultValue: '已重新解析' }));
+    // 重新解析在后台跑，「N 条数据」过一会儿才更新 —— 轮询几次列表。
+    void pollRefresh();
+  }, [message, pollRefresh, t]);
+
+  const documentReparse = useKnowledgeBaseDocumentReparse({
+    knowledgeBaseId,
+    onSuccess: handleReparseSuccess,
+  });
+
   const handleDocumentAction = useCallback((key: string, doc: KnowledgeBaseDocument) => {
     if (key === 'delete') setDeleteTarget(doc);
+    if (key === 'reparse') setReparseTarget(doc);
   }, []);
 
   return (
@@ -450,6 +469,35 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
         uploading={uploadUploading}
         error={uploadError}
       />
+
+      {/* 重新解析文档的二次确认 */}
+      <ConfirmModal
+        visible={reparseTarget !== null}
+        className={styles.deleteConfirm}
+        title={t('settings.knowledgeBaseDocumentReparse', { defaultValue: '重新解析' })}
+        description={t('settings.knowledgeBaseDocumentReparseConfirm', {
+          defaultValue: '是否确认对所选文件进行重新解析',
+        })}
+        okText={t('settings.knowledgeBaseDocumentReparse', { defaultValue: '重新解析' })}
+        cancelText={t('common.cancel', { defaultValue: '取消' })}
+        okLoading={documentReparse.reparsing}
+        onCancel={() => setReparseTarget(null)}
+        onOk={() => {
+          if (reparseTarget) void documentReparse.reparse([reparseTarget.id]);
+        }}
+      >
+        {reparseTarget ? (
+          <div className={styles.deleteTarget}>
+            <DocumentFileIcon name={reparseTarget.name} size={28} className={styles.deleteTargetIcon} />
+            <span className={styles.deleteTargetName}>{reparseTarget.name}</span>
+          </div>
+        ) : null}
+        {documentReparse.error ? (
+          <div className={styles.deleteError} data-testid='kb-document-reparse-error'>
+            {documentReparse.error}
+          </div>
+        ) : null}
+      </ConfirmModal>
 
       {/* 删除文档的二次确认 */}
       <ConfirmModal

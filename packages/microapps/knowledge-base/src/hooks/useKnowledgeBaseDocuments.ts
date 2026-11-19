@@ -295,6 +295,33 @@ export const useKnowledgeBaseDocuments = (knowledgeBaseId: string | undefined) =
   }, []);
 
   /**
+   * 连续刷新列表若干次（不看结果）。
+   *
+   * 用于「重新解析」这类**内容变了但总数没变**的场景 —— 后端在后台解析，
+   * 行上的「N 条数据」过一会儿才更新，刷新一次看到的还是旧值。
+   *
+   * @param attempts    刷新几次。
+   * @param intervalMs  两次刷新之间的间隔。
+   */
+  const pollRefresh = useCallback(
+    async (attempts = 4, intervalMs = 2000) => {
+      stopPolling();
+      let remaining = attempts;
+      const tick = async () => {
+        await refresh();
+        remaining -= 1;
+        if (remaining <= 0) {
+          pollTimer.current = null;
+          return;
+        }
+        pollTimer.current = setTimeout(() => void tick(), intervalMs);
+      };
+      await tick();
+    },
+    [refresh, stopPolling]
+  );
+
+  /**
    * 连续刷新列表，直到文档总数变大（或次数用完）。
    *
    * @param attempts    最多刷新几次。
@@ -346,6 +373,7 @@ export const useKnowledgeBaseDocuments = (knowledgeBaseId: string | undefined) =
     hasMore: documents.length < total,
     reload,
     refresh,
+    pollRefresh,
     pollUntilTotalGrows,
     sortOrder,
     toggleSortOrder,

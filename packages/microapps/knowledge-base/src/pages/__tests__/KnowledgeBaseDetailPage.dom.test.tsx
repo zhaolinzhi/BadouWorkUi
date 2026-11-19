@@ -391,6 +391,37 @@ describe('KnowledgeBaseDetailPage', () => {
     expect(fetchMock.mock.calls.filter(([url]) => String(url).includes('cancelUsingKnowledge.do'))).toHaveLength(0);
   });
 
+  it('点文档的「重新解析」弹二次确认，确认后调重新解析接口', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
+      if (String(input).includes('reParseKnowledges')) {
+        return new Response('', { status: 200 });
+      }
+      return jsonResponse({ Total: 1, Rows: [docRow('d1', 'AppIcon.md')] });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderDetail();
+
+    await waitFor(() => expect(screen.getByTestId('kb-document-d1')).toBeTruthy());
+
+    // 行内「更多」菜单 → 重新解析
+    fireEvent.click(screen.getByTestId('kb-document-more-d1'));
+    fireEvent.click(screen.getByTestId('kb-document-menu-reparse'));
+
+    await waitFor(() => expect(screen.getByText('是否确认对所选文件进行重新解析')).toBeTruthy());
+
+    // 确认
+    fireEvent.click(screen.getByRole('button', { name: '重新解析' }));
+
+    await waitFor(() => {
+      const call = fetchMock.mock.calls.find(([url]) => String(url).includes('reParseKnowledges'));
+      expect(call).toBeTruthy();
+      const body = new URLSearchParams(String((call?.[1] as RequestInit | undefined)?.body ?? ''));
+      expect(body.get('knowledgeIds')).toBe('d1');
+      expect(body.get('knowledgeBaseId')).toBe('kb-1');
+    });
+  });
+
   it('共享知识库的副标题是「共享知识库 · 团队共享」', async () => {
     vi.stubGlobal(
       'fetch',
