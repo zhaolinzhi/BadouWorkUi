@@ -143,6 +143,50 @@ describe('KnowledgeBaseDetailPage', () => {
     expect(row2).not.toContain('12:18:03');
   });
 
+  it('搜索框可以收起：清除按钮清空搜索词并关闭搜索框', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => jsonResponse({ Total: 0, Rows: [] }))
+    );
+
+    renderDetail();
+
+    await waitFor(() => expect(screen.getByTestId('kb-detail-search-toggle')).toBeTruthy());
+
+    // 展开搜索框
+    fireEvent.click(screen.getByTestId('kb-detail-search-toggle'));
+    await waitFor(() => expect(screen.getByTestId('kb-detail-search')).toBeTruthy());
+
+    // 输入搜索词
+    const input = screen.getByTestId('kb-detail-search') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: '设计' } });
+
+    // 点「清除搜索」→ 搜索框收起，搜索词清空
+    fireEvent.click(screen.getByTestId('kb-detail-search-close'));
+
+    await waitFor(() => expect(screen.queryByTestId('kb-detail-search')).toBeNull());
+    expect(screen.getByTestId('kb-detail-search-toggle')).toBeTruthy();
+  });
+
+  it('搜索框里按 Esc 也能收起', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => jsonResponse({ Total: 0, Rows: [] }))
+    );
+
+    renderDetail();
+
+    await waitFor(() => expect(screen.getByTestId('kb-detail-search-toggle')).toBeTruthy());
+
+    fireEvent.click(screen.getByTestId('kb-detail-search-toggle'));
+    await waitFor(() => expect(screen.getByTestId('kb-detail-search')).toBeTruthy());
+
+    fireEvent.keyDown(screen.getByTestId('kb-detail-search'), { key: 'Escape' });
+
+    await waitFor(() => expect(screen.queryByTestId('kb-detail-search')).toBeNull());
+    expect(screen.getByTestId('kb-detail-search-toggle')).toBeTruthy();
+  });
+
   it('工具行有「时间排序」与「添加资料」按钮', async () => {
     vi.stubGlobal(
       'fetch',

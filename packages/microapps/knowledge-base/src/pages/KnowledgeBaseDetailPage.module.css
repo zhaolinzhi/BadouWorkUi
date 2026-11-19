@@ -139,6 +139,23 @@
   border-color: var(--kb-focus-ring);
 }
 
+/* 搜索框里的「清除搜索」按钮 —— 收起搜索框并清空搜索词。 */
+.searchClose {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 20px !important;
+  height: 20px !important;
+  padding: 0 !important;
+  border-radius: 4px !important;
+  color: var(--kb-muted) !important;
+  flex-shrink: 0;
+}
+
+.searchClose:hover {
+  color: var(--kb-heading) !important;
+}
+
 .searchIcon {
   display: inline-flex !important;
   align-items: center;

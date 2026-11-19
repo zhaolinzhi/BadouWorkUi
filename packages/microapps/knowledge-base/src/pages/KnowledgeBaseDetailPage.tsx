@@ -59,6 +59,17 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
     toggleSortOrder,
   } = useKnowledgeBaseDocuments(knowledgeBaseId);
 
+  /*
+   * 收起搜索 —— 清空搜索词并关掉搜索框。
+   *
+   * 对应设计稿的「清除搜索」按钮（`clear-search`：清空 + 收起）。
+   * 只清词不收起的话，搜索框会一直占着工具行的位置，用户没法回到普通视图。
+   */
+  const closeSearch = useCallback(() => {
+    setKeyword('');
+    setSearching(false);
+  }, [setKeyword]);
+
   const sortLabel =
     sortOrder === 'desc'
       ? t('settings.knowledgeBaseDetailSortDesc', { defaultValue: '按创建时间排序（最新在前）' })
@@ -249,10 +260,23 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
               <Input
                 value={keyword}
                 onChange={setKeyword}
-                allowClear
                 placeholder={t('settings.knowledgeBaseDetailSearchPlaceholder', { defaultValue: '搜索文件' })}
+                onKeyDown={(event) => {
+                  // Esc 收起搜索 —— 与设计稿的「清除搜索」按钮同义。
+                  if (event.key === 'Escape') closeSearch();
+                }}
                 data-testid='kb-detail-search'
               />
+              <Button
+                type='text'
+                className={styles.searchClose}
+                onClick={closeSearch}
+                aria-label={t('settings.knowledgeBaseClearSearch', { defaultValue: '清除搜索' })}
+                title={t('settings.knowledgeBaseClearSearch', { defaultValue: '清除搜索' })}
+                data-testid='kb-detail-search-close'
+              >
+                <AppIcon name='close-small' size={14} />
+              </Button>
             </div>
           ) : (
             <Button
