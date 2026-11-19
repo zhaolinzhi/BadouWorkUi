@@ -60,7 +60,7 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
     loadMore,
     hasMore,
     reload,
-    refresh,
+    pollUntilTotalGrows,
     sortOrder,
     toggleSortOrder,
   } = useKnowledgeBaseDocuments(knowledgeBaseId);
@@ -95,14 +95,14 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
   /*
    * 上传文档 —— 工具行的「添加资料」按钮直接打开上传弹窗。
    *
-   * 上传成功后关弹窗并回到第 1 页刷新（新文档按创建时间倒序排在最前面，
-   * 回到第 1 页才看得见）。
+   * 上传成功后关弹窗，并**轮询**列表直到新文档出现：上传接口是异步处理的，
+   * 返回时文档还没进列表，只刷新一次的话用户会以为「上传了但没生效」。
    */
   const handleUploadSuccess = useCallback(() => {
     setUploadVisible(false);
-    refresh();
     message.success(t('settings.knowledgeBaseUploadSuccess', { defaultValue: '文件已上传，正在处理' }));
-  }, [message, refresh, t]);
+    void pollUntilTotalGrows();
+  }, [message, pollUntilTotalGrows, t]);
 
   const {
     files: uploadFiles,

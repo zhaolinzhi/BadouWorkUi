@@ -392,4 +392,55 @@ describe('useKnowledgeBaseDocuments', () => {
     expect(fetchMock).not.toHaveBeenCalled();
     expect(result.current.documents).toEqual([]);
   });
+
+  it('轮询刷新：总数变大就停，没变大就继续', async () => {
+    // 前两次列表请求都返回旧数据（模拟后端还在处理），第三次才带上新文档。
+    let listCalls = 0;
+    stubFetch(async () => {
+      listCalls += 1;
+      return listCalls < 3
+        ? jsonResponse({ Total: 1, Rows: [docRow('d1', 'old.md')] })
+        : jsonResponse({ Total: 2, Rows: [docRow('d2', 'new.md'), docRow('d1', 'old.md')] });
+    });
+
+    const { result } = renderHook(() => useKnowledgeBaseDocuments('kb-1'));
+
+    await waitFor(() => expect(result.current.total).toBe(1));
+
+    // 第一次轮询：立刻刷一次
+    await act(async () => {
+      await result.current.pollUntilTotalGrows(5, 10);
+    });
+    expect(listCalls).toBe(2);
+
+    // 总数还没变 → 继续轮询，第三次请求后总数变大
+    await waitFor(() => expect(result.current.total).toBe(2), { timeout: 2000 });
+
+    // 总数变大后停住，不再发请求
+    const callsAfterGrowth = listCalls;
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 80));
+    });
+    expect(listCalls).toBe(callsAfterGrowth);
+  });
+
+  it('轮询刷新：次数用完就停', async () => {
+    const fetchMock = stubFetch(async () => jsonResponse({ Total: 1, Rows: [docRow('d1', 'old.md')] }));
+
+    const { result } = renderHook(() => useKnowledgeBaseDocuments('kb-1'));
+
+    await waitFor(() => expect(result.current.total).toBe(1));
+
+    await act(async () => {
+      void result.current.pollUntilTotalGrows(2, 10);
+    });
+    // 首次加载 1 次 + 轮询 2 次
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3), { timeout: 2000 });
+
+    const callsAfter = fetchMock.mock.calls.length;
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 80));
+    });
+    expect(fetchMock.mock.calls.length).toBe(callsAfter);
+  });
 });

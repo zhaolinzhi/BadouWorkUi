@@ -110,6 +110,14 @@ export const useKnowledgeBaseDocuments = (knowledgeBaseId: string | undefined) =
   const requestSeq = useRef(0);
 
   /**
+   * 文档总数的「随时可读」副本 —— 轮询刷新靠它判断「新文档出现了没有」。
+   */
+  const totalRef = useRef(0);
+
+  /** 轮询刷新的定时器（组件卸载时要清掉）。 */
+  const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /**
    * 拉取一页数据。
    *
    * @returns 这次请求是否「成功落地」（数据或空列表已应用）。无 token / 无
@@ -178,6 +186,7 @@ export const useKnowledgeBaseDocuments = (knowledgeBaseId: string | undefined) =
           if (mode === 'replace') {
             setDocuments([]);
             setTotal(0);
+            totalRef.current = 0;
           }
           return true;
         }
@@ -194,7 +203,10 @@ export const useKnowledgeBaseDocuments = (knowledgeBaseId: string | undefined) =
         const rows = Array.isArray(data?.Rows) ? data.Rows : [];
         const mapped = rows.map(mapDocumentRow);
         setDocuments((prev) => (mode === 'append' ? [...prev, ...mapped] : mapped));
-        setTotal(Number(data?.Total ?? 0));
+        const nextTotal = Number(data?.Total ?? 0);
+        setTotal(nextTotal);
+        // 轮询靠这个判断「文档出现了没有」。
+        totalRef.current = nextTotal;
         return true;
       } catch (err) {
         if (seq !== requestSeq.current) return false;
@@ -203,6 +215,7 @@ export const useKnowledgeBaseDocuments = (knowledgeBaseId: string | undefined) =
         if (mode === 'replace') {
           setDocuments([]);
           setTotal(0);
+          totalRef.current = 0;
         }
         return false;
       } finally {
@@ -262,10 +275,53 @@ export const useKnowledgeBaseDocuments = (knowledgeBaseId: string | undefined) =
    *
    * 新上传的文档按创建时间倒序排在最前面，所以要回到第 1 页才看得见。
    */
-  const refresh = useCallback(() => {
+  const refresh = useCallback(async () => {
     setPageNo(1);
-    void fetchPage(1, activeKeyword, sortOrderRef.current, 'replace');
+    return fetchPage(1, activeKeyword, sortOrderRef.current, 'replace');
   }, [activeKeyword, fetchPage]);
+
+  /*
+   * 轮询刷新。
+   *
+   * 上传是**异步处理**的：上传接口返回时文档还没进列表（设计稿里的「文件处理
+   * 队列」就是这段处理），要过一会儿才出现。所以上传成功后要连续刷新几次，
+   * 直到总数变大为止 —— 只刷新一次的话，用户看到的还是「上传了但列表没动」。
+   */
+  const stopPolling = useCallback(() => {
+    if (pollTimer.current !== null) {
+      clearTimeout(pollTimer.current);
+      pollTimer.current = null;
+    }
+  }, []);
+
+  /**
+   * 连续刷新列表，直到文档总数变大（或次数用完）。
+   *
+   * @param attempts    最多刷新几次。
+   * @param intervalMs  两次刷新之间的间隔。
+   */
+  const pollUntilTotalGrows = useCallback(
+    async (attempts = 15, intervalMs = 2000) => {
+      stopPolling();
+      const baseline = totalRef.current;
+      let remaining = attempts;
+      const tick = async () => {
+        await refresh();
+        remaining -= 1;
+        // 文档出现了就停 —— 别一直打扰后端。
+        if (totalRef.current > baseline || remaining <= 0) {
+          pollTimer.current = null;
+          return;
+        }
+        pollTimer.current = setTimeout(() => void tick(), intervalMs);
+      };
+      await tick();
+    },
+    [refresh, stopPolling]
+  );
+
+  // 组件卸载时把轮询停掉，别让定时器在后台一直跑。
+  useEffect(() => stopPolling, [stopPolling]);
 
   /** 加载下一页并追加。 */
   const loadMore = useCallback(async () => {
@@ -290,6 +346,7 @@ export const useKnowledgeBaseDocuments = (knowledgeBaseId: string | undefined) =
     hasMore: documents.length < total,
     reload,
     refresh,
+    pollUntilTotalGrows,
     sortOrder,
     toggleSortOrder,
   };
