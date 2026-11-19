@@ -1994,6 +1994,7 @@ export type I18nKey =
   | 'settings.knowledgeBaseNoAvailableAgent'
   | 'settings.knowledgeBaseNoResultsBody'
   | 'settings.knowledgeBaseNoResultsTitle'
+  | 'settings.knowledgeBaseOpen'
   | 'settings.knowledgeBaseOwner'
   | 'settings.knowledgeBasePersonalLoadFailed'
   | 'settings.knowledgeBasePersonalLoading'

@@ -219,6 +219,7 @@
   "knowledgeBaseAgentHint": "Bestimmt, welcher Agent den Chat betreibt, wenn Sie eine Konversation aus dieser Wissensdatenbank starten.",
   "knowledgeBaseAffectsChat": "Beeinflusst Chat",
   "knowledgeBaseGoChat": "Chat",
+  "knowledgeBaseOpen": "Wissensdatenbank öffnen",
   "knowledgeBaseSearchPlaceholder": "Wissensdatenbanken durchsuchen",
   "knowledgeBaseAllTitle": "Alle Wissensdatenbanken",
   "knowledgeBaseListSummary": "{{count}} Wissensdatenbanken · {{documents}} Dokumente",

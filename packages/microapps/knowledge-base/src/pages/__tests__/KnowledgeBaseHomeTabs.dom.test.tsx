@@ -53,7 +53,6 @@ const sharedItems = [{ id: 's-1', name: '团队知识库', isShared: true, docum
 const baseProps = {
   onDelete: vi.fn(),
   onOpenView: vi.fn(),
-  onOpenEdit: vi.fn(),
   onCreate: vi.fn(),
   onStartChat: vi.fn(),
 };

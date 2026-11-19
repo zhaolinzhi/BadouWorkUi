@@ -74,7 +74,6 @@ const KnowledgeBaseHomeRoute: React.FC = () => {
       onRefresh={runtime.onRefresh}
       onDelete={runtime.onDelete}
       onOpenView={(item) => navigate(`/kb/${encodeURIComponent(item.id)}`)}
-      onOpenEdit={runtime.onOpenEdit}
       onCreate={runtime.onCreate}
       onStartChat={runtime.onStartChat}
     />

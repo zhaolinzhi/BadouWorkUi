@@ -194,6 +194,7 @@
   "knowledgeBaseAgentHint": "Визначає, який агент обробляє чат під час початку розмови з цієї бази знань.",
   "knowledgeBaseAffectsChat": "Впливає на чат",
   "knowledgeBaseGoChat": "Чат",
+  "knowledgeBaseOpen": "Відкрити базу знань",
   "knowledgeBaseSearchPlaceholder": "Пошук у базах знань",
   "knowledgeBaseAllTitle": "Усі бази знань",
   "knowledgeBaseListSummary": "{{count}} баз знань · {{documents}} документів",

@@ -194,6 +194,7 @@
   "knowledgeBaseAgentHint": "Determina qué agente impulsa el chat cuando inicias una conversación desde esta base de conocimiento.",
   "knowledgeBaseAffectsChat": "Afecta al chat",
   "knowledgeBaseGoChat": "Chat",
+  "knowledgeBaseOpen": "Abrir base de conocimiento",
   "knowledgeBaseSearchPlaceholder": "Buscar bases de conocimiento",
   "knowledgeBaseAllTitle": "Todas las bases de conocimiento",
   "knowledgeBaseListSummary": "{{count}} bases de conocimiento · {{documents}} documentos",

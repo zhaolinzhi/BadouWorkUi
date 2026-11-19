@@ -194,6 +194,7 @@
   "knowledgeBaseAgentHint": "Bu bilgi bankasından sohbet başlattığınızda hangi ajanın sohbeti yöneteceğini belirler.",
   "knowledgeBaseAffectsChat": "Sohbeti etkiler",
   "knowledgeBaseGoChat": "Sohbet",
+  "knowledgeBaseOpen": "Bilgi tabanını aç",
   "knowledgeBaseSearchPlaceholder": "Bilgi tabanlarında ara",
   "knowledgeBaseAllTitle": "Tüm bilgi tabanları",
   "knowledgeBaseListSummary": "{{count}} bilgi tabanı · {{documents}} belge",

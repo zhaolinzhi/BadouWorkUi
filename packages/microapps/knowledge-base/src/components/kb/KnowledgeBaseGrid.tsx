@@ -23,7 +23,6 @@ type KnowledgeBaseGridProps = {
   error?: string | null;
   onRetry?: () => void;
   onOpen: (item: KnowledgeBaseItem) => void;
-  onOpenEdit?: (item: KnowledgeBaseItem) => void;
   onDelete?: (item: KnowledgeBaseItem) => void;
   onStartChat: (item: KnowledgeBaseItem) => void;
   onCreate: () => void;
@@ -41,7 +40,6 @@ const KnowledgeBaseGrid: React.FC<KnowledgeBaseGridProps> = ({
   error = null,
   onRetry,
   onOpen,
-  onOpenEdit,
   onDelete,
   onStartChat,
   onCreate,
@@ -134,7 +132,6 @@ const KnowledgeBaseGrid: React.FC<KnowledgeBaseGridProps> = ({
             key={item.id}
             item={item}
             onOpen={onOpen}
-            onOpenEdit={onOpenEdit}
             onDelete={onDelete}
             onStartChat={onStartChat}
             readOnly={!isPersonal}

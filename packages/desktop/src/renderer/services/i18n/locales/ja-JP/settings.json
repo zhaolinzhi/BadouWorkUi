@@ -194,6 +194,7 @@
   "knowledgeBaseAgentHint": "このナレッジベースから会話を開始する際に使用するエージェントを決定します。",
   "knowledgeBaseAffectsChat": "会話に影響",
   "knowledgeBaseGoChat": "会話",
+  "knowledgeBaseOpen": "ナレッジベースを開く",
   "knowledgeBaseSearchPlaceholder": "知識ベースを検索",
   "knowledgeBaseAllTitle": "すべての知識ベース",
   "knowledgeBaseListSummary": "知識ベース {{count}} 件 · ドキュメント {{documents}} 件",

@@ -194,6 +194,7 @@
   "knowledgeBaseAgentHint": "Determines which agent powers chat when you start a conversation from this knowledge base.",
   "knowledgeBaseAffectsChat": "Affects chat",
   "knowledgeBaseGoChat": "Chat",
+  "knowledgeBaseOpen": "Open knowledge base",
   "knowledgeBaseSearchPlaceholder": "Search knowledge bases",
   "knowledgeBaseAllTitle": "All knowledge bases",
   "knowledgeBaseListSummary": "{{count}} knowledge bases · {{documents}} documents",

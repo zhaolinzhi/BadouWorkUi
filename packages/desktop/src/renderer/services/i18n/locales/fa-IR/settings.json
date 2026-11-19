@@ -194,6 +194,7 @@
   "knowledgeBaseAgentHint": "تعیین می‌کند هنگام شروع گفتگو از این پایگاه دانش، کدام ایجنت گفتگو را مدیریت کند.",
   "knowledgeBaseAffectsChat": "بر گفتگو تأثیر می‌گذارد",
   "knowledgeBaseGoChat": "گفتگو",
+  "knowledgeBaseOpen": "باز کردن پایگاه دانش",
   "knowledgeBaseSearchPlaceholder": "جستجوی پایگاه‌های دانش",
   "knowledgeBaseAllTitle": "همه پایگاه‌های دانش",
   "knowledgeBaseListSummary": "{{count}} پایگاه دانش · {{documents}} سند",

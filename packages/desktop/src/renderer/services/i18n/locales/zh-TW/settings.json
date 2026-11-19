@@ -194,6 +194,7 @@
   "knowledgeBaseAgentHint": "決定從該知識庫開啟對話時使用的 Agent。",
   "knowledgeBaseAffectsChat": "影響對話",
   "knowledgeBaseGoChat": "對話",
+  "knowledgeBaseOpen": "開啟知識庫",
   "knowledgeBaseSearchPlaceholder": "搜尋知識庫",
   "knowledgeBaseAllTitle": "全部知識庫",
   "knowledgeBaseListSummary": "{{count}} 個知識庫 · {{documents}} 份文件",

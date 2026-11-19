@@ -194,6 +194,7 @@
   "knowledgeBaseAgentHint": "이 지식 베이스에서 대화를 시작할 때 사용할 에이전트를 결정합니다.",
   "knowledgeBaseAffectsChat": "대화에 영향",
   "knowledgeBaseGoChat": "대화",
+  "knowledgeBaseOpen": "지식 베이스 열기",
   "knowledgeBaseSearchPlaceholder": "지식 베이스 검색",
   "knowledgeBaseAllTitle": "전체 지식 베이스",
   "knowledgeBaseListSummary": "지식 베이스 {{count}}개 · 문서 {{documents}}개",
