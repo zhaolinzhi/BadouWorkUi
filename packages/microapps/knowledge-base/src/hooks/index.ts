@@ -9,3 +9,4 @@ export { useKnowledgeBaseList } from './useKnowledgeBaseList';
 export { useKnowledgeBaseDocuments } from './useKnowledgeBaseDocuments';
 export { useKnowledgeBaseCreate } from './useKnowledgeBaseCreate';
 export { useKnowledgeBaseUpload } from './useKnowledgeBaseUpload';
+export { useKnowledgeBaseDocumentDelete } from './useKnowledgeBaseDocumentDelete';

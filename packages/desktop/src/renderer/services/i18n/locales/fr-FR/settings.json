@@ -1439,5 +1439,9 @@
   "knowledgeBaseUploadNoFiles": "Sélectionnez au moins un fichier à téléverser",
   "knowledgeBaseUploadFailed": "Échec du téléversement. Réessayez plus tard",
   "knowledgeBaseUploadSuccess": "Fichiers téléversés, traitement en cours",
+  "knowledgeBaseDocumentDeleteTitle": "Supprimer le fichier",
+  "knowledgeBaseDocumentDeleteConfirm": "Voulez-vous vraiment supprimer le fichier sélectionné et toutes les données de connaissances qu’il a générées ?",
+  "knowledgeBaseDocumentDeleteSuccess": "Fichier supprimé",
+  "knowledgeBaseDocumentDeleteFailed": "Échec de la suppression. Réessayez plus tard",
   "knowledgeBaseLead": "Des documents bien rangés, le savoir toujours à portée de main. Rassemblez vos matériaux et partagez avec l’équipe ce que vous accumulez."
 }

@@ -340,6 +340,57 @@ describe('KnowledgeBaseDetailPage', () => {
     expect(more.getAttribute('aria-label')).toContain('AppIcon.md');
   });
 
+  it('点文档的「删除」弹二次确认，确认后调删除接口', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
+      if (String(input).includes('cancelUsingKnowledge.do')) {
+        return new Response('', { status: 200 });
+      }
+      return jsonResponse({ Total: 1, Rows: [docRow('d1', 'AppIcon.md')] });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderDetail();
+
+    await waitFor(() => expect(screen.getByTestId('kb-document-d1')).toBeTruthy());
+
+    // 行内「更多」菜单 → 删除
+    fireEvent.click(screen.getByTestId('kb-document-more-d1'));
+    fireEvent.click(screen.getByTestId('kb-document-menu-delete'));
+
+    await waitFor(() => expect(screen.getByText('是否确认删除所选文件及其生成的全部知识内容数据')).toBeTruthy());
+
+    // 确认删除
+    fireEvent.click(screen.getByRole('button', { name: '删除' }));
+
+    await waitFor(() => {
+      const call = fetchMock.mock.calls.find(([url]) => String(url).includes('cancelUsingKnowledge.do'));
+      expect(call).toBeTruthy();
+      const body = new URLSearchParams(String((call?.[1] as RequestInit | undefined)?.body ?? ''));
+      expect(body.get('knowledgeId')).toBe('d1');
+      expect(body.get('knowledgeBaseId')).toBe('kb-1');
+    });
+  });
+
+  it('删除确认框点取消不发请求', async () => {
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
+      jsonResponse({ Total: 1, Rows: [docRow('d1', 'AppIcon.md')] })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderDetail();
+
+    await waitFor(() => expect(screen.getByTestId('kb-document-d1')).toBeTruthy());
+
+    fireEvent.click(screen.getByTestId('kb-document-more-d1'));
+    fireEvent.click(screen.getByTestId('kb-document-menu-delete'));
+
+    await waitFor(() => expect(screen.getByText('是否确认删除所选文件及其生成的全部知识内容数据')).toBeTruthy());
+
+    fireEvent.click(screen.getByRole('button', { name: '取消' }));
+
+    expect(fetchMock.mock.calls.filter(([url]) => String(url).includes('cancelUsingKnowledge.do'))).toHaveLength(0);
+  });
+
   it('共享知识库的副标题是「共享知识库 · 团队共享」', async () => {
     vi.stubGlobal(
       'fetch',

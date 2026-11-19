@@ -309,6 +309,59 @@
   }
 }
 
+/* ── 删除确认弹窗里的文件条目 ───────────────────────── */
+/*
+ * 共享的 ConfirmModal 用 Arco 的默认样式：标题居中、header 带一条分隔线。
+ * 设计稿的 `.kb-dialog-header` 是左对齐、无分隔线 —— 这里只在知识库这一处
+ * 覆写，不动共享组件（notes 与「删除知识库」弹窗仍保持原样）。
+ */
+.deleteConfirm :global(.arco-modal-header) {
+  height: auto !important;
+  padding: 24px 24px 16px !important;
+  border-bottom: none !important;
+}
+
+.deleteConfirm :global(.arco-modal-header .arco-modal-title) {
+  text-align: left !important;
+}
+
+.deleteTarget {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--kb-app-bg);
+}
+
+.deleteTargetIcon {
+  display: block;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  object-fit: contain;
+}
+
+.deleteTargetName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--kb-heading);
+}
+
+.deleteError {
+  margin-top: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgb(var(--danger-1));
+  font-size: 13px;
+  line-height: 20px;
+  color: rgb(var(--danger-6));
+}
+
 /* ── 底部 ─────────────────────────────────────────── */
 .footer {
   display: flex;

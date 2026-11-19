@@ -10,15 +10,17 @@
  */
 
 import type { KnowledgeBaseRuntime } from './KnowledgeBaseRoutes';
+import type { KnowledgeBaseDocument } from '../types';
 import DocumentFileIcon, { FILE_FOLDER_ICON } from '../components/kb/DocumentFileIcon';
 import KnowledgeBaseUploadModal from '../components/kb/KnowledgeBaseUploadModal';
 import AddMaterialIcon from '../assets/svgs/file-add.svg?component';
 import SortIcon from '../assets/svgs/file-sort.svg?component';
 import { useKnowledgeBaseDocuments } from '../hooks/useKnowledgeBaseDocuments';
+import { useKnowledgeBaseDocumentDelete } from '../hooks/useKnowledgeBaseDocumentDelete';
 import { useKnowledgeBaseUpload } from '../hooks/useKnowledgeBaseUpload';
 import { interpolateI18n } from '../utils/knowledgeBaseUtils';
 import KnowledgeBaseAvatar from '../components/KnowledgeBaseAvatar';
-import { AppIcon, AsyncBoundary, EmptyState, MoreMenu } from '@aionui/ui';
+import { AppIcon, AsyncBoundary, ConfirmModal, EmptyState, MoreMenu } from '@aionui/ui';
 import { Button, Input, Message } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -60,6 +62,7 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
     loadMore,
     hasMore,
     reload,
+    refresh,
     pollUntilTotalGrows,
     sortOrder,
     toggleSortOrder,
@@ -179,9 +182,8 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
   /*
    * 文档行的「更多」菜单 —— 菜单项按设计稿来（重命名 / 删除）。
    *
-   * 这两个动作后端还没给接口（文档是随知识库一起保存的，没有单文档的
-   * 重命名 / 删除接口），所以先置灰 —— 接口到位后把 `disabled` 去掉、
-   * 在 `handleDocumentAction` 里按 key 分发即可。
+   * 重命名还没有接口（文档是随知识库一起保存的），先置灰；删除有接口了
+   * （`cancelUsingKnowledge.do`），点开会弹二次确认。
    */
   const documentMenuItems = useMemo(
     () => [
@@ -196,15 +198,30 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
         label: t('common.delete', { defaultValue: '删除' }),
         icon: <AppIcon name='delete' size={14} />,
         danger: true,
-        disabled: true,
         testId: 'kb-document-menu-delete',
       },
     ],
     [t]
   );
 
-  // 菜单项目前都是置灰的，走不到这里；接口到位后在这里按 key 分发动作。
-  const handleDocumentAction = useCallback(() => undefined, []);
+  /* 删除：先记住要删哪个文档，确认弹窗里再发请求。 */
+  const [deleteTarget, setDeleteTarget] = useState<KnowledgeBaseDocument | null>(null);
+
+  const handleDeleteSuccess = useCallback(() => {
+    setDeleteTarget(null);
+    message.success(t('settings.knowledgeBaseDocumentDeleteSuccess', { defaultValue: '文件已删除' }));
+    // 文档没了，总数会变小 —— 拉一次第 1 页。
+    void refresh();
+  }, [message, refresh, t]);
+
+  const documentDelete = useKnowledgeBaseDocumentDelete({
+    knowledgeBaseId,
+    onSuccess: handleDeleteSuccess,
+  });
+
+  const handleDocumentAction = useCallback((key: string, doc: KnowledgeBaseDocument) => {
+    if (key === 'delete') setDeleteTarget(doc);
+  }, []);
 
   return (
     <div className={styles.page} data-testid='kb-detail'>
@@ -382,7 +399,7 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
                 <MoreMenu
                   items={documentMenuItems}
                   label={`${doc.name} ${t('settings.knowledgeBaseDocumentMore', { defaultValue: '更多操作' })}`}
-                  onSelect={handleDocumentAction}
+                  onSelect={(key) => handleDocumentAction(key, doc)}
                   className={styles.rowMore}
                   data-testid={`kb-document-more-${doc.id}`}
                 />
@@ -433,6 +450,36 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
         uploading={uploadUploading}
         error={uploadError}
       />
+
+      {/* 删除文档的二次确认 */}
+      <ConfirmModal
+        visible={deleteTarget !== null}
+        className={styles.deleteConfirm}
+        title={t('settings.knowledgeBaseDocumentDeleteTitle', { defaultValue: '删除文件' })}
+        description={t('settings.knowledgeBaseDocumentDeleteConfirm', {
+          defaultValue: '是否确认删除所选文件及其生成的全部知识内容数据',
+        })}
+        okText={t('common.delete', { defaultValue: '删除' })}
+        cancelText={t('common.cancel', { defaultValue: '取消' })}
+        danger
+        okLoading={documentDelete.deleting}
+        onCancel={() => setDeleteTarget(null)}
+        onOk={() => {
+          if (deleteTarget) void documentDelete.remove(deleteTarget.id);
+        }}
+      >
+        {deleteTarget ? (
+          <div className={styles.deleteTarget}>
+            <DocumentFileIcon name={deleteTarget.name} size={28} className={styles.deleteTargetIcon} />
+            <span className={styles.deleteTargetName}>{deleteTarget.name}</span>
+          </div>
+        ) : null}
+        {documentDelete.error ? (
+          <div className={styles.deleteError} data-testid='kb-document-delete-error'>
+            {documentDelete.error}
+          </div>
+        ) : null}
+      </ConfirmModal>
 
       {messageContext}
     </div>
