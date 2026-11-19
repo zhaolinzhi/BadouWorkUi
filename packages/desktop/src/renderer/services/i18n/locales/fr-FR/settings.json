@@ -1426,5 +1426,18 @@
   "knowledgeBaseCreateModalSubmit": "Créer la base de connaissances",
   "knowledgeBaseCreateModalSharedUnsupported": "La création de bases de connaissances partagées n'est pas encore prise en charge",
   "knowledgeBaseCreateDescriptionOptional": "(facultatif)",
+  "knowledgeBaseUploadTitle": "Téléverser des fichiers",
+  "knowledgeBaseUploadSubtitle": "Ajouter à {{name}} et organiser votre matériel de connaissance",
+  "knowledgeBaseUploadDropText": "Glissez les fichiers ici ou",
+  "knowledgeBaseUploadChooseFile": "choisissez des fichiers",
+  "knowledgeBaseUploadFileTypes": "Prend en charge PDF, DOCX, TXT et autres",
+  "knowledgeBaseUploadPendingLabel": "Fichiers à téléverser {{count}}",
+  "knowledgeBaseUploadReady": "Prêt à importer",
+  "knowledgeBaseUploadRemoveFile": "Retirer {{name}}",
+  "knowledgeBaseUploadFooterHint": "Après traitement, disponible pour la recherche et les questions",
+  "knowledgeBaseUploadSubmit": "Importer et traiter",
+  "knowledgeBaseUploadNoFiles": "Sélectionnez au moins un fichier à téléverser",
+  "knowledgeBaseUploadFailed": "Échec du téléversement. Réessayez plus tard",
+  "knowledgeBaseUploadSuccess": "Fichiers téléversés, traitement en cours",
   "knowledgeBaseLead": "Des documents bien rangés, le savoir toujours à portée de main. Rassemblez vos matériaux et partagez avec l’équipe ce que vous accumulez."
 }

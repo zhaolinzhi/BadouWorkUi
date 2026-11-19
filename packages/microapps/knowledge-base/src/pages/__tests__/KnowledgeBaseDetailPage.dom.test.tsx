@@ -199,6 +199,73 @@ describe('KnowledgeBaseDetailPage', () => {
     expect(screen.getByTestId('kb-detail-add-material')).toBeTruthy();
   });
 
+  it('点「添加资料」打开上传文件弹窗', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => jsonResponse({ Total: 0, Rows: [] }))
+    );
+
+    renderDetail();
+
+    await waitFor(() => expect(screen.getByTestId('kb-detail-add-material')).toBeTruthy());
+    expect(screen.queryByTestId('kb-upload-dropzone')).toBeNull();
+
+    fireEvent.click(screen.getByTestId('kb-detail-add-material'));
+
+    await waitFor(() => expect(screen.getByTestId('kb-upload-dropzone')).toBeTruthy());
+    expect(screen.getByTestId('kb-upload-submit')).toBeTruthy();
+  });
+
+  it('空态里的「上传文件」也能打开上传弹窗', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => jsonResponse({ Total: 0, Rows: [] }))
+    );
+
+    renderDetail();
+
+    await waitFor(() => expect(screen.getByTestId('kb-detail-empty-upload')).toBeTruthy());
+
+    fireEvent.click(screen.getByTestId('kb-detail-empty-upload'));
+
+    await waitFor(() => expect(screen.getByTestId('kb-upload-dropzone')).toBeTruthy());
+  });
+
+  it('上传成功后刷新文档列表', async () => {
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
+      jsonResponse({ Total: 0, Rows: [] })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderDetail();
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+
+    fireEvent.click(screen.getByTestId('kb-detail-add-material'));
+    await waitFor(() => expect(screen.getByTestId('kb-upload-dropzone')).toBeTruthy());
+
+    // 选一个文件再提交
+    const input = document.querySelector('input[type="file"]');
+    if (!input) throw new Error('no file input rendered');
+    Object.defineProperty(input, 'files', {
+      value: [new File(['x'], 'a.md', { type: 'text/plain' })],
+      configurable: true,
+    });
+    fireEvent.change(input);
+
+    await waitFor(() => expect(screen.getByTestId('kb-upload-file-0')).toBeTruthy());
+    fireEvent.click(screen.getByTestId('kb-upload-submit'));
+
+    // 上传请求发出后，列表重新拉第 1 页
+    await waitFor(() => expect(fetchMock.mock.calls.length).toBeGreaterThanOrEqual(3), { timeout: 3000 });
+    const uploadIndex = fetchMock.mock.calls.findIndex(([url]) => String(url).includes('uploadDocument.do'));
+    expect(uploadIndex).toBeGreaterThanOrEqual(0);
+    const listCallsAfterUpload = fetchMock.mock.calls
+      .slice(uploadIndex + 1)
+      .filter(([url]) => String(url).includes('listJSON.do'));
+    expect(listCallsAfterUpload.length).toBeGreaterThanOrEqual(1);
+  });
+
   it('「时间排序」按钮切换排序方向并重新请求', async () => {
     const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
       jsonResponse({ Total: 2, Rows: [docRow('d1', 'a.md'), docRow('d2', 'b.md')] })

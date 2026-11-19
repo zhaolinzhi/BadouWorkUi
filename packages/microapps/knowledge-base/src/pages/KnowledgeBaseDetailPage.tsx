@@ -11,13 +11,15 @@
 
 import type { KnowledgeBaseRuntime } from './KnowledgeBaseRoutes';
 import DocumentFileIcon, { FILE_FOLDER_ICON } from '../components/kb/DocumentFileIcon';
+import KnowledgeBaseUploadModal from '../components/kb/KnowledgeBaseUploadModal';
 import AddMaterialIcon from '../assets/svgs/file-add.svg?component';
 import SortIcon from '../assets/svgs/file-sort.svg?component';
 import { useKnowledgeBaseDocuments } from '../hooks/useKnowledgeBaseDocuments';
+import { useKnowledgeBaseUpload } from '../hooks/useKnowledgeBaseUpload';
 import { interpolateI18n } from '../utils/knowledgeBaseUtils';
 import KnowledgeBaseAvatar from '../components/KnowledgeBaseAvatar';
 import { AppIcon, AsyncBoundary, EmptyState, MoreMenu } from '@aionui/ui';
-import { Button, Input } from '@arco-design/web-react';
+import { Button, Input, Message } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -44,6 +46,9 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
   const { navigate: shellNavigate } = useAppRuntime();
   const { knowledgeBaseId } = useParams<{ knowledgeBaseId: string }>();
   const [searching, setSearching] = useState(false);
+  const [uploadVisible, setUploadVisible] = useState(false);
+  const [messageApi, messageContext] = Message.useMessage({ maxCount: 10 });
+  const message = messageApi as Required<typeof messageApi>;
   const {
     documents,
     total,
@@ -55,6 +60,7 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
     loadMore,
     hasMore,
     reload,
+    refresh,
     sortOrder,
     toggleSortOrder,
   } = useKnowledgeBaseDocuments(knowledgeBaseId);
@@ -81,33 +87,38 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
    * 这两个动作后端还没给接口（文档是随知识库一起保存的），所以先置灰 ——
    * 接口到位后把 `disabled` 去掉即可。
    */
-  const addMaterialItems = useMemo(
-    () => [
-      {
-        key: 'upload',
-        label: t('settings.knowledgeBaseDetailUploadFile', { defaultValue: '上传文件' }),
-        icon: <AppIcon name='upload' size={14} />,
-        disabled: true,
-        testId: 'kb-detail-add-menu-upload',
-      },
-      {
-        key: 'new-text',
-        label: t('settings.knowledgeBaseDetailNewText', { defaultValue: '新建文本' }),
-        icon: <AppIcon name='notes' size={14} />,
-        disabled: true,
-        testId: 'kb-detail-add-menu-new-text',
-      },
-    ],
-    [t]
-  );
-
-  // 菜单项目前都是置灰的，走不到这里；接口到位后在这里按 key 分发动作。
-  const handleAddMaterial = useCallback(() => undefined, []);
-
   const knowledgeBase = useMemo(
     () => [...runtime.personalItems, ...runtime.sharedItems].find((item) => item.id === knowledgeBaseId) ?? null,
     [runtime.personalItems, runtime.sharedItems, knowledgeBaseId]
   );
+
+  /*
+   * 上传文档 —— 工具行的「添加资料」按钮直接打开上传弹窗。
+   *
+   * 上传成功后关弹窗并回到第 1 页刷新（新文档按创建时间倒序排在最前面，
+   * 回到第 1 页才看得见）。
+   */
+  const handleUploadSuccess = useCallback(() => {
+    setUploadVisible(false);
+    refresh();
+    message.success(t('settings.knowledgeBaseUploadSuccess', { defaultValue: '文件已上传，正在处理' }));
+  }, [message, refresh, t]);
+
+  const {
+    files: uploadFiles,
+    addFiles: addUploadFiles,
+    removeFile: removeUploadFile,
+    reset: resetUpload,
+    submit: submitUpload,
+    uploading: uploadUploading,
+    error: uploadError,
+  } = useKnowledgeBaseUpload({ knowledgeBaseId, onSuccess: handleUploadSuccess });
+
+  /** 打开上传弹窗 —— 每次都从干净的待传列表开始。 */
+  const openUpload = useCallback(() => {
+    resetUpload();
+    setUploadVisible(true);
+  }, [resetUpload]);
 
   /*
    * 当前知识库从列表里消失 = 被删除了 —— 回首页。
@@ -299,14 +310,16 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
           >
             <SortIcon size={18} />
           </Button>
-          <MoreMenu
-            items={addMaterialItems}
-            label={t('settings.knowledgeBaseDetailAddMaterial', { defaultValue: '添加资料' })}
-            onSelect={handleAddMaterial}
-            icon={<AddMaterialIcon size={18} />}
+          <Button
+            type='text'
             className={styles.iconButton}
+            onClick={openUpload}
+            aria-label={t('settings.knowledgeBaseDetailAddMaterial', { defaultValue: '添加资料' })}
+            title={t('settings.knowledgeBaseDetailAddMaterial', { defaultValue: '添加资料' })}
             data-testid='kb-detail-add-material'
-          />
+          >
+            <AddMaterialIcon size={18} />
+          </Button>
         </div>
 
         <AsyncBoundary
@@ -339,6 +352,13 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
                   : t('settings.knowledgeBaseDetailEmptyBody', {
                       defaultValue: '上传文档后，即可在这里集中管理和使用知识。',
                     })
+              }
+              action={
+                activeKeyword ? undefined : (
+                  <Button type='primary' onClick={openUpload} data-testid='kb-detail-empty-upload'>
+                    {t('settings.knowledgeBaseDetailUploadFile', { defaultValue: '上传文件' })}
+                  </Button>
+                )
               }
             />
           }
@@ -401,6 +421,20 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
           )
         ) : null}
       </div>
+
+      <KnowledgeBaseUploadModal
+        visible={uploadVisible}
+        onCancel={() => setUploadVisible(false)}
+        knowledgeBaseName={knowledgeBase?.name ?? ''}
+        files={uploadFiles}
+        onAddFiles={addUploadFiles}
+        onRemoveFile={removeUploadFile}
+        onSubmit={submitUpload}
+        uploading={uploadUploading}
+        error={uploadError}
+      />
+
+      {messageContext}
     </div>
   );
 };

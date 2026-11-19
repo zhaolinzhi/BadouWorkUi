@@ -257,6 +257,16 @@ export const useKnowledgeBaseDocuments = (knowledgeBaseId: string | undefined) =
     void fetchPage(pageNo, activeKeyword, sortOrderRef.current, pageNo === 1 ? 'replace' : 'append');
   }, [activeKeyword, fetchPage, pageNo]);
 
+  /**
+   * 回到第 1 页重拉（列表内容变了时用 —— 比如刚上传了文档）。
+   *
+   * 新上传的文档按创建时间倒序排在最前面，所以要回到第 1 页才看得见。
+   */
+  const refresh = useCallback(() => {
+    setPageNo(1);
+    void fetchPage(1, activeKeyword, sortOrderRef.current, 'replace');
+  }, [activeKeyword, fetchPage]);
+
   /** 加载下一页并追加。 */
   const loadMore = useCallback(async () => {
     if (loading) return;
@@ -279,6 +289,7 @@ export const useKnowledgeBaseDocuments = (knowledgeBaseId: string | undefined) =
     loadMore,
     hasMore: documents.length < total,
     reload,
+    refresh,
     sortOrder,
     toggleSortOrder,
   };
