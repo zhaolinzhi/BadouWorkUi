@@ -88,8 +88,10 @@ export type UseKnowledgeBaseUploadResult = {
   removeFile: (uid: string) => void;
   /** 清空列表与错误。 */
   reset: () => void;
-  /** 提交上传。返回 true = 上传成功。 */
+  /** 提交待传列表。返回 true = 上传成功。 */
   submit: () => Promise<boolean>;
+  /** 直接上传给定的一批文件（「新建文本」用 —— 没有待传列表）。 */
+  uploadFiles: (items: KnowledgeBaseUploadFile[]) => Promise<boolean>;
   /** 上传中。 */
   uploading: boolean;
   /** 最近一次失败的原因（成功时为 null）。 */
@@ -160,79 +162,90 @@ export const useKnowledgeBaseUpload = (options: {
     setError(null);
   }, []);
 
-  const submit = useCallback(async (): Promise<boolean> => {
-    setError(null);
+  /**
+   * 上传给定的一批文件。
+   *
+   * 「新建文本」走这里 —— 它没有待传列表，文本是现造的一个 File。
+   */
+  const uploadFiles = useCallback(
+    async (items: KnowledgeBaseUploadFile[]): Promise<boolean> => {
+      setError(null);
 
-    if (!token) {
-      setError(t('common.failed', { defaultValue: 'Failed' }));
-      return false;
-    }
-    if (!knowledgeBaseId) {
-      setError(t('settings.knowledgeBaseUploadFailed', { defaultValue: '上传失败，请稍后重试' }));
-      return false;
-    }
-    if (files.length === 0) {
-      setError(t('settings.knowledgeBaseUploadNoFiles', { defaultValue: '请先选择要上传的文件' }));
-      return false;
-    }
-
-    setUploading(true);
-    try {
-      const body = new FormData();
-      for (const [key, value] of FIXED_PARAMS) {
-        body.append(key, value);
-      }
-      // 多个文件用同一个字段名重复追加 —— 后端按重复字段收集。
-      for (const item of files) {
-        body.append(FILE_FIELD, item.file, item.name);
-      }
-      body.append('knowledgeBaseId', knowledgeBaseId);
-      body.append('uploadType', UPLOAD_TYPE);
-
-      const response = await fetch(UPLOAD_URL, {
-        method: 'POST',
-        headers: {
-          Token: token,
-          // 不设 Content-Type —— 浏览器的 boundary 是自动生成的，手写会破坏分片。
-        },
-        credentials: 'include',
-        body,
-      });
-
-      if (response.status === 401) {
-        emitAuthExpired('knowledge-base');
+      if (!token) {
+        setError(t('common.failed', { defaultValue: 'Failed' }));
         return false;
       }
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+      if (!knowledgeBaseId) {
+        setError(t('settings.knowledgeBaseUploadFailed', { defaultValue: '上传失败，请稍后重试' }));
+        return false;
+      }
+      if (items.length === 0) {
+        setError(t('settings.knowledgeBaseUploadNoFiles', { defaultValue: '请先选择要上传的文件' }));
+        return false;
       }
 
-      const text = await response.text();
-      if (text.trim() !== '') {
-        // 响应体不是 JSON 也不当作失败 —— 结构还没确认，按成功处理。
-        let payload: unknown = null;
-        try {
-          payload = JSON.parse(text);
-        } catch {
-          payload = null;
+      setUploading(true);
+      try {
+        const body = new FormData();
+        for (const [key, value] of FIXED_PARAMS) {
+          body.append(key, value);
         }
-        if (isRejected(payload)) {
-          throw new Error('upload rejected by server');
+        // 多个文件用同一个字段名重复追加 —— 后端按重复字段收集。
+        for (const item of items) {
+          body.append(FILE_FIELD, item.file, item.name);
         }
+        body.append('knowledgeBaseId', knowledgeBaseId);
+        body.append('uploadType', UPLOAD_TYPE);
+
+        const response = await fetch(UPLOAD_URL, {
+          method: 'POST',
+          headers: {
+            Token: token,
+            // 不设 Content-Type —— 浏览器的 boundary 是自动生成的，手写会破坏分片。
+          },
+          credentials: 'include',
+          body,
+        });
+
+        if (response.status === 401) {
+          emitAuthExpired('knowledge-base');
+          return false;
+        }
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const text = await response.text();
+        if (text.trim() !== '') {
+          // 响应体不是 JSON 也不当作失败 —— 结构还没确认，按成功处理。
+          let payload: unknown = null;
+          try {
+            payload = JSON.parse(text);
+          } catch {
+            payload = null;
+          }
+          if (isRejected(payload)) {
+            throw new Error('upload rejected by server');
+          }
+        }
+
+        onSuccess?.();
+        return true;
+      } catch (err) {
+        console.error('[useKnowledgeBaseUpload] failed to upload documents:', err);
+        setError(err instanceof Error ? err.message : 'unknown error');
+        return false;
+      } finally {
+        setUploading(false);
       }
+    },
+    [knowledgeBaseId, onSuccess, t, token]
+  );
 
-      onSuccess?.();
-      return true;
-    } catch (err) {
-      console.error('[useKnowledgeBaseUpload] failed to upload documents:', err);
-      setError(err instanceof Error ? err.message : 'unknown error');
-      return false;
-    } finally {
-      setUploading(false);
-    }
-  }, [files, knowledgeBaseId, onSuccess, t, token]);
+  /** 提交待传列表。 */
+  const submit = useCallback(async (): Promise<boolean> => uploadFiles(files), [files, uploadFiles]);
 
-  return { files, addFiles, removeFile, reset, submit, uploading, error };
+  return { files, addFiles, removeFile, reset, submit, uploadFiles, uploading, error };
 };
 
 export { extensionOf };

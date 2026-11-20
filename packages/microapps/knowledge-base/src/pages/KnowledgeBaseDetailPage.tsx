@@ -13,6 +13,7 @@ import type { KnowledgeBaseRuntime } from './KnowledgeBaseRoutes';
 import type { KnowledgeBaseDocument } from '../types';
 import DocumentFileIcon, { FILE_FOLDER_ICON } from '../components/kb/DocumentFileIcon';
 import KnowledgeBaseUploadModal from '../components/kb/KnowledgeBaseUploadModal';
+import KnowledgeBaseTextModal from '../components/kb/KnowledgeBaseTextModal';
 import AddMaterialIcon from '../assets/svgs/file-add.svg?component';
 import ReparseIcon from '../assets/svgs/file-reparse.svg?component';
 import SortIcon from '../assets/svgs/file-sort.svg?component';
@@ -116,6 +117,7 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
     removeFile: removeUploadFile,
     reset: resetUpload,
     submit: submitUpload,
+    uploadFiles: uploadFilesDirectly,
     uploading: uploadUploading,
     error: uploadError,
   } = useKnowledgeBaseUpload({ knowledgeBaseId, onSuccess: handleUploadSuccess });
@@ -125,6 +127,30 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
     resetUpload();
     setUploadVisible(true);
   }, [resetUpload]);
+
+  /*
+   * 新建文本 —— 把正文存成知识库里的一个 `.txt` 文件，走同一条上传接口。
+   *
+   * 跟「上传文件」的区别只是文件是现造的：没有文件选择器，直接把文本
+   * 装进一个 File 里发出去。
+   */
+  const [textVisible, setTextVisible] = useState(false);
+
+  const openText = useCallback(() => {
+    setTextVisible(true);
+  }, []);
+
+  const handleTextSubmit = useCallback(
+    async (values: { name: string; text: string }): Promise<boolean> => {
+      // 文件名没带扩展名就补 `.txt` —— 后端按文件名判类型。
+      const fileName = /\.[a-z0-9]+$/i.test(values.name) ? values.name : `${values.name}.txt`;
+      const file = new File([values.text], fileName, { type: 'text/plain' });
+      const succeeded = await uploadFilesDirectly([{ uid: 'text', name: fileName, file }]);
+      if (succeeded) setTextVisible(false);
+      return succeeded;
+    },
+    [uploadFilesDirectly]
+  );
 
   /*
    * 当前知识库从列表里消失 = 被删除了 —— 回首页。
@@ -181,6 +207,38 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
       },
     ];
   }, [knowledgeBase, t]);
+
+  /*
+   * 「添加资料」菜单 —— 上传文件 / 新建文本（设计稿的 `.kb-popup`）。
+   *
+   * 两条路都落到同一个上传接口：上传文件是选本地文件，新建文本是把正文
+   * 存成 `.txt` 再传。
+   */
+  const addMaterialItems = useMemo(
+    () => [
+      {
+        key: 'upload',
+        label: t('settings.knowledgeBaseDetailUploadFile', { defaultValue: '上传文件' }),
+        icon: <AppIcon name='upload' size={14} />,
+        testId: 'kb-detail-add-menu-upload',
+      },
+      {
+        key: 'text',
+        label: t('settings.knowledgeBaseDetailNewText', { defaultValue: '新建文本' }),
+        icon: <AppIcon name='notes' size={14} />,
+        testId: 'kb-detail-add-menu-text',
+      },
+    ],
+    [t]
+  );
+
+  const handleAddMaterial = useCallback(
+    (key: string) => {
+      if (key === 'upload') openUpload();
+      if (key === 'text') openText();
+    },
+    [openText, openUpload]
+  );
 
   /*
    * 文档行的「更多」菜单 —— 菜单项按设计稿来（重新解析 / 删除）。
@@ -346,16 +404,14 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
           >
             <SortIcon size={18} />
           </Button>
-          <Button
-            type='text'
+          <MoreMenu
+            items={addMaterialItems}
+            label={t('settings.knowledgeBaseDetailAddMaterial', { defaultValue: '添加资料' })}
+            onSelect={handleAddMaterial}
+            icon={<AddMaterialIcon size={18} />}
             className={styles.iconButton}
-            onClick={openUpload}
-            aria-label={t('settings.knowledgeBaseDetailAddMaterial', { defaultValue: '添加资料' })}
-            title={t('settings.knowledgeBaseDetailAddMaterial', { defaultValue: '添加资料' })}
             data-testid='kb-detail-add-material'
-          >
-            <AddMaterialIcon size={18} />
-          </Button>
+          />
         </div>
 
         <AsyncBoundary
@@ -467,6 +523,15 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
         onRemoveFile={removeUploadFile}
         onSubmit={submitUpload}
         uploading={uploadUploading}
+        error={uploadError}
+      />
+
+      {/* 新建文本 —— 正文存成 .txt 走同一条上传接口 */}
+      <KnowledgeBaseTextModal
+        visible={textVisible}
+        onCancel={() => setTextVisible(false)}
+        onSubmit={handleTextSubmit}
+        submitting={uploadUploading}
         error={uploadError}
       />
 

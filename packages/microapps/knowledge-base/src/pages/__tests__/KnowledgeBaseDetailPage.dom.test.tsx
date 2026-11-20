@@ -211,6 +211,7 @@ describe('KnowledgeBaseDetailPage', () => {
     expect(screen.queryByTestId('kb-upload-dropzone')).toBeNull();
 
     fireEvent.click(screen.getByTestId('kb-detail-add-material'));
+    fireEvent.click(await screen.findByTestId('kb-detail-add-menu-upload'));
 
     await waitFor(() => expect(screen.getByTestId('kb-upload-dropzone')).toBeTruthy());
     expect(screen.getByTestId('kb-upload-submit')).toBeTruthy();
@@ -242,6 +243,7 @@ describe('KnowledgeBaseDetailPage', () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
 
     fireEvent.click(screen.getByTestId('kb-detail-add-material'));
+    fireEvent.click(await screen.findByTestId('kb-detail-add-menu-upload'));
     await waitFor(() => expect(screen.getByTestId('kb-upload-dropzone')).toBeTruthy());
 
     // 选一个文件再提交
@@ -418,6 +420,52 @@ describe('KnowledgeBaseDetailPage', () => {
       expect(call).toBeTruthy();
       const body = new URLSearchParams(String((call?.[1] as RequestInit | undefined)?.body ?? ''));
       expect(body.get('knowledgeIds')).toBe('d1');
+      expect(body.get('knowledgeBaseId')).toBe('kb-1');
+    });
+  });
+
+  it('「添加资料」菜单里有「上传文件」与「新建文本」', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => jsonResponse({ Total: 0, Rows: [] }))
+    );
+
+    renderDetail();
+
+    await waitFor(() => expect(screen.getByTestId('kb-detail-add-material')).toBeTruthy());
+
+    fireEvent.click(screen.getByTestId('kb-detail-add-material'));
+
+    await waitFor(() => expect(screen.getByTestId('kb-detail-add-menu-upload')).toBeTruthy());
+    expect(screen.getByTestId('kb-detail-add-menu-text')).toBeTruthy();
+  });
+
+  it('「新建文本」提交后把正文作为 .txt 上传', async () => {
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
+      jsonResponse({ Total: 0, Rows: [] })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderDetail();
+
+    await waitFor(() => expect(screen.getByTestId('kb-detail-add-material')).toBeTruthy());
+
+    fireEvent.click(screen.getByTestId('kb-detail-add-material'));
+    fireEvent.click(await screen.findByTestId('kb-detail-add-menu-text'));
+
+    await waitFor(() => expect(screen.getByTestId('kb-text-name')).toBeTruthy());
+
+    fireEvent.change(screen.getByTestId('kb-text-name'), { target: { value: '测试记录' } });
+    fireEvent.change(screen.getByTestId('kb-text-body'), { target: { value: '记录项目中的补充信息' } });
+    fireEvent.click(screen.getByTestId('kb-text-submit'));
+
+    await waitFor(() => {
+      const call = fetchMock.mock.calls.find(([url]) => String(url).includes('uploadDocument.do'));
+      expect(call).toBeTruthy();
+      const body = (call?.[1] as RequestInit | undefined)?.body as FormData;
+      const attached = body.getAll('attach') as File[];
+      expect(attached).toHaveLength(1);
+      expect(attached[0].name).toBe('测试记录.txt');
       expect(body.get('knowledgeBaseId')).toBe('kb-1');
     });
   });
