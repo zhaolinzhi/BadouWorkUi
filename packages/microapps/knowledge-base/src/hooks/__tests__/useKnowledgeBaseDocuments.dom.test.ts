@@ -150,6 +150,26 @@ describe('useKnowledgeBaseDocuments', () => {
     expect(result.current.total).toBe(1);
   });
 
+  it('progress 映射成数字（数字与数字字符串都吃），缺失时是 undefined', async () => {
+    stubFetch(async () =>
+      jsonResponse({
+        Total: 3,
+        Rows: [
+          { id: 'd1', name: 'a.md', progress: 40 },
+          { id: 'd2', name: 'b.md', progress: '85' },
+          { id: 'd3', name: 'c.md' },
+        ],
+      })
+    );
+
+    const { result } = renderHook(() => useKnowledgeBaseDocuments('kb-1'));
+
+    await waitFor(() => expect(result.current.documents).toHaveLength(3));
+    expect(result.current.documents[0]?.progress).toBe(40);
+    expect(result.current.documents[1]?.progress).toBe(85);
+    expect(result.current.documents[2]?.progress).toBeUndefined();
+  });
+
   it('缺少 flgType 时回落到 fileType', async () => {
     stubFetch(async () => jsonResponse({ Total: 1, Rows: [{ id: 'd1', name: 'a.txt', fileType: '10' }] }));
 

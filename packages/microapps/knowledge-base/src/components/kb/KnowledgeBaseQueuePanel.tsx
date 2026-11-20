@@ -5,17 +5,15 @@
  *
  * 文件处理队列面板（设计稿 `kb-queue` 视图）—— 悬浮在右下角，列出处理中的文件。
  *
- * 数据来源说明
- * ============
- * 后端**没有**「文件处理任务列表」接口 —— 设计稿里的队列是厂商后台的事件流
- * 驱动的。我们只能跟踪**本次会话**里上传的文件：上传成功后登记为「处理中」，
- * 等它出现在文档列表里就转成「已完成」。所以这个面板只反映当前会话，
- * 不是后端的真实队列。
+ * 数据来源
+ * ========
+ * 队列直接用**文档列表接口**（`view_knowledge_relevancy`）返回的 `progress`
+ * 字段 —— 后端解析进度时会更新它，100 即处理完成。
  *
- * 正因为没有后端进度，「处理中」那条进度条是**不定态**的（一直走动），
- * 不编百分比；「已完成」才给条数。
+ * 「暂停 / 继续」没做：后端没有对应的任务控制接口，做了就是假按钮。
  */
 
+import type { KnowledgeBaseDocument } from '../../types';
 import DocumentFileIcon from './DocumentFileIcon';
 import { AppIcon } from '@aionui/ui';
 import { Button } from '@arco-design/web-react';
@@ -24,32 +22,37 @@ import { useTranslation } from 'react-i18next';
 import { interpolateI18n } from '../../utils/knowledgeBaseUtils';
 import styles from './KnowledgeBaseQueuePanel.module.css';
 
-/** 队列里的一项。 */
-export type KnowledgeBaseQueueTask = {
-  /** 本次会话内的唯一标识。 */
-  id: string;
-  /** 文件名。 */
-  name: string;
-  /** 处理中 / 已完成。 */
-  status: 'processing' | 'done';
-  /** 已完成时的数据条数。 */
-  records?: number;
-};
-
 export type KnowledgeBaseQueuePanelProps = {
   visible: boolean;
-  tasks: KnowledgeBaseQueueTask[];
+  /** 知识库里的文件列表（带 progress）。 */
+  documents: KnowledgeBaseDocument[];
+  /** 只看处理中的（清空已完成之后）。 */
+  onlyProcessing?: boolean;
   onClose: () => void;
-  /** 清空已完成的任务。 */
+  /** 清空已完成 —— 只隐藏已完成的条目，不动服务端数据。 */
   onClearDone: () => void;
 };
 
-const KnowledgeBaseQueuePanel: React.FC<KnowledgeBaseQueuePanelProps> = ({ visible, tasks, onClose, onClearDone }) => {
+/**
+ * 文件是否已处理完。
+ *
+ * `progress` 缺失时按「已完成」处理 —— 接口不给进度说明它已经解析完了。
+ */
+const isDone = (doc: KnowledgeBaseDocument): boolean => doc.progress === undefined || doc.progress >= 100;
+
+const KnowledgeBaseQueuePanel: React.FC<KnowledgeBaseQueuePanelProps> = ({
+  visible,
+  documents,
+  onlyProcessing = false,
+  onClose,
+  onClearDone,
+}) => {
   const { t } = useTranslation();
   if (!visible) return null;
 
-  const processingCount = tasks.filter((task) => task.status === 'processing').length;
-  const doneCount = tasks.length - processingCount;
+  const processingCount = documents.filter((doc) => !isDone(doc)).length;
+  const doneCount = documents.length - processingCount;
+  const visibleItems = onlyProcessing ? documents.filter((doc) => !isDone(doc)) : documents;
 
   return (
     <aside className={styles.panel} data-testid='kb-queue'>
@@ -80,40 +83,44 @@ const KnowledgeBaseQueuePanel: React.FC<KnowledgeBaseQueuePanelProps> = ({ visib
       </header>
 
       <div className={styles.files}>
-        {tasks.map((task) => (
-          <div
-            key={task.id}
-            className={`${styles.file} ${task.status === 'done' ? styles.fileDone : ''}`}
-            data-testid={`kb-queue-file-${task.id}`}
-          >
-            <div className={styles.fileName}>
-              <DocumentFileIcon name={task.name} size={20} className={styles.fileIcon} />
-              <span>{task.name}</span>
+        {visibleItems.map((doc) => {
+          const done = isDone(doc);
+          const percent = doc.progress ?? 100;
+          return (
+            <div
+              key={doc.id}
+              className={`${styles.file} ${done ? styles.fileDone : ''}`}
+              data-testid={`kb-queue-file-${doc.id}`}
+            >
+              <div className={styles.fileName}>
+                <DocumentFileIcon name={doc.name} type={doc.type} size={20} className={styles.fileIcon} />
+                <span>{doc.name}</span>
+              </div>
+              <div className={styles.state}>
+                {done ? (
+                  <span>
+                    {interpolateI18n(
+                      t('settings.knowledgeBaseQueueDone', {
+                        count: doc.records,
+                        defaultValue: '已完成 · {{count}} 条数据',
+                      }),
+                      { count: doc.records }
+                    )}
+                  </span>
+                ) : (
+                  <span>{t('settings.knowledgeBaseQueueProcessing', { defaultValue: '处理中' })}</span>
+                )}
+                <span className={styles.percent}>{Math.round(percent)}%</span>
+              </div>
+              <div className={styles.progress}>
+                <span
+                  className={done ? styles.progressFill : styles.progressBar}
+                  style={done ? undefined : { width: `${Math.max(0, Math.min(100, percent))}%` }}
+                />
+              </div>
             </div>
-            <div className={styles.state}>
-              {task.status === 'processing' ? (
-                <span>{t('settings.knowledgeBaseQueueProcessing', { defaultValue: '处理中' })}</span>
-              ) : (
-                <span>
-                  {interpolateI18n(
-                    t('settings.knowledgeBaseQueueDone', {
-                      count: task.records ?? 0,
-                      defaultValue: '已完成 · {{count}} 条数据',
-                    }),
-                    { count: task.records ?? 0 }
-                  )}
-                </span>
-              )}
-            </div>
-            <div className={styles.progress}>
-              {task.status === 'done' ? (
-                <span className={styles.progressFill} />
-              ) : (
-                <span className={styles.progressRun} />
-              )}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <footer className={styles.footer}>

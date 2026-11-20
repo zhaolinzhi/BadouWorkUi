@@ -11,7 +11,6 @@
 
 import type { KnowledgeBaseRuntime } from './KnowledgeBaseRoutes';
 import type { KnowledgeBaseDocument } from '../types';
-import type { KnowledgeBaseQueueTask } from '../components/kb/KnowledgeBaseQueuePanel';
 import DocumentFileIcon, { FILE_FOLDER_ICON } from '../components/kb/DocumentFileIcon';
 import KnowledgeBaseQueuePanel from '../components/kb/KnowledgeBaseQueuePanel';
 import KnowledgeBaseUploadModal from '../components/kb/KnowledgeBaseUploadModal';
@@ -94,35 +93,14 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
       : t('settings.knowledgeBaseDetailSortAsc', { defaultValue: '按创建时间排序（最早在前）' });
 
   /*
-   * 文件处理队列 —— 本次会话上传的文件。
+   * 文件处理队列 —— 直接用文档列表接口返回的 `progress`。
    *
-   * 后端没有「处理任务列表」接口（设计稿里的队列由厂商后台的事件流驱动），
-   * 所以只能自己跟踪：上传成功后登记为「处理中」，等它出现在文档列表里就
-   * 转成「已完成」。这个面板反映的是当前会话，不是后端的真实队列。
+   * 后端解析进度时会更新它，100 即处理完成；队列面板据此显示每个文件的
+   * 状态与百分比。
    */
-  const [queueTasks, setQueueTasks] = useState<KnowledgeBaseQueueTask[]>([]);
   const [queueVisible, setQueueVisible] = useState(false);
-
-  /** 登记一个刚上传的文件（处理中）。 */
-  const trackUpload = useCallback((name: string) => {
-    setQueueTasks((prev) => [...prev, { id: `${Date.now()}-${name}`, name, status: 'processing' }]);
-  }, []);
-
-  // 文件出现在文档列表里 → 队列里对应的任务转成「已完成」。
-  useEffect(() => {
-    setQueueTasks((prev) => {
-      let changed = false;
-      const next = prev.map((task) => {
-        if (task.status === 'done') return task;
-        const found = documents.find((doc) => doc.name === task.name);
-        if (!found) return task;
-        changed = true;
-        return { ...task, status: 'done' as const, records: found.records };
-      });
-      // 没变化就返回原数组 —— 避免每次列表刷新都多渲染一次。
-      return changed ? next : prev;
-    });
-  }, [documents]);
+  /** 「清空已完成」之后只留处理中的。 */
+  const [queueOnlyProcessing, setQueueOnlyProcessing] = useState(false);
 
   /*
    * 「添加资料」菜单 —— 菜单项按设计稿来（上传文件 / 新建文本）。
@@ -143,13 +121,12 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
    * 「上传了但没生效」。
    */
   const handleUploadSuccess = useCallback(
-    (uploaded: KnowledgeBaseUploadFile[]) => {
+    (_uploaded: KnowledgeBaseUploadFile[]) => {
       setUploadVisible(false);
-      uploaded.forEach((item) => trackUpload(item.name));
       message.success(t('settings.knowledgeBaseUploadSuccess', { defaultValue: '文件已上传，正在处理' }));
       void pollUntilTotalGrows();
     },
-    [message, pollUntilTotalGrows, t, trackUpload]
+    [message, pollUntilTotalGrows, t]
   );
 
   const {
@@ -263,15 +240,15 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
       if (key === 'upload') openUpload();
       if (key === 'text') openText();
       if (key === 'queue') {
-        // 没有任务时不打开面板 —— 直接提示（设计稿的行为）。
-        if (queueTasks.length === 0) {
+        // 没有文件时不打开面板 —— 直接提示（设计稿的行为）。
+        if (documents.length === 0) {
           message.info(t('settings.knowledgeBaseQueueEmpty', { defaultValue: '暂无文件处理任务' }));
           return;
         }
         setQueueVisible(true);
       }
     },
-    [message, openText, openUpload, queueTasks.length, t]
+    [documents.length, message, openText, openUpload, t]
   );
 
   /*
@@ -587,12 +564,13 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
         error={uploadError}
       />
 
-      {/* 文件处理队列 —— 本次会话上传的文件 */}
+      {/* 文件处理队列 —— 进度来自文档列表接口的 progress 字段 */}
       <KnowledgeBaseQueuePanel
         visible={queueVisible}
-        tasks={queueTasks}
+        documents={documents}
+        onlyProcessing={queueOnlyProcessing}
         onClose={() => setQueueVisible(false)}
-        onClearDone={() => setQueueTasks((prev) => prev.filter((task) => task.status !== 'done'))}
+        onClearDone={() => setQueueOnlyProcessing(true)}
       />
 
       {/* 新建文本 —— 正文存成 .txt 走同一条上传接口 */}

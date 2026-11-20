@@ -503,38 +503,45 @@ describe('KnowledgeBaseDetailPage', () => {
     expect(screen.queryByTestId('kb-queue')).toBeNull();
   });
 
-  it('上传后文件出现在列表里，队列面板里显示为已完成', async () => {
+  it('队列面板按列表接口的 progress 显示处理中与已完成', async () => {
     const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
-      jsonResponse({ Total: 0, Rows: [] })
+      jsonResponse({
+        Total: 2,
+        Rows: [
+          { ...docRow('d1', 'a.md'), processedTaskNum: '10', progress: 40 },
+          { ...docRow('d2', 'b.pdf'), processedTaskNum: '20', progress: 100 },
+        ],
+      })
     );
     vi.stubGlobal('fetch', fetchMock);
 
     renderDetail();
 
-    await waitFor(() => expect(screen.getByTestId('kb-detail-add-material')).toBeTruthy());
+    await waitFor(() => expect(screen.getByTestId('kb-document-d1')).toBeTruthy());
 
-    // 上传一个文件
-    fireEvent.click(screen.getByTestId('kb-detail-add-material'));
-    fireEvent.click(await screen.findByTestId('kb-detail-add-menu-upload'));
-    await waitFor(() => expect(screen.getByTestId('kb-upload-dropzone')).toBeTruthy());
-
-    const input = document.querySelector('input[type="file"]');
-    if (!input) throw new Error('no file input rendered');
-    Object.defineProperty(input, 'files', {
-      value: [new File(['x'], 'a.md', { type: 'text/plain' })],
-      configurable: true,
-    });
-    fireEvent.change(input);
-    await waitFor(() => expect(screen.getByTestId('kb-upload-file-0')).toBeTruthy());
-    fireEvent.click(screen.getByTestId('kb-upload-submit'));
-
-    // 队列面板：打开后能看到刚上传的文件（处理中）
-    await waitFor(() => expect(screen.getByTestId('kb-detail-more')).toBeTruthy());
     fireEvent.click(screen.getByTestId('kb-detail-more'));
     fireEvent.click(await screen.findByTestId('kb-detail-more-queue'));
 
     await waitFor(() => expect(screen.getByTestId('kb-queue')).toBeTruthy());
-    expect(screen.getByTestId('kb-queue-summary').textContent).toContain('处理中 1 个文件');
+    expect(screen.getByTestId('kb-queue-summary').textContent).toBe('处理中 1 个文件 · 已完成 1 个');
+    expect(screen.getByTestId('kb-queue-file-d1').textContent).toContain('40%');
+    expect(screen.getByTestId('kb-queue-file-d2').textContent).toContain('已完成 · 20 条数据');
+  });
+
+  it('知识库没有文件时点「文件处理队列」只提示，不打开面板', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => jsonResponse({ Total: 0, Rows: [] }))
+    );
+
+    renderDetail();
+
+    await waitFor(() => expect(screen.getByTestId('kb-detail-more')).toBeTruthy());
+
+    fireEvent.click(screen.getByTestId('kb-detail-more'));
+    fireEvent.click(await screen.findByTestId('kb-detail-more-queue'));
+
+    expect(screen.queryByTestId('kb-queue')).toBeNull();
   });
 
   it('共享知识库的副标题是「共享知识库 · 团队共享」', async () => {

@@ -34,6 +34,8 @@ type RawDocumentRow = {
   processedTaskNum?: string | number | null;
   updateTime?: string | null;
   createTime?: string | null;
+  /** 解析进度（0~100）—— 接口给的是数字或数字字符串。 */
+  progress?: string | number | null;
 };
 
 type ListEnvelope = {
@@ -50,6 +52,13 @@ const pickNumber = (value: string | number | null | undefined): number => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
+/** 解析可缺失的数字（进度）—— 没有就是 undefined，不当成 0。 */
+const pickOptionalNumber = (value: string | number | null | undefined): number | undefined => {
+  if (value === null || value === undefined || value === '') return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+};
+
 /** 原始行 → 领域模型。 */
 const mapDocumentRow = (row: RawDocumentRow): KnowledgeBaseDocument => ({
   id: pickString(row.id),
@@ -61,6 +70,8 @@ const mapDocumentRow = (row: RawDocumentRow): KnowledgeBaseDocument => ({
   records: pickNumber(row.processedTaskNum),
   updatedAt: pickString(row.updateTime),
   createdAt: pickString(row.createTime),
+  // 解析进度（0~100）—— 接口给的是数字或数字字符串，没有就是 undefined。
+  progress: pickOptionalNumber(row.progress),
 });
 
 /** 排序方向 —— 接口的 `sortorder` 取值。 */

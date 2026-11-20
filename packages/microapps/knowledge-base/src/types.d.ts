@@ -60,6 +60,12 @@ export type KnowledgeBaseDocument = {
   updatedAt: string;
   /** 创建时间,接口原样字符串(一般只到天) */
   createdAt: string;
+  /**
+   * 解析进度（0~100），来自接口的 `progress` 字段。
+   *
+   * 接口未给时为 undefined —— 视为「已完成」处理完的文件。
+   */
+  progress?: number;
 };
 
 /** 新建知识库弹窗的表单值。 */

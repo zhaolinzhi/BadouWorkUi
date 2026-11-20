@@ -127,6 +127,10 @@
   color: var(--kb-muted);
 }
 
+.percent {
+  color: inherit;
+}
+
 /* 3px 的圆角进度条（设计稿 `.kb-progress`）。 */
 .progress {
   height: 3px;
@@ -143,26 +147,13 @@
   background: var(--kb-brand);
 }
 
-/*
- * 「处理中」没有真实百分比 —— 用一条来回走的条带表示「在动」，
- * 不编数字。
- */
-.progressRun {
+/* 处理中的进度条 —— 宽度由接口的 progress 决定。 */
+.progressBar {
   display: block;
-  width: 40%;
   height: 100%;
   border-radius: 999px;
   background: var(--kb-brand);
-  animation: queue-run 1.4s ease-in-out infinite;
-}
-
-@keyframes queue-run {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(250%);
-  }
+  transition: width 0.3s ease;
 }
 
 /* ── 底部 ───────────────────────────────────────────── */
