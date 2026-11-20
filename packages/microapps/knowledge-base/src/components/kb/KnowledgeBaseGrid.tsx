@@ -79,7 +79,7 @@ const KnowledgeBaseGrid: React.FC<KnowledgeBaseGridProps> = ({
       <KnowledgeBaseEmptyState
         title={t('settings.knowledgeBaseEmptyTitle', { defaultValue: '还没有个人知识库' })}
         description={t('settings.knowledgeBaseEmptyBody', {
-          defaultValue: '创建你的第一个知识库，开始整理文档。',
+          defaultValue: '创建你的第一个知识库，把分散的文档整理在一起。',
         })}
         action={
           <Button
@@ -97,6 +97,7 @@ const KnowledgeBaseGrid: React.FC<KnowledgeBaseGridProps> = ({
 
   return (
     <AsyncBoundary
+      className={styles.boundary}
       loading={loading}
       error={error}
       onRetry={onRetry}

@@ -11,10 +11,18 @@
   gap: 20px;
 }
 
-/* 空状态区域:设计稿 `.kb-empty-zone` 是固定 520px 的居中块 */
+/*
+ * 状态根容器（AsyncBoundary 的 className 落点）—— 撑满剩余高度，
+ * 空态才能在整块可视区里上下居中。
+ */
+.boundary {
+  flex: 1 1 0%;
+  min-height: 0;
+}
+
+/* 空状态区域:高度由内容决定（不再固定 520px），由父容器居中。 */
 .emptyZone {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 520px;
 }
