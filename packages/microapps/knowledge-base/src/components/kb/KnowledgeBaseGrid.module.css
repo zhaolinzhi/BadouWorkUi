@@ -25,4 +25,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  /*
+   * 整组内容上移 15px —— 严格居中时视觉重心落在上面的空白区，
+   * 插画与文案反而偏低；上移一点更合眼。
+   */
+  transform: translateY(-15px);
 }
