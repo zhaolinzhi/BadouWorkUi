@@ -46,14 +46,17 @@ describe('KnowledgeBaseCreateModal', () => {
     expect(screen.getByTestId('kb-create-cancel')).toBeTruthy();
   });
 
-  it('默认不渲染共享对象，切到共享后出现', () => {
+  it('共享知识库暂时禁用：选项不可选，也切不到共享对象', () => {
     render(<KnowledgeBaseCreateModal visible onCancel={vi.fn()} onSubmit={vi.fn()} />);
 
-    expect(screen.queryByTestId('kb-create-target')).toBeNull();
+    const shared = screen.getByTestId('kb-create-scope-shared');
+    const input = shared.querySelector('input');
+    expect(input?.disabled).toBe(true);
 
     clickRadio('kb-create-scope-shared');
 
-    expect(screen.getByTestId('kb-create-target')).toBeTruthy();
+    // 切不过去 → 共享对象选择器不渲染
+    expect(screen.queryByTestId('kb-create-target')).toBeNull();
   });
 
   it('名称为空时提示且不提交', () => {
@@ -71,11 +74,11 @@ describe('KnowledgeBaseCreateModal', () => {
     render(<KnowledgeBaseCreateModal visible onCancel={vi.fn()} onSubmit={onSubmit} />);
 
     fireEvent.change(screen.getByTestId('kb-create-name'), { target: { value: '测试3' } });
-    clickRadio('kb-create-scope-shared');
+    // 共享选项已禁用 —— 这条分支走不到（共享对象选择器不渲染）。
+    expect(screen.queryByTestId('kb-create-target')).toBeNull();
     fireEvent.click(screen.getByTestId('kb-create-submit'));
 
-    expect(screen.getByTestId('kb-create-target-error').textContent).toBe('请选择共享对象');
-    expect(onSubmit).not.toHaveBeenCalled();
+    expect(onSubmit).toHaveBeenCalledWith({ name: '测试3', description: '', scope: 'personal', target: undefined });
   });
 
   it('填好名称后提交，参数含名称、描述与 scope', () => {
@@ -119,8 +122,7 @@ describe('KnowledgeBaseCreateModal', () => {
   it('共享对象列表为空时给出说明', () => {
     render(<KnowledgeBaseCreateModal visible onCancel={vi.fn()} onSubmit={vi.fn()} />);
 
-    clickRadio('kb-create-scope-shared');
-
-    expect(screen.getByTestId('kb-create-target-empty').textContent).toBe('暂无可选共享对象');
+    // 共享选项已禁用 —— 共享对象选择器不会渲染。
+    expect(screen.queryByTestId('kb-create-target-empty')).toBeNull();
   });
 });

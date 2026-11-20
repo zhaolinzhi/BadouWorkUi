@@ -247,6 +247,26 @@
   border-color: var(--kb-brand) !important;
 }
 
+/*
+ * 共享知识库暂时未开放 —— 选项置灰不可选。
+ *
+ * Arco 的禁用态只改了单选框本身的颜色；卡片里的文案是我们自己写的
+ * （`.scopeCopy` 里显式给了 color），会盖掉禁用态 —— 所以这里单独置灰。
+ */
+.scopeGroup :global(.arco-radio-disabled) {
+  border-color: var(--kb-border);
+  background: transparent;
+  cursor: not-allowed;
+}
+
+.scopeGroup :global(.arco-radio-disabled) .scopeCopy > span {
+  color: var(--kb-muted);
+}
+
+.scopeGroup :global(.arco-radio-disabled) .scopeCopy > small {
+  color: var(--kb-placeholder);
+}
+
 .scopeCopy {
   display: flex;
   flex-direction: column;

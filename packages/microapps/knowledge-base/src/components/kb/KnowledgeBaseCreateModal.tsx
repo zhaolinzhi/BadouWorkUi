@@ -163,7 +163,7 @@ const KnowledgeBaseCreateModal: React.FC<KnowledgeBaseCreateModalProps> = ({
                 <small>{t('settings.knowledgeBasePrivateOnly', { defaultValue: '仅自己可见' })}</small>
               </span>
             </Radio>
-            <Radio value='shared' data-testid='kb-create-scope-shared'>
+            <Radio value='shared' disabled data-testid='kb-create-scope-shared'>
               <span className={styles.scopeCopy}>
                 <span>{t('settings.knowledgeBaseTabShared', { defaultValue: '共享知识库' })}</span>
                 <small>{t('settings.knowledgeBaseCreateModalScopeSharedHint', { defaultValue: '所选对象可见' })}</small>
