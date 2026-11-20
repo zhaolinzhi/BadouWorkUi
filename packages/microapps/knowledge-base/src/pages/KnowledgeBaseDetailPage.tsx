@@ -19,7 +19,8 @@ import KnowledgeBaseTextModal from '../components/kb/KnowledgeBaseTextModal';
 import AddMaterialIcon from '../assets/svgs/file-add.svg?component';
 import QueueIcon from '../assets/svgs/file-queue.svg?component';
 import ReparseIcon from '../assets/svgs/file-reparse.svg?component';
-import SortIcon from '../assets/svgs/file-sort.svg?component';
+import SortAscIcon from '../assets/svgs/file-sort-asc.svg?component';
+import SortDescIcon from '../assets/svgs/file-sort-desc.svg?component';
 import { useKnowledgeBaseDocuments } from '../hooks/useKnowledgeBaseDocuments';
 import { useKnowledgeBaseDocumentDelete } from '../hooks/useKnowledgeBaseDocumentDelete';
 import { useKnowledgeBaseDocumentReparse } from '../hooks/useKnowledgeBaseDocumentReparse';
@@ -461,7 +462,8 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
             title={sortLabel}
             data-testid='kb-detail-sort'
           >
-            <SortIcon size={18} />
+            {/* 图标随排序方向变化：降序（最新在前）用降序图标，升序反之。 */}
+            {sortOrder === 'desc' ? <SortDescIcon size={18} /> : <SortAscIcon size={18} />}
           </Button>
           <MoreMenu
             items={addMaterialItems}
