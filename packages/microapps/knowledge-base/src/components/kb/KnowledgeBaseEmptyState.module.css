@@ -46,6 +46,10 @@
   background: var(--kb-brand) !important;
   color: var(--kb-on-brand) !important;
   font-size: 14px !important;
+  /* Arco 的按钮是 inline-block —— 图标与文字按基线排，图标会偏高 1px。 */
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 .action :global(.arco-btn-primary:hover) {

@@ -59,6 +59,13 @@
   line-height: 22px !important;
   white-space: nowrap;
   flex-shrink: 0;
+  /*
+   * Arco 的按钮是 inline-block —— 图标与文字按基线排，图标会偏高 1px。
+   * 设计稿的 `.kb-button` 是 inline-flex + align-items:center，这里对齐它。
+   */
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 .createButton:hover {
