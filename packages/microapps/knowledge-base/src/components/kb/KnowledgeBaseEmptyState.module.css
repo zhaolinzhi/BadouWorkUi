@@ -1,0 +1,54 @@
+/**
+ * 知识库空态 —— 对齐设计稿 BadouWork-Desktop-Handoff 的 `.kb-empty`。
+ *
+ * 设计稿的几何:
+ *   .kb-empty      竖排居中，宽 min(480px, 100%)
+ *   .kb-empty h2   18px/500/26px，上下留白 24px / 12px
+ *   .kb-empty p    14px/24px muted
+ *   .kb-empty 按钮  上留白 24px
+ *
+ * 颜色一律走 `--kb-*` 语义 token。
+ */
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  width: min(480px, 100%);
+}
+
+.title {
+  margin: 24px 0 12px;
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 26px;
+  color: var(--kb-heading);
+}
+
+.description {
+  margin: 0;
+  font-size: 14px;
+  line-height: 24px;
+  color: var(--kb-muted);
+}
+
+.action {
+  margin-top: 24px;
+}
+
+/* 空态里的主按钮 —— 用品牌蓝，不跟 Arco 的主题主色走。 */
+.action :global(.arco-btn-primary) {
+  height: 36px !important;
+  padding: 0 16px !important;
+  border-radius: 8px !important;
+  border-color: var(--kb-brand) !important;
+  background: var(--kb-brand) !important;
+  color: var(--kb-on-brand) !important;
+  font-size: 14px !important;
+}
+
+.action :global(.arco-btn-primary:hover) {
+  border-color: var(--kb-brand-hover) !important;
+  background: var(--kb-brand-hover) !important;
+}

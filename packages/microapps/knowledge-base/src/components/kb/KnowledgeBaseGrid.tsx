@@ -6,7 +6,8 @@
 
 import type { KnowledgeBaseItem, KnowledgeBaseTab } from '../../types';
 import KnowledgeBaseCard from './KnowledgeBaseCard';
-import { AppIcon, AsyncBoundary, EmptyState } from '@aionui/ui';
+import KnowledgeBaseEmptyState from './KnowledgeBaseEmptyState';
+import { AppIcon, AsyncBoundary } from '@aionui/ui';
 import { Button } from '@arco-design/web-react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
@@ -52,20 +53,13 @@ const KnowledgeBaseGrid: React.FC<KnowledgeBaseGridProps> = ({
     // 有知识库但被搜索过滤光了 —— 与「还没有知识库」是两回事。
     if (total > 0) {
       return (
-        <EmptyState
-          icon={<AppIcon name='search' size={40} />}
+        <KnowledgeBaseEmptyState
           title={t('settings.knowledgeBaseNoResultsTitle', { defaultValue: '暂无搜索结果' })}
           description={t('settings.knowledgeBaseNoResultsBody', {
             defaultValue: '试试其他关键词，或清除搜索。',
           })}
           action={
-            <Button
-              type='primary'
-              size='small'
-              className='!rounded-8px'
-              onClick={onClearSearch}
-              data-testid='btn-kb-clear-search'
-            >
+            <Button type='primary' onClick={onClearSearch} data-testid='btn-kb-clear-search'>
               {t('settings.knowledgeBaseClearSearch', { defaultValue: '清除搜索' })}
             </Button>
           }
@@ -75,16 +69,14 @@ const KnowledgeBaseGrid: React.FC<KnowledgeBaseGridProps> = ({
 
     if (!isPersonal) {
       return (
-        <EmptyState
-          icon={<AppIcon name='knowledge-base' size={40} />}
+        <KnowledgeBaseEmptyState
           title={t('settings.knowledgeBaseSharedEmpty', { defaultValue: '暂无可用的共享知识库' })}
         />
       );
     }
 
     return (
-      <EmptyState
-        icon={<AppIcon name='knowledge-base' size={40} />}
+      <KnowledgeBaseEmptyState
         title={t('settings.knowledgeBaseEmptyTitle', { defaultValue: '还没有个人知识库' })}
         description={t('settings.knowledgeBaseEmptyBody', {
           defaultValue: '创建你的第一个知识库，开始整理文档。',
@@ -92,9 +84,7 @@ const KnowledgeBaseGrid: React.FC<KnowledgeBaseGridProps> = ({
         action={
           <Button
             type='primary'
-            size='small'
             icon={<AppIcon name='plus' size={14} />}
-            className='!rounded-8px'
             onClick={onCreate}
             data-testid='btn-personal-kb-create'
           >

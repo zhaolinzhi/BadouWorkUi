@@ -1388,6 +1388,8 @@
   "knowledgeBaseDeleteTitle": "Supprimer la base de connaissances",
   "knowledgeBaseDeleteConfirm": "Êtes-vous sûr de vouloir supprimer cette base de connaissances ? Cette action est irréversible.",
   "knowledgeBaseSearchPlaceholder": "Rechercher des bases de connaissances",
+  "knowledgeBaseEmptyTitle": "Aucune base de connaissances personnelle",
+  "knowledgeBaseEmptyBody": "Créez votre première base de connaissances et rassemblez vos documents dispersés.",
   "knowledgeBaseOpen": "Ouvrir la base de connaissances",
   "knowledgeBaseAllTitle": "Toutes les bases de connaissances",
   "knowledgeBaseListSummary": "{{count}} bases de connaissances · {{documents}} documents",

@@ -163,7 +163,7 @@
   "knowledgeBaseTabPersonal": "개인",
   "knowledgeBaseTabShared": "공유",
   "knowledgeBaseEmptyTitle": "아직 개인 지식 베이스가 없습니다",
-  "knowledgeBaseEmptyBody": "첫 번째 지식 베이스를 만들어 문서 정리를 시작하세요.",
+  "knowledgeBaseEmptyBody": "첫 지식 베이스를 만들고 흩어진 문서를 한곳에 모아 보세요.",
   "knowledgeBaseCreate": "지식 베이스 만들기",
   "knowledgeBaseEdit": "지식 베이스 세부 정보",
   "knowledgeBaseSharedEmpty": "사용 가능한 공유 지식 베이스가 없습니다",

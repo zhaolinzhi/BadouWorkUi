@@ -11,10 +11,10 @@
   gap: 20px;
 }
 
-/* 空状态区域:设计稿里是固定高度 520px 的居中块 */
+/* 空状态区域:设计稿 `.kb-empty-zone` 是固定 520px 的居中块 */
 .emptyZone {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 420px;
+  height: 520px;
 }
