@@ -127,7 +127,12 @@ const isRejected = (payload: unknown): boolean => {
  */
 export const useKnowledgeBaseUpload = (options: {
   knowledgeBaseId?: string;
-  onSuccess?: () => void;
+  /**
+   * 上传成功时回调。
+   *
+   * 参数是本次实际上传的文件 —— 调用方要登记到「文件处理队列」时用得上。
+   */
+  onSuccess?: (uploaded: KnowledgeBaseUploadFile[]) => void;
 }): UseKnowledgeBaseUploadResult => {
   const { token } = useAppRuntime();
   const { t } = useTranslation();
@@ -229,7 +234,7 @@ export const useKnowledgeBaseUpload = (options: {
           }
         }
 
-        onSuccess?.();
+        onSuccess?.(items);
         return true;
       } catch (err) {
         console.error('[useKnowledgeBaseUpload] failed to upload documents:', err);

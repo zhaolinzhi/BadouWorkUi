@@ -470,6 +470,73 @@ describe('KnowledgeBaseDetailPage', () => {
     });
   });
 
+  it('导航的「更多」菜单是上传文件 / 新建文本 / 文件处理队列', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => jsonResponse({ Total: 0, Rows: [] }))
+    );
+
+    renderDetail();
+
+    await waitFor(() => expect(screen.getByTestId('kb-detail-more')).toBeTruthy());
+
+    fireEvent.click(screen.getByTestId('kb-detail-more'));
+
+    await waitFor(() => expect(screen.getByTestId('kb-detail-more-upload')).toBeTruthy());
+    expect(screen.getByTestId('kb-detail-more-text')).toBeTruthy();
+    expect(screen.getByTestId('kb-detail-more-queue')).toBeTruthy();
+  });
+
+  it('没有任务时点「文件处理队列」只提示，不打开面板', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => jsonResponse({ Total: 0, Rows: [] }))
+    );
+
+    renderDetail();
+
+    await waitFor(() => expect(screen.getByTestId('kb-detail-more')).toBeTruthy());
+
+    fireEvent.click(screen.getByTestId('kb-detail-more'));
+    fireEvent.click(await screen.findByTestId('kb-detail-more-queue'));
+
+    expect(screen.queryByTestId('kb-queue')).toBeNull();
+  });
+
+  it('上传后文件出现在列表里，队列面板里显示为已完成', async () => {
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
+      jsonResponse({ Total: 0, Rows: [] })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderDetail();
+
+    await waitFor(() => expect(screen.getByTestId('kb-detail-add-material')).toBeTruthy());
+
+    // 上传一个文件
+    fireEvent.click(screen.getByTestId('kb-detail-add-material'));
+    fireEvent.click(await screen.findByTestId('kb-detail-add-menu-upload'));
+    await waitFor(() => expect(screen.getByTestId('kb-upload-dropzone')).toBeTruthy());
+
+    const input = document.querySelector('input[type="file"]');
+    if (!input) throw new Error('no file input rendered');
+    Object.defineProperty(input, 'files', {
+      value: [new File(['x'], 'a.md', { type: 'text/plain' })],
+      configurable: true,
+    });
+    fireEvent.change(input);
+    await waitFor(() => expect(screen.getByTestId('kb-upload-file-0')).toBeTruthy());
+    fireEvent.click(screen.getByTestId('kb-upload-submit'));
+
+    // 队列面板：打开后能看到刚上传的文件（处理中）
+    await waitFor(() => expect(screen.getByTestId('kb-detail-more')).toBeTruthy());
+    fireEvent.click(screen.getByTestId('kb-detail-more'));
+    fireEvent.click(await screen.findByTestId('kb-detail-more-queue'));
+
+    await waitFor(() => expect(screen.getByTestId('kb-queue')).toBeTruthy());
+    expect(screen.getByTestId('kb-queue-summary').textContent).toContain('处理中 1 个文件');
+  });
+
   it('共享知识库的副标题是「共享知识库 · 团队共享」', async () => {
     vi.stubGlobal(
       'fetch',
@@ -634,7 +701,7 @@ describe('KnowledgeBaseDetailPage', () => {
     expect(shellNavigate).toHaveBeenCalledWith('/kb-chat/kb-1');
   });
 
-  it('个人知识库有「更多」菜单，共享知识库没有', async () => {
+  it('个人与共享知识库都有「更多」菜单（上传文件 / 新建文本 / 文件处理队列）', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => jsonResponse({ Total: 0, Rows: [] }))
@@ -663,6 +730,6 @@ describe('KnowledgeBaseDetailPage', () => {
     );
 
     await waitFor(() => expect(screen.getAllByTestId('kb-detail-ask').length).toBe(2));
-    expect(screen.getAllByTestId('kb-detail-more').length).toBe(1);
+    expect(screen.getAllByTestId('kb-detail-more').length).toBe(2);
   });
 });

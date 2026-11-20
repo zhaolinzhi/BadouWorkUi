@@ -11,16 +11,20 @@
 
 import type { KnowledgeBaseRuntime } from './KnowledgeBaseRoutes';
 import type { KnowledgeBaseDocument } from '../types';
+import type { KnowledgeBaseQueueTask } from '../components/kb/KnowledgeBaseQueuePanel';
 import DocumentFileIcon, { FILE_FOLDER_ICON } from '../components/kb/DocumentFileIcon';
+import KnowledgeBaseQueuePanel from '../components/kb/KnowledgeBaseQueuePanel';
 import KnowledgeBaseUploadModal from '../components/kb/KnowledgeBaseUploadModal';
 import KnowledgeBaseTextModal from '../components/kb/KnowledgeBaseTextModal';
 import AddMaterialIcon from '../assets/svgs/file-add.svg?component';
+import QueueIcon from '../assets/svgs/file-queue.svg?component';
 import ReparseIcon from '../assets/svgs/file-reparse.svg?component';
 import SortIcon from '../assets/svgs/file-sort.svg?component';
 import { useKnowledgeBaseDocuments } from '../hooks/useKnowledgeBaseDocuments';
 import { useKnowledgeBaseDocumentDelete } from '../hooks/useKnowledgeBaseDocumentDelete';
 import { useKnowledgeBaseDocumentReparse } from '../hooks/useKnowledgeBaseDocumentReparse';
 import { useKnowledgeBaseUpload } from '../hooks/useKnowledgeBaseUpload';
+import type { KnowledgeBaseUploadFile } from '../hooks/useKnowledgeBaseUpload';
 import { interpolateI18n } from '../utils/knowledgeBaseUtils';
 import KnowledgeBaseAvatar from '../components/KnowledgeBaseAvatar';
 import { AppIcon, AsyncBoundary, ConfirmModal, EmptyState, MoreMenu } from '@aionui/ui';
@@ -89,6 +93,37 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
       : t('settings.knowledgeBaseDetailSortAsc', { defaultValue: '按创建时间排序（最早在前）' });
 
   /*
+   * 文件处理队列 —— 本次会话上传的文件。
+   *
+   * 后端没有「处理任务列表」接口（设计稿里的队列由厂商后台的事件流驱动），
+   * 所以只能自己跟踪：上传成功后登记为「处理中」，等它出现在文档列表里就
+   * 转成「已完成」。这个面板反映的是当前会话，不是后端的真实队列。
+   */
+  const [queueTasks, setQueueTasks] = useState<KnowledgeBaseQueueTask[]>([]);
+  const [queueVisible, setQueueVisible] = useState(false);
+
+  /** 登记一个刚上传的文件（处理中）。 */
+  const trackUpload = useCallback((name: string) => {
+    setQueueTasks((prev) => [...prev, { id: `${Date.now()}-${name}`, name, status: 'processing' }]);
+  }, []);
+
+  // 文件出现在文档列表里 → 队列里对应的任务转成「已完成」。
+  useEffect(() => {
+    setQueueTasks((prev) => {
+      let changed = false;
+      const next = prev.map((task) => {
+        if (task.status === 'done') return task;
+        const found = documents.find((doc) => doc.name === task.name);
+        if (!found) return task;
+        changed = true;
+        return { ...task, status: 'done' as const, records: found.records };
+      });
+      // 没变化就返回原数组 —— 避免每次列表刷新都多渲染一次。
+      return changed ? next : prev;
+    });
+  }, [documents]);
+
+  /*
    * 「添加资料」菜单 —— 菜单项按设计稿来（上传文件 / 新建文本）。
    *
    * 这两个动作后端还没给接口（文档是随知识库一起保存的），所以先置灰 ——
@@ -102,14 +137,19 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
   /*
    * 上传文档 —— 工具行的「添加资料」按钮直接打开上传弹窗。
    *
-   * 上传成功后关弹窗，并**轮询**列表直到新文档出现：上传接口是异步处理的，
-   * 返回时文档还没进列表，只刷新一次的话用户会以为「上传了但没生效」。
+   * 上传成功后关弹窗、登记到文件处理队列，并**轮询**列表直到新文档出现：
+   * 上传接口是异步处理的，返回时文档还没进列表，只刷新一次的话用户会以为
+   * 「上传了但没生效」。
    */
-  const handleUploadSuccess = useCallback(() => {
-    setUploadVisible(false);
-    message.success(t('settings.knowledgeBaseUploadSuccess', { defaultValue: '文件已上传，正在处理' }));
-    void pollUntilTotalGrows();
-  }, [message, pollUntilTotalGrows, t]);
+  const handleUploadSuccess = useCallback(
+    (uploaded: KnowledgeBaseUploadFile[]) => {
+      setUploadVisible(false);
+      uploaded.forEach((item) => trackUpload(item.name));
+      message.success(t('settings.knowledgeBaseUploadSuccess', { defaultValue: '文件已上传，正在处理' }));
+      void pollUntilTotalGrows();
+    },
+    [message, pollUntilTotalGrows, t, trackUpload]
+  );
 
   const {
     files: uploadFiles,
@@ -189,24 +229,49 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
     knowledgeBase?.name ??
     (runtime.listLoaded ? t('settings.knowledgeBaseDetailMissing', { defaultValue: '知识库不存在或已被删除' }) : '');
 
-  // 「更多」菜单只给个人库：共享库不允许在详情页编辑 / 删除。
-  const moreItems = useMemo(() => {
-    if (!knowledgeBase || knowledgeBase.isShared) return [];
-    return [
+  /*
+   * 导航上的「更多」菜单 —— 设计稿的 `library-more`：
+   * 上传文件 / 新建文本 / 文件处理队列。
+   */
+  const moreItems = useMemo(
+    () => [
       {
-        key: 'edit',
-        label: t('common.edit', { defaultValue: '编辑' }),
-        testId: 'kb-detail-more-edit',
+        key: 'upload',
+        label: t('settings.knowledgeBaseDetailUploadFile', { defaultValue: '上传文件' }),
+        icon: <AppIcon name='upload' size={14} />,
+        testId: 'kb-detail-more-upload',
       },
       {
-        key: 'delete',
-        label: t('common.delete', { defaultValue: '删除' }),
-        icon: <AppIcon name='delete' size={14} />,
-        danger: true,
-        testId: 'kb-detail-more-delete',
+        key: 'text',
+        label: t('settings.knowledgeBaseDetailNewText', { defaultValue: '新建文本' }),
+        icon: <AppIcon name='notes' size={14} />,
+        testId: 'kb-detail-more-text',
       },
-    ];
-  }, [knowledgeBase, t]);
+      {
+        key: 'queue',
+        label: t('settings.knowledgeBaseQueueMenu', { defaultValue: '文件处理队列' }),
+        icon: <QueueIcon size={14} />,
+        testId: 'kb-detail-more-queue',
+      },
+    ],
+    [t]
+  );
+
+  const handleMoreAction = useCallback(
+    (key: string) => {
+      if (key === 'upload') openUpload();
+      if (key === 'text') openText();
+      if (key === 'queue') {
+        // 没有任务时不打开面板 —— 直接提示（设计稿的行为）。
+        if (queueTasks.length === 0) {
+          message.info(t('settings.knowledgeBaseQueueEmpty', { defaultValue: '暂无文件处理任务' }));
+          return;
+        }
+        setQueueVisible(true);
+      }
+    },
+    [message, openText, openUpload, queueTasks.length, t]
+  );
 
   /*
    * 「添加资料」菜单 —— 上传文件 / 新建文本（设计稿的 `.kb-popup`）。
@@ -308,18 +373,12 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
           {t('settings.knowledgeBaseDetailBack', { defaultValue: '知识库' })}
         </Button>
         <span className={styles.navSpacer} />
-        {moreItems.length > 0 ? (
-          <MoreMenu
-            items={moreItems}
-            label={t('settings.knowledgeBaseDetailMore', { defaultValue: '知识库更多操作' })}
-            onSelect={(key) => {
-              if (!knowledgeBase) return;
-              if (key === 'edit') runtime.onOpenEdit(knowledgeBase);
-              if (key === 'delete') runtime.onDelete(knowledgeBase);
-            }}
-            data-testid='kb-detail-more'
-          />
-        ) : null}
+        <MoreMenu
+          items={moreItems}
+          label={t('settings.knowledgeBaseDetailMore', { defaultValue: '知识库更多操作' })}
+          onSelect={handleMoreAction}
+          data-testid='kb-detail-more'
+        />
         <Button
           type='primary'
           className={styles.askButton}
@@ -524,6 +583,14 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
         onSubmit={submitUpload}
         uploading={uploadUploading}
         error={uploadError}
+      />
+
+      {/* 文件处理队列 —— 本次会话上传的文件 */}
+      <KnowledgeBaseQueuePanel
+        visible={queueVisible}
+        tasks={queueTasks}
+        onClose={() => setQueueVisible(false)}
+        onClearDone={() => setQueueTasks((prev) => prev.filter((task) => task.status !== 'done'))}
       />
 
       {/* 新建文本 —— 正文存成 .txt 走同一条上传接口 */}
