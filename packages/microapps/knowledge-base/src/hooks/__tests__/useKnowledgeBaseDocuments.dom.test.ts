@@ -219,7 +219,9 @@ describe('useKnowledgeBaseDocuments', () => {
     const body = parseBody((fetchMock.mock.calls[1] as [string, RequestInit])[1]);
     expect(JSON.parse(body.searchParam)).toEqual([{ name: 'name', value: '设计', type: 'text-query', tagName: '' }]);
     expect(body.pageNo).toBe('1');
-    expect(result.current.activeKeyword).toBe('设计');
+    // 请求发出时 state 还没提交 —— 用 waitFor 等 React 把 activeKeyword 更新完，
+    // 直接断言会偶发失败（请求先于渲染完成）。
+    await waitFor(() => expect(result.current.activeKeyword).toBe('设计'));
   });
 
   it('搜索会替换已有列表而不是追加', async () => {
