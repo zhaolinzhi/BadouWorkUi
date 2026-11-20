@@ -218,7 +218,7 @@
   "knowledgeBaseDetailLoadMore": "加载更多",
   "knowledgeBaseDetailLoadMoreHint": "已加载 {{loaded}} / 共 {{total}}",
   "knowledgeBaseDetailNoMore": "没有更多内容了",
-  "knowledgeBaseDetailEmptyTitle": "这个知识库还没有文档",
+  "knowledgeBaseDetailEmptyTitle": "添加第一份文档",
   "knowledgeBaseDetailEmptyBody": "上传文档后，即可在这里集中管理和使用知识。",
   "knowledgeBaseDetailNoResultsTitle": "暂无搜索结果",
   "knowledgeBaseDetailLoadFailed": "加载文档失败",

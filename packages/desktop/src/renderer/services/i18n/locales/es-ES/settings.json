@@ -218,7 +218,7 @@
   "knowledgeBaseDetailLoadMore": "Cargar más",
   "knowledgeBaseDetailLoadMoreHint": "{{loaded}} de {{total}} cargados",
   "knowledgeBaseDetailNoMore": "No hay más contenido",
-  "knowledgeBaseDetailEmptyTitle": "Esta base de conocimiento aún no tiene documentos",
+  "knowledgeBaseDetailEmptyTitle": "Añade tu primer documento",
   "knowledgeBaseDetailEmptyBody": "Sube documentos para gestionar y usar el conocimiento de forma centralizada aquí.",
   "knowledgeBaseDetailNoResultsTitle": "Sin resultados de búsqueda",
   "knowledgeBaseDetailLoadFailed": "No se pudieron cargar los documentos",

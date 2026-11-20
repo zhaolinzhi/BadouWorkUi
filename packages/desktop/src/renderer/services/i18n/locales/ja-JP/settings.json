@@ -218,7 +218,7 @@
   "knowledgeBaseDetailLoadMore": "さらに読み込む",
   "knowledgeBaseDetailLoadMoreHint": "{{loaded}} / {{total}} 件を読み込み済み",
   "knowledgeBaseDetailNoMore": "これ以上コンテンツはありません",
-  "knowledgeBaseDetailEmptyTitle": "このナレッジベースにはまだドキュメントがありません",
+  "knowledgeBaseDetailEmptyTitle": "最初のドキュメントを追加",
   "knowledgeBaseDetailEmptyBody": "ドキュメントをアップロードすると、ここで一元的に管理・利用できます。",
   "knowledgeBaseDetailNoResultsTitle": "検索結果がありません",
   "knowledgeBaseDetailLoadFailed": "ドキュメントの読み込みに失敗しました",

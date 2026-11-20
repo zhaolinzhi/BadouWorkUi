@@ -218,7 +218,7 @@
   "knowledgeBaseDetailLoadMore": "بارگذاری بیشتر",
   "knowledgeBaseDetailLoadMoreHint": "{{loaded}} از {{total}} بارگذاری شد",
   "knowledgeBaseDetailNoMore": "محتوای دیگری نیست",
-  "knowledgeBaseDetailEmptyTitle": "این پایگاه دانش هنوز سندی ندارد",
+  "knowledgeBaseDetailEmptyTitle": "اولین سند را اضافه کنید",
   "knowledgeBaseDetailEmptyBody": "برای مدیریت و استفاده متمرکز از دانش، اسناد را بارگذاری کنید.",
   "knowledgeBaseDetailNoResultsTitle": "نتیجه‌ای یافت نشد",
   "knowledgeBaseDetailLoadFailed": "بارگذاری اسناد ناموفق بود",

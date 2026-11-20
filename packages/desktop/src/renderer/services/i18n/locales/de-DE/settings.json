@@ -243,7 +243,7 @@
   "knowledgeBaseDetailLoadMore": "Mehr laden",
   "knowledgeBaseDetailLoadMoreHint": "{{loaded}} von {{total}} geladen",
   "knowledgeBaseDetailNoMore": "Keine weiteren Inhalte",
-  "knowledgeBaseDetailEmptyTitle": "Diese Wissensdatenbank enthält noch keine Dokumente",
+  "knowledgeBaseDetailEmptyTitle": "Fügen Sie das erste Dokument hinzu",
   "knowledgeBaseDetailEmptyBody": "Lade Dokumente hoch, um Wissen hier zentral zu verwalten und zu nutzen.",
   "knowledgeBaseDetailNoResultsTitle": "Keine Suchergebnisse",
   "knowledgeBaseDetailLoadFailed": "Dokumente konnten nicht geladen werden",

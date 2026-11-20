@@ -218,7 +218,7 @@
   "knowledgeBaseDetailLoadMore": "Daha fazla yükle",
   "knowledgeBaseDetailLoadMoreHint": "{{loaded}} / {{total}} yüklendi",
   "knowledgeBaseDetailNoMore": "Daha fazla içerik yok",
-  "knowledgeBaseDetailEmptyTitle": "Bu bilgi tabanında henüz belge yok",
+  "knowledgeBaseDetailEmptyTitle": "İlk belgeyi ekleyin",
   "knowledgeBaseDetailEmptyBody": "Belgeleri yükleyerek bilgiyi burada merkezi olarak yönetin ve kullanın.",
   "knowledgeBaseDetailNoResultsTitle": "Arama sonucu yok",
   "knowledgeBaseDetailLoadFailed": "Belgeler yüklenemedi",

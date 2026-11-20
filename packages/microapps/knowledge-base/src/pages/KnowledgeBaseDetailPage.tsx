@@ -12,6 +12,7 @@
 import type { KnowledgeBaseRuntime } from './KnowledgeBaseRoutes';
 import type { KnowledgeBaseDocument } from '../types';
 import DocumentFileIcon, { FILE_FOLDER_ICON } from '../components/kb/DocumentFileIcon';
+import KnowledgeBaseEmptyState from '../components/kb/KnowledgeBaseEmptyState';
 import KnowledgeBaseQueuePanel from '../components/kb/KnowledgeBaseQueuePanel';
 import KnowledgeBaseUploadModal from '../components/kb/KnowledgeBaseUploadModal';
 import KnowledgeBaseTextModal from '../components/kb/KnowledgeBaseTextModal';
@@ -27,7 +28,7 @@ import { useKnowledgeBaseUpload } from '../hooks/useKnowledgeBaseUpload';
 import type { KnowledgeBaseUploadFile } from '../hooks/useKnowledgeBaseUpload';
 import { interpolateI18n } from '../utils/knowledgeBaseUtils';
 import KnowledgeBaseAvatar from '../components/KnowledgeBaseAvatar';
-import { AppIcon, AsyncBoundary, ConfirmModal, EmptyState, MoreMenu } from '@aionui/ui';
+import { AppIcon, AsyncBoundary, ConfirmModal, MoreMenu } from '@aionui/ui';
 import { Button, Input, Message } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -469,12 +470,11 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
           }
           isEmpty={documents.length === 0}
           emptyContent={
-            <EmptyState
-              icon={<AppIcon name='file-text' size={40} />}
+            <KnowledgeBaseEmptyState
               title={
                 activeKeyword
                   ? t('settings.knowledgeBaseDetailNoResultsTitle', { defaultValue: '暂无搜索结果' })
-                  : t('settings.knowledgeBaseDetailEmptyTitle', { defaultValue: '这个知识库还没有文档' })
+                  : t('settings.knowledgeBaseDetailEmptyTitle', { defaultValue: '添加第一份文档' })
               }
               description={
                 activeKeyword

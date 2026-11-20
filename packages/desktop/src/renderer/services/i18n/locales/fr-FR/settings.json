@@ -1413,7 +1413,7 @@
   "knowledgeBaseDetailLoadMore": "Charger plus",
   "knowledgeBaseDetailLoadMoreHint": "{{loaded}} sur {{total}} chargés",
   "knowledgeBaseDetailNoMore": "Plus de contenu",
-  "knowledgeBaseDetailEmptyTitle": "Cette base de connaissances ne contient encore aucun document",
+  "knowledgeBaseDetailEmptyTitle": "Ajoutez votre premier document",
   "knowledgeBaseDetailEmptyBody": "Importez des documents pour gérer et utiliser les connaissances ici de façon centralisée.",
   "knowledgeBaseDetailNoResultsTitle": "Aucun résultat",
   "knowledgeBaseDetailLoadFailed": "Échec du chargement des documents",

@@ -218,7 +218,7 @@
   "knowledgeBaseDetailLoadMore": "더 불러오기",
   "knowledgeBaseDetailLoadMoreHint": "{{loaded}} / {{total}} 불러옴",
   "knowledgeBaseDetailNoMore": "더 이상 콘텐츠가 없습니다",
-  "knowledgeBaseDetailEmptyTitle": "이 지식 베이스에는 아직 문서가 없습니다",
+  "knowledgeBaseDetailEmptyTitle": "첫 문서 추가",
   "knowledgeBaseDetailEmptyBody": "문서를 업로드하면 여기에서 중앙 관리하고 사용할 수 있습니다.",
   "knowledgeBaseDetailNoResultsTitle": "검색 결과가 없습니다",
   "knowledgeBaseDetailLoadFailed": "문서 불러오기 실패",

@@ -218,7 +218,7 @@
   "knowledgeBaseDetailLoadMore": "載入更多",
   "knowledgeBaseDetailLoadMoreHint": "已載入 {{loaded}} / 共 {{total}}",
   "knowledgeBaseDetailNoMore": "沒有更多內容了",
-  "knowledgeBaseDetailEmptyTitle": "這個知識庫還沒有文件",
+  "knowledgeBaseDetailEmptyTitle": "新增第一份文件",
   "knowledgeBaseDetailEmptyBody": "上傳文件後，即可在此集中管理和使用知識。",
   "knowledgeBaseDetailNoResultsTitle": "沒有搜尋結果",
   "knowledgeBaseDetailLoadFailed": "載入文件失敗",

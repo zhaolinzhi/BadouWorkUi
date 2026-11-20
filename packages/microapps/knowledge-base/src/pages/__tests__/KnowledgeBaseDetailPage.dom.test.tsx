@@ -582,7 +582,7 @@ describe('KnowledgeBaseDetailPage', () => {
     renderDetail();
 
     await waitFor(() => expect(screen.getByTestId('empty-state-title')).toBeTruthy());
-    expect(screen.getByTestId('empty-state-title').textContent).toBe('这个知识库还没有文档');
+    expect(screen.getByTestId('empty-state-title').textContent).toBe('添加第一份文档');
   });
 
   it('接口失败显示错误态与重试按钮', async () => {

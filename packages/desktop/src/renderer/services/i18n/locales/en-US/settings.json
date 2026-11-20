@@ -218,7 +218,7 @@
   "knowledgeBaseDetailLoadMore": "Load more",
   "knowledgeBaseDetailLoadMoreHint": "{{loaded}} of {{total}} loaded",
   "knowledgeBaseDetailNoMore": "No more content",
-  "knowledgeBaseDetailEmptyTitle": "This knowledge base has no documents yet",
+  "knowledgeBaseDetailEmptyTitle": "Add your first document",
   "knowledgeBaseDetailEmptyBody": "Upload documents to manage and use knowledge here.",
   "knowledgeBaseDetailNoResultsTitle": "No search results",
   "knowledgeBaseDetailLoadFailed": "Failed to load documents",

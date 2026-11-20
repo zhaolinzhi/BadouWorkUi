@@ -218,7 +218,7 @@
   "knowledgeBaseDetailLoadMore": "Загрузить ещё",
   "knowledgeBaseDetailLoadMoreHint": "Загружено {{loaded}} из {{total}}",
   "knowledgeBaseDetailNoMore": "Больше нет содержимого",
-  "knowledgeBaseDetailEmptyTitle": "В этой базе знаний пока нет документов",
+  "knowledgeBaseDetailEmptyTitle": "Добавьте первый документ",
   "knowledgeBaseDetailEmptyBody": "Загрузите документы, чтобы централизованно управлять знаниями и использовать их здесь.",
   "knowledgeBaseDetailNoResultsTitle": "Ничего не найдено",
   "knowledgeBaseDetailLoadFailed": "Не удалось загрузить документы",

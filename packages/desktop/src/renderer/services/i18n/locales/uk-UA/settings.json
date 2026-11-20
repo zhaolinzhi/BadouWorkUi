@@ -218,7 +218,7 @@
   "knowledgeBaseDetailLoadMore": "Завантажити ще",
   "knowledgeBaseDetailLoadMoreHint": "Завантажено {{loaded}} з {{total}}",
   "knowledgeBaseDetailNoMore": "Більше немає вмісту",
-  "knowledgeBaseDetailEmptyTitle": "У цій базі знань ще немає документів",
+  "knowledgeBaseDetailEmptyTitle": "Додайте перший документ",
   "knowledgeBaseDetailEmptyBody": "Завантажте документи, щоб централізовано керувати знаннями тут.",
   "knowledgeBaseDetailNoResultsTitle": "Нічого не знайдено",
   "knowledgeBaseDetailLoadFailed": "Не вдалося завантажити документи",
