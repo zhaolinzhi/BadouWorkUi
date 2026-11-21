@@ -146,6 +146,9 @@ describe('useKnowledgeBaseDocuments', () => {
       records: 268,
       updatedAt: '2026-11-17 15:09:47.0',
       createdAt: '2026-11-17',
+      // 接口没给 `flgSplit` —— 按「处理中」处理。
+      splitStatus: 'processing',
+      progress: undefined,
     });
     expect(result.current.total).toBe(1);
   });

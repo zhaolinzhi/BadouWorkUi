@@ -503,13 +503,14 @@ describe('KnowledgeBaseDetailPage', () => {
     expect(screen.queryByTestId('kb-queue')).toBeNull();
   });
 
-  it('队列面板按列表接口的 progress 显示处理中与已完成', async () => {
+  it('队列面板按列表接口的解析状态显示处理中、已完成与解析失败', async () => {
     const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
       jsonResponse({
-        Total: 2,
+        Total: 3,
         Rows: [
-          { ...docRow('d1', 'a.md'), processedTaskNum: '10', progress: 40 },
-          { ...docRow('d2', 'b.pdf'), processedTaskNum: '20', progress: 100 },
+          { ...docRow('d1', 'a.md'), processedTaskNum: '10', flgSplit: 0, progress: 40 },
+          { ...docRow('d2', 'b.pdf'), processedTaskNum: '20', flgSplit: 1 },
+          { ...docRow('d3', 'c.xlsx'), processedTaskNum: '0', flgSplit: -1 },
         ],
       })
     );
@@ -523,9 +524,10 @@ describe('KnowledgeBaseDetailPage', () => {
     fireEvent.click(await screen.findByTestId('kb-detail-more-queue'));
 
     await waitFor(() => expect(screen.getByTestId('kb-queue')).toBeTruthy());
-    expect(screen.getByTestId('kb-queue-summary').textContent).toBe('处理中 1 个文件 · 已完成 1 个');
+    expect(screen.getByTestId('kb-queue-summary').textContent).toBe('处理中 1 个文件 · 已完成 1 个 · 失败 1 个');
     expect(screen.getByTestId('kb-queue-file-d1').textContent).toContain('40%');
     expect(screen.getByTestId('kb-queue-file-d2').textContent).toContain('已完成 · 20 条数据');
+    expect(screen.getByTestId('kb-queue-file-d3').textContent).toContain('解析失败');
   });
 
   it('知识库没有文件时点「文件处理队列」只提示，不打开面板', async () => {
@@ -542,6 +544,42 @@ describe('KnowledgeBaseDetailPage', () => {
     fireEvent.click(await screen.findByTestId('kb-detail-more-queue'));
 
     expect(screen.queryByTestId('kb-queue')).toBeNull();
+  });
+
+  it('队列自己发一次请求：参数固定，不跟页面上的搜索词 / 排序走', async () => {
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
+      jsonResponse({ Total: 1, Rows: [{ ...docRow('d1', 'a.md'), progress: 40 }] })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderDetail();
+
+    await waitFor(() => expect(screen.getByTestId('kb-document-d1')).toBeTruthy());
+
+    // 页面上的搜索词 → 列表请求带上 searchParam 与排序参数
+    fireEvent.click(screen.getByTestId('kb-detail-search-toggle'));
+    const input = screen.getByTestId('kb-detail-search') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: '设计' } });
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+
+    fireEvent.click(screen.getByTestId('kb-detail-more'));
+    fireEvent.click(await screen.findByTestId('kb-detail-more-queue'));
+
+    await waitFor(() => expect(screen.getByTestId('kb-queue')).toBeTruthy());
+
+    // 队列的请求：没有排序参数、搜索参数是空数组
+    const queueCall = fetchMock.mock.calls.find(([, init]) => {
+      const body = new URLSearchParams(String((init as RequestInit | undefined)?.body ?? ''));
+      return body.get('perPageSize') === '30' && !body.get('sortorder');
+    });
+    expect(queueCall).toBeTruthy();
+    const body = new URLSearchParams(String((queueCall?.[1] as RequestInit | undefined)?.body ?? ''));
+    expect(JSON.parse(body.get('defaultSearchParam') ?? '[]')).toEqual([
+      { name: 'knowledgeBaseId', value: 'kb-1', type: 'exact-match' },
+    ]);
+    expect(JSON.parse(body.get('searchParam') ?? '[]')).toEqual([]);
+    expect(body.get('pageNo')).toBe('1');
+    expect(body.get('perPageSize')).toBe('30');
   });
 
   it('共享知识库的副标题是「共享知识库 · 团队共享」', async () => {

@@ -273,6 +273,8 @@
   "knowledgeBaseQueueSummary": "{{processing}} in Bearbeitung · {{done}} abgeschlossen",
   "knowledgeBaseQueueProcessing": "In Bearbeitung",
   "knowledgeBaseQueueDone": "Fertig · {{count}} Einträge",
+  "knowledgeBaseQueueFailed": "Analyse fehlgeschlagen",
+  "knowledgeBaseQueueSummaryWithFailed": "{{processing}} in Bearbeitung · {{done}} abgeschlossen · {{failed}} fehlgeschlagen",
   "knowledgeBaseQueueEmpty": "Keine Dateiverarbeitungsaufgabe",
   "knowledgeBaseQueueClearDone": "Abgeschlossene entfernen",
   "knowledgeBaseCreateModalSubtitle": "Schaffen Sie einen eigenen Bereich für Ihre Dokumente – einfach zu ordnen und zu nutzen.",

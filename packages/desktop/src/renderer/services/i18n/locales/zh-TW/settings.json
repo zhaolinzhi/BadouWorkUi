@@ -248,6 +248,8 @@
   "knowledgeBaseQueueSummary": "處理中 {{processing}} 個檔案 · 已完成 {{done}} 個",
   "knowledgeBaseQueueProcessing": "處理中",
   "knowledgeBaseQueueDone": "已完成 · {{count}} 筆資料",
+  "knowledgeBaseQueueFailed": "解析失敗",
+  "knowledgeBaseQueueSummaryWithFailed": "處理中 {{processing}} 個檔案 · 已完成 {{done}} 個 · 失敗 {{failed}} 個",
   "knowledgeBaseQueueEmpty": "暫無檔案處理任務",
   "knowledgeBaseQueueClearDone": "清空已完成",
   "knowledgeBaseCreateModalSubtitle": "為文件建立一個專屬空間，方便整理與使用。",

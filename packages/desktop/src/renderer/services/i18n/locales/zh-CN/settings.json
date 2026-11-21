@@ -248,6 +248,8 @@
   "knowledgeBaseQueueSummary": "处理中 {{processing}} 个文件 · 已完成 {{done}} 个",
   "knowledgeBaseQueueProcessing": "处理中",
   "knowledgeBaseQueueDone": "已完成 · {{count}} 条数据",
+  "knowledgeBaseQueueFailed": "解析失败",
+  "knowledgeBaseQueueSummaryWithFailed": "处理中 {{processing}} 个文件 · 已完成 {{done}} 个 · 失败 {{failed}} 个",
   "knowledgeBaseQueueEmpty": "暂无文件处理任务",
   "knowledgeBaseQueueClearDone": "清空已完成",
   "knowledgeBaseCreateModalSubtitle": "为文档建立一个专属空间，方便整理与使用。",

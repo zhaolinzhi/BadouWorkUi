@@ -83,6 +83,22 @@
   gap: 16px;
 }
 
+/*
+ * 加载中 / 出错 / 空态 —— 交给共享的 AsyncBoundary 渲染。
+ *
+ * `className` 只落在 AsyncBoundary 的**状态容器**上（列表正常渲染时不生效），
+ * 这里用自动外边距把它在列表区里垂直居中。
+ */
+.boundary {
+  margin: auto 0;
+}
+
+.placeholderText {
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--kb-muted);
+}
+
 .file {
   display: flex;
   flex-direction: column;
@@ -125,6 +141,11 @@
 /* 已完成的项状态转灰（设计稿 `.kb-queue-file.done .kb-queue-state`）。 */
 .fileDone .state {
   color: var(--kb-muted);
+}
+
+/* 解析失败 —— 状态文字转危险色（进度条不画，见组件里的说明）。 */
+.fileFailed .state {
+  color: var(--kb-danger);
 }
 
 .percent {

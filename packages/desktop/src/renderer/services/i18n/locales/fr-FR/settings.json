@@ -1443,6 +1443,8 @@
   "knowledgeBaseQueueSummary": "{{processing}} en cours · {{done}} terminés",
   "knowledgeBaseQueueProcessing": "En cours",
   "knowledgeBaseQueueDone": "Terminé · {{count}} enregistrements",
+  "knowledgeBaseQueueFailed": "Échec de l'analyse",
+  "knowledgeBaseQueueSummaryWithFailed": "{{processing}} en cours · {{done}} terminés · {{failed}} en échec",
   "knowledgeBaseQueueEmpty": "Aucune tâche de traitement de fichiers",
   "knowledgeBaseQueueClearDone": "Effacer les terminés",
   "knowledgeBaseCreate": "Créer une base de connaissances",

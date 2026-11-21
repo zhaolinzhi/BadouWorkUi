@@ -145,6 +145,7 @@
   --kb-muted: #6b7280; /* 次要文字(副标题、统计、可见范围) */
   --kb-placeholder: #b4bece; /* 占位符文字 */
   --kb-heading: #0d0d0d; /* 页面标题 / 卡片标题 */
+  --kb-danger: #f53f3f; /* 危险色(解析失败等异常状态文字) */
 }
 
 /* Dark Mode */
@@ -291,4 +292,5 @@
   --kb-muted: #a8a8a8;
   --kb-placeholder: #6b7280;
   --kb-heading: #f1f1f1;
+  --kb-danger: #f76560; /* 危险色(暗色下用亮一档的红) */
 }

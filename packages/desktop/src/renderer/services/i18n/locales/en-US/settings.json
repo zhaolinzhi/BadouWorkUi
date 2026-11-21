@@ -248,6 +248,8 @@
   "knowledgeBaseQueueSummary": "Processing {{processing}} files · {{done}} completed",
   "knowledgeBaseQueueProcessing": "Processing",
   "knowledgeBaseQueueDone": "Completed · {{count}} records",
+  "knowledgeBaseQueueFailed": "Parse failed",
+  "knowledgeBaseQueueSummaryWithFailed": "Processing {{processing}} files · {{done}} completed · {{failed}} failed",
   "knowledgeBaseQueueEmpty": "No file processing tasks",
   "knowledgeBaseQueueClearDone": "Clear completed",
   "knowledgeBaseCreateModalSubtitle": "Give your documents a dedicated space, easy to organize and use.",

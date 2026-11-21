@@ -248,6 +248,8 @@
   "knowledgeBaseQueueSummary": "Обрабатывается {{processing}} · завершено {{done}}",
   "knowledgeBaseQueueProcessing": "Обработка",
   "knowledgeBaseQueueDone": "Завершено · {{count}} записей",
+  "knowledgeBaseQueueFailed": "Ошибка разбора",
+  "knowledgeBaseQueueSummaryWithFailed": "Обрабатывается {{processing}} · завершено {{done}} · с ошибкой {{failed}}",
   "knowledgeBaseQueueEmpty": "Нет задач обработки файлов",
   "knowledgeBaseQueueClearDone": "Очистить завершённые",
   "knowledgeBaseCreateModalSubtitle": "Создайте отдельное пространство для документов — так их проще упорядочивать и использовать.",

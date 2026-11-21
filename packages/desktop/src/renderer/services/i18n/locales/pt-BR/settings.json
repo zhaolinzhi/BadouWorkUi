@@ -248,6 +248,8 @@
   "knowledgeBaseQueueSummary": "Processando {{processing}} arquivos · {{done}} concluídos",
   "knowledgeBaseQueueProcessing": "Processando",
   "knowledgeBaseQueueDone": "Concluído · {{count}} registros",
+  "knowledgeBaseQueueFailed": "Falha na análise",
+  "knowledgeBaseQueueSummaryWithFailed": "Processando {{processing}} arquivos · {{done}} concluídos · {{failed}} com falha",
   "knowledgeBaseQueueEmpty": "Nenhuma tarefa de processamento de arquivos",
   "knowledgeBaseQueueClearDone": "Limpar concluídos",
   "knowledgeBaseCreateModalSubtitle": "Crie um espaço exclusivo para seus documentos, fácil de organizar e usar.",

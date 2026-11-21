@@ -248,6 +248,8 @@
   "knowledgeBaseQueueSummary": "{{processing}} dosya işleniyor · {{done}} tamamlandı",
   "knowledgeBaseQueueProcessing": "İşleniyor",
   "knowledgeBaseQueueDone": "Tamamlandı · {{count}} kayıt",
+  "knowledgeBaseQueueFailed": "Ayrıştırma başarısız",
+  "knowledgeBaseQueueSummaryWithFailed": "{{processing}} dosya işleniyor · {{done}} tamamlandı · {{failed}} başarısız",
   "knowledgeBaseQueueEmpty": "Dosya işleme görevi yok",
   "knowledgeBaseQueueClearDone": "Tamamlananları temizle",
   "knowledgeBaseCreateModalSubtitle": "Belgelerinize ayrılmış bir alan oluşturun; düzenlemek ve kullanmak kolaylaşsın.",

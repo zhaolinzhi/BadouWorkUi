@@ -22,6 +22,7 @@ import ReparseIcon from '../assets/svgs/file-reparse.svg?component';
 import SortAscIcon from '../assets/svgs/file-sort-asc.svg?component';
 import SortDescIcon from '../assets/svgs/file-sort-desc.svg?component';
 import { useKnowledgeBaseDocuments } from '../hooks/useKnowledgeBaseDocuments';
+import { useKnowledgeBaseQueue } from '../hooks/useKnowledgeBaseQueue';
 import { useKnowledgeBaseDocumentDelete } from '../hooks/useKnowledgeBaseDocumentDelete';
 import { useKnowledgeBaseDocumentReparse } from '../hooks/useKnowledgeBaseDocumentReparse';
 import { useKnowledgeBaseUpload } from '../hooks/useKnowledgeBaseUpload';
@@ -94,14 +95,22 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
       : t('settings.knowledgeBaseDetailSortAsc', { defaultValue: '按创建时间排序（最早在前）' });
 
   /*
-   * 文件处理队列 —— 直接用文档列表接口返回的 `progress`。
+   * 文件处理队列 —— 独立请求文档列表接口，取行上的 `progress`。
    *
-   * 后端解析进度时会更新它，100 即处理完成；队列面板据此显示每个文件的
-   * 状态与百分比。
+   * 队列的请求参数是固定的（knowledgeBaseId 过滤 + 第 1 页每页 30 条），
+   * 不跟页面上的搜索词 / 排序走 —— 队列要的是这个库的全部文件。
+   * 后端解析进度时会更新 `progress`，100 即处理完成；面板打开期间轮询。
    */
   const [queueVisible, setQueueVisible] = useState(false);
   /** 「清空已完成」之后只留处理中的。 */
   const [queueOnlyProcessing, setQueueOnlyProcessing] = useState(false);
+
+  const {
+    items: queueItems,
+    loading: queueLoading,
+    error: queueError,
+    refresh: refreshQueue,
+  } = useKnowledgeBaseQueue(knowledgeBaseId, queueVisible);
 
   /*
    * 「添加资料」菜单 —— 菜单项按设计稿来（上传文件 / 新建文本）。
@@ -126,8 +135,10 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
       setUploadVisible(false);
       message.success(t('settings.knowledgeBaseUploadSuccess', { defaultValue: '文件已上传，正在处理' }));
       void pollUntilTotalGrows();
+      // 队列开着的话，新文件要立刻出现在队列里 —— 面板的轮询只覆盖「已在处理中」的文件。
+      if (queueVisible) void refreshQueue();
     },
-    [message, pollUntilTotalGrows, t]
+    [message, pollUntilTotalGrows, queueVisible, refreshQueue, t]
   );
 
   const {
@@ -236,20 +247,31 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
     [t]
   );
 
+  /*
+   * 知识库的文件总数（**不带搜索词**的那一次）。
+   *
+   * 用来判断「这个库到底有没有文件」—— 页面上的搜索会把列表筛空，但队列要
+   * 的是整个库的文件，不能因为搜不到东西就说「没有处理任务」。
+   */
+  const kbFileCount = useRef(0);
+  useEffect(() => {
+    if (!activeKeyword) kbFileCount.current = total;
+  }, [activeKeyword, total]);
+
   const handleMoreAction = useCallback(
     (key: string) => {
       if (key === 'upload') openUpload();
       if (key === 'text') openText();
       if (key === 'queue') {
         // 没有文件时不打开面板 —— 直接提示（设计稿的行为）。
-        if (documents.length === 0) {
+        if (kbFileCount.current === 0) {
           message.info(t('settings.knowledgeBaseQueueEmpty', { defaultValue: '暂无文件处理任务' }));
           return;
         }
         setQueueVisible(true);
       }
     },
-    [documents.length, message, openText, openUpload, t]
+    [message, openText, openUpload, t]
   );
 
   /*
@@ -569,7 +591,10 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
       {/* 文件处理队列 —— 进度来自文档列表接口的 progress 字段 */}
       <KnowledgeBaseQueuePanel
         visible={queueVisible}
-        documents={documents}
+        documents={queueItems}
+        loading={queueLoading}
+        error={queueError}
+        onRetry={() => void refreshQueue()}
         onlyProcessing={queueOnlyProcessing}
         onClose={() => setQueueVisible(false)}
         onClearDone={() => setQueueOnlyProcessing(true)}

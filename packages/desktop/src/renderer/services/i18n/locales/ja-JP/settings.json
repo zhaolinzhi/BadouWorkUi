@@ -248,6 +248,8 @@
   "knowledgeBaseQueueSummary": "処理中 {{processing}} 件 · 完了 {{done}} 件",
   "knowledgeBaseQueueProcessing": "処理中",
   "knowledgeBaseQueueDone": "完了 · {{count}} 条データ",
+  "knowledgeBaseQueueFailed": "解析失敗",
+  "knowledgeBaseQueueSummaryWithFailed": "処理中 {{processing}} 件 · 完了 {{done}} 件 · 失敗 {{failed}} 件",
   "knowledgeBaseQueueEmpty": "ファイル処理タスクはありません",
   "knowledgeBaseQueueClearDone": "完了分を消去",
   "knowledgeBaseCreateModalSubtitle": "ドキュメントのための専用のスペースを作り、整理と活用を容易に。",

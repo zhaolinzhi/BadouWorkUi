@@ -248,6 +248,8 @@
   "knowledgeBaseQueueSummary": "{{processing}} در حال پردازش · {{done}} تکمیل‌شده",
   "knowledgeBaseQueueProcessing": "در حال پردازش",
   "knowledgeBaseQueueDone": "تکمیل‌شده · {{count}} رکورد",
+  "knowledgeBaseQueueFailed": "تجزیه ناموفق بود",
+  "knowledgeBaseQueueSummaryWithFailed": "{{processing}} در حال پردازش · {{done}} تکمیل‌شده · {{failed}} ناموفق",
   "knowledgeBaseQueueEmpty": "暂无文件处理任务",
   "knowledgeBaseQueueClearDone": "پاک کردن تکمیل‌شده‌ها",
   "knowledgeBaseCreateModalSubtitle": "برای اسناد خود فضایی اختصاصی بسازید؛ مرتب‌سازی و استفاده از آن ساده می‌شود.",

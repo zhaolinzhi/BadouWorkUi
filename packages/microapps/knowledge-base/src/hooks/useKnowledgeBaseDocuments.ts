@@ -16,63 +16,14 @@
  */
 
 import type { KnowledgeBaseDocument } from '../types';
-import { AIPAAS_BASE_URL } from '../utils/api';
+import type { KnowledgeBaseDocumentListEnvelope } from '../utils/knowledgeBaseUtils';
+import { KNOWLEDGE_DOCUMENT_LIST_URL, mapKnowledgeDocumentRow } from '../utils/knowledgeBaseUtils';
 import { emitAuthExpired } from '@aionui/microapp-shared';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAppRuntime } from '../AppContext';
 
-const DOCUMENT_LIST_URL = `${AIPAAS_BASE_URL}/jdbc/common/basecommonlist/listJSON.do?mdCode=view_knowledge_relevancy`;
 const DOCUMENT_PAGE_SIZE = 30;
 const SEARCH_DEBOUNCE_MS = 300;
-
-/** 接口返回的原始行。字段名以后端 listJSON.do 响应为准。 */
-type RawDocumentRow = {
-  id?: string | null;
-  name?: string | null;
-  flgType?: string | null;
-  fileType?: string | null;
-  processedTaskNum?: string | number | null;
-  updateTime?: string | null;
-  createTime?: string | null;
-  /** 解析进度（0~100）—— 接口给的是数字或数字字符串。 */
-  progress?: string | number | null;
-};
-
-type ListEnvelope = {
-  Total?: number;
-  Rows?: RawDocumentRow[];
-};
-
-const pickString = (value: string | number | null | undefined): string =>
-  value === null || value === undefined ? '' : String(value);
-
-const pickNumber = (value: string | number | null | undefined): number => {
-  if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : 0;
-};
-
-/** 解析可缺失的数字（进度）—— 没有就是 undefined，不当成 0。 */
-const pickOptionalNumber = (value: string | number | null | undefined): number | undefined => {
-  if (value === null || value === undefined || value === '') return undefined;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : undefined;
-};
-
-/** 原始行 → 领域模型。 */
-const mapDocumentRow = (row: RawDocumentRow): KnowledgeBaseDocument => ({
-  id: pickString(row.id),
-  name: pickString(row.name),
-  // `flgType` 是文件类型（'md' / 'docx' …），接口给的是小写，展示统一转大写；
-  // 缺失时回落 `fileType`（数字码）。
-  type: pickString(row.flgType).toUpperCase() || pickString(row.fileType),
-  // 「N 条数据」—— 后端给的是字符串数字。
-  records: pickNumber(row.processedTaskNum),
-  updatedAt: pickString(row.updateTime),
-  createdAt: pickString(row.createTime),
-  // 解析进度（0~100）—— 接口给的是数字或数字字符串，没有就是 undefined。
-  progress: pickOptionalNumber(row.progress),
-});
 
 /** 排序方向 —— 接口的 `sortorder` 取值。 */
 export type DocumentSortOrder = 'asc' | 'desc';
@@ -159,7 +110,7 @@ export const useKnowledgeBaseDocuments = (knowledgeBaseId: string | undefined) =
           sortname: SORT_FIELD,
         }).toString();
 
-        const response = await fetch(DOCUMENT_LIST_URL, {
+        const response = await fetch(KNOWLEDGE_DOCUMENT_LIST_URL, {
           method: 'POST',
           headers: {
             Token: token,
@@ -202,9 +153,9 @@ export const useKnowledgeBaseDocuments = (knowledgeBaseId: string | undefined) =
           return true;
         }
 
-        let data: ListEnvelope;
+        let data: KnowledgeBaseDocumentListEnvelope;
         try {
-          data = JSON.parse(text) as ListEnvelope;
+          data = JSON.parse(text) as KnowledgeBaseDocumentListEnvelope;
         } catch (parseError) {
           throw new Error(parseError instanceof Error ? parseError.message : 'Invalid JSON response', {
             cause: parseError,
@@ -212,7 +163,7 @@ export const useKnowledgeBaseDocuments = (knowledgeBaseId: string | undefined) =
         }
 
         const rows = Array.isArray(data?.Rows) ? data.Rows : [];
-        const mapped = rows.map(mapDocumentRow);
+        const mapped = rows.map(mapKnowledgeDocumentRow);
         setDocuments((prev) => (mode === 'append' ? [...prev, ...mapped] : mapped));
         const nextTotal = Number(data?.Total ?? 0);
         setTotal(nextTotal);
