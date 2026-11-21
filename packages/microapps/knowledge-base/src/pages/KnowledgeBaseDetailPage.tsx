@@ -470,27 +470,29 @@ const KnowledgeBaseDetailPage: React.FC<KnowledgeBaseDetailPageProps> = ({ runti
           }
           isEmpty={documents.length === 0}
           emptyContent={
-            <KnowledgeBaseEmptyState
-              title={
-                activeKeyword
-                  ? t('settings.knowledgeBaseDetailNoResultsTitle', { defaultValue: '暂无搜索结果' })
-                  : t('settings.knowledgeBaseDetailEmptyTitle', { defaultValue: '添加第一份文档' })
-              }
-              description={
-                activeKeyword
-                  ? t('settings.knowledgeBaseNoResultsBody', { defaultValue: '试试其他关键词，或清除搜索。' })
-                  : t('settings.knowledgeBaseDetailEmptyBody', {
-                      defaultValue: '上传文档后，即可在这里集中管理和使用知识。',
-                    })
-              }
-              action={
-                activeKeyword ? undefined : (
-                  <Button type='primary' onClick={openUpload} data-testid='kb-detail-empty-upload'>
-                    {t('settings.knowledgeBaseDetailUploadFile', { defaultValue: '上传文件' })}
-                  </Button>
-                )
-              }
-            />
+            <div className={styles.emptyState}>
+              <KnowledgeBaseEmptyState
+                title={
+                  activeKeyword
+                    ? t('settings.knowledgeBaseDetailNoResultsTitle', { defaultValue: '暂无搜索结果' })
+                    : t('settings.knowledgeBaseDetailEmptyTitle', { defaultValue: '添加第一份文档' })
+                }
+                description={
+                  activeKeyword
+                    ? t('settings.knowledgeBaseNoResultsBody', { defaultValue: '试试其他关键词，或清除搜索。' })
+                    : t('settings.knowledgeBaseDetailEmptyBody', {
+                        defaultValue: '上传文档后，即可在这里集中管理和使用知识。',
+                      })
+                }
+                action={
+                  activeKeyword ? undefined : (
+                    <Button type='primary' onClick={openUpload} data-testid='kb-detail-empty-upload'>
+                      {t('settings.knowledgeBaseDetailUploadFile', { defaultValue: '上传文件' })}
+                    </Button>
+                  )
+                }
+              />
+            </div>
           }
         >
           <div data-testid='kb-document-list'>
