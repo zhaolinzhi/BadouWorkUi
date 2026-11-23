@@ -263,6 +263,7 @@
   "knowledgeBaseCreateModalTargetPlaceholder": "Select who to share with",
   "knowledgeBaseCreateModalTargetEmpty": "No shared members available",
   "knowledgeBaseCreateModalSubmit": "Create knowledge base",
+  "knowledgeBaseCreateFailed": "Failed to create",
   "knowledgeBaseCreateModalSharedUnsupported": "Creating shared knowledge bases is not supported yet",
   "knowledgeBaseCreateDescriptionOptional": "(optional)",
   "knowledgeBaseUploadTitle": "Upload files",

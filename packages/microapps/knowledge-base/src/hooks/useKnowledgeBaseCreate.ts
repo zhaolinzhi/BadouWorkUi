@@ -10,6 +10,9 @@
  *   - `name`    —— 知识库名称
  *   - `remarks` —— 知识库描述
  *
+ * 响应：`{ hasOk, tip, message, bean, save }` —— 业务失败时 HTTP 仍是 200，
+ * 靠 `hasOk: false` 表示（见 `SaveEnvelope`）。
+ *
  * 共享知识库的保存接口与共享对象列表接口后端尚未提供 —— 接口到位前，
  * 选择「共享知识库」会明确报错（而不是静默失败）。
  */
@@ -40,6 +43,20 @@ const SAVE_ENDPOINTS: Record<KnowledgeBaseCreateValues['scope'], { mdCode: strin
 const DEFAULT_PARENT_NAME = '知识库目录';
 const DEFAULT_PARENT_ID = 'ROOT';
 const DEFAULT_IS_CREATE_BY_DEFAULT_CONFIG = 'true';
+
+/**
+ * AIPaaS 的响应信封。
+ *
+ * 业务失败时 HTTP 仍然是 200，靠 `hasOk: false` 表示失败（接口文档里写的是
+ * `success`，两边都认）。`message` 是给用户看的中文提示，`tip` 是给开发看的
+ * 失败码（如 `FAIL`）—— 后者不展示给用户。
+ */
+type SaveEnvelope = {
+  hasOk?: boolean;
+  success?: boolean;
+  message?: string | null;
+  tip?: string | null;
+};
 
 export type UseKnowledgeBaseCreateResult = {
   /** 提交表单。返回 true = 创建成功。 */
@@ -112,10 +129,27 @@ export const useKnowledgeBaseCreate = (options?: { onSuccess?: () => void }): Us
         }
 
         /*
-         * 响应体不参与判断 —— 后端返回什么结构还没确认（可能不含新库的 id）。
-         * 新库靠调用方刷新列表拿到，所以这里只关心「请求成功」。
+         * 业务结果看响应信封 —— 平台失败时 HTTP 仍是 200，靠 `hasOk: false`
+         * 表示「没建成」。响应体不含新库的 id，新库靠调用方刷新列表拿到。
          */
-        await response.text();
+        const text = await response.text();
+        if (text.trim() !== '') {
+          let envelope: SaveEnvelope | null = null;
+          try {
+            envelope = JSON.parse(text) as SaveEnvelope;
+          } catch (parseError) {
+            // 不是 JSON —— 记一条日志，行为与从前一致（按成功处理）。
+            console.warn('[useKnowledgeBaseCreate] unexpected response body:', text, parseError);
+          }
+          if (envelope && (envelope.hasOk === false || envelope.success === false)) {
+            console.error('[useKnowledgeBaseCreate] create knowledge base failed:', envelope.tip ?? envelope.message);
+            // `tip` 是给开发看的失败码（如 "FAIL"），展示给用户的是 message，
+            // 没有 message 就给一句通用提示。
+            const detail = (envelope.message ?? '').trim();
+            setError(detail || t('settings.knowledgeBaseCreateFailed', { defaultValue: '新增失败' }));
+            return false;
+          }
+        }
 
         onSuccess?.();
         return true;

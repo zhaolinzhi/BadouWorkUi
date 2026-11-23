@@ -263,6 +263,7 @@
   "knowledgeBaseCreateModalTargetPlaceholder": "共有先を選択してください",
   "knowledgeBaseCreateModalTargetEmpty": "選択できる共有対象がありません",
   "knowledgeBaseCreateModalSubmit": "ナレッジベースを作成",
+  "knowledgeBaseCreateFailed": "作成に失敗しました",
   "knowledgeBaseCreateModalSharedUnsupported": "共有ナレッジベースの作成はまだ対応していません",
   "knowledgeBaseCreateDescriptionOptional": "（任意）",
   "knowledgeBaseUploadTitle": "ファイルをアップロード",

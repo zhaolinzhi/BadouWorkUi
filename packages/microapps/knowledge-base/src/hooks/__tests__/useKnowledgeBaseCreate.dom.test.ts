@@ -165,6 +165,50 @@ describe('useKnowledgeBaseCreate', () => {
     expect(result.current.error).toBe('network down');
   });
 
+  it('业务失败（hasOk: false）提示「新增失败」且不回调 onSuccess', async () => {
+    stubFetch(async () => jsonResponse({ hasOk: false, tip: 'FAIL', message: null, bean: null, save: false }));
+    const onSuccess = vi.fn();
+
+    const { result } = renderHook(() => useKnowledgeBaseCreate({ onSuccess }));
+
+    let ok = true;
+    await act(async () => {
+      ok = await result.current.submit({ name: '测试3', description: '', scope: 'personal' });
+    });
+
+    expect(ok).toBe(false);
+    expect(result.current.error).toBe('新增失败');
+    expect(onSuccess).not.toHaveBeenCalled();
+  });
+
+  it('业务失败但带 message 时展示平台给的提示', async () => {
+    stubFetch(async () => jsonResponse({ hasOk: false, tip: 'FAIL', message: '知识库名称已存在' }));
+
+    const { result } = renderHook(() => useKnowledgeBaseCreate());
+
+    await act(async () => {
+      await result.current.submit({ name: '测试3', description: '', scope: 'personal' });
+    });
+
+    expect(result.current.error).toBe('知识库名称已存在');
+  });
+
+  it('业务成功（hasOk: true）照旧回调 onSuccess', async () => {
+    stubFetch(async () => jsonResponse({ hasOk: true, bean: { id: 'kb-9' }, save: true }));
+    const onSuccess = vi.fn();
+
+    const { result } = renderHook(() => useKnowledgeBaseCreate({ onSuccess }));
+
+    let ok = false;
+    await act(async () => {
+      ok = await result.current.submit({ name: '测试3', description: '', scope: 'personal' });
+    });
+
+    expect(ok).toBe(true);
+    expect(onSuccess).toHaveBeenCalledTimes(1);
+    expect(result.current.error).toBeNull();
+  });
+
   it('选共享知识库时不发请求并明确报错', async () => {
     const fetchMock = stubFetch(async () => jsonResponse({}));
 

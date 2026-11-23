@@ -263,6 +263,7 @@
   "knowledgeBaseCreateModalTargetPlaceholder": "請選擇共享對象",
   "knowledgeBaseCreateModalTargetEmpty": "暫無可選共享對象",
   "knowledgeBaseCreateModalSubmit": "建立知識庫",
+  "knowledgeBaseCreateFailed": "新增失敗",
   "knowledgeBaseCreateModalSharedUnsupported": "共享知識庫建立介面尚未接入",
   "knowledgeBaseCreateDescriptionOptional": "（選填）",
   "knowledgeBaseUploadTitle": "上傳檔案",

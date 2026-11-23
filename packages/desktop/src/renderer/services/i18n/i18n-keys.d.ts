@@ -1930,6 +1930,7 @@ export type I18nKey =
   | 'settings.knowledgeBaseClearSearch'
   | 'settings.knowledgeBaseCreate'
   | 'settings.knowledgeBaseCreateDescriptionOptional'
+  | 'settings.knowledgeBaseCreateFailed'
   | 'settings.knowledgeBaseCreateModalDescriptionLabel'
   | 'settings.knowledgeBaseCreateModalDescriptionPlaceholder'
   | 'settings.knowledgeBaseCreateModalNameLabel'

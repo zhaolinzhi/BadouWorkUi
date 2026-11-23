@@ -263,6 +263,7 @@
   "knowledgeBaseCreateModalTargetPlaceholder": "Selecciona con quién compartir",
   "knowledgeBaseCreateModalTargetEmpty": "No hay destinos de compartición disponibles",
   "knowledgeBaseCreateModalSubmit": "Crear base de conocimiento",
+  "knowledgeBaseCreateFailed": "Error al crear",
   "knowledgeBaseCreateModalSharedUnsupported": "Todavía no se admite crear bases de conocimiento compartidas",
   "knowledgeBaseCreateDescriptionOptional": "(opcional)",
   "knowledgeBaseUploadTitle": "Subir archivos",

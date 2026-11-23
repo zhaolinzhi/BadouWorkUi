@@ -263,6 +263,7 @@
   "knowledgeBaseCreateModalTargetPlaceholder": "Paylaşılacak kişileri seçin",
   "knowledgeBaseCreateModalTargetEmpty": "Seçilebilecek paylaşım hedefi yok",
   "knowledgeBaseCreateModalSubmit": "Bilgi tabanı oluştur",
+  "knowledgeBaseCreateFailed": "Oluşturulamadı",
   "knowledgeBaseCreateModalSharedUnsupported": "Paylaşımlı bilgi tabanı oluşturma henüz desteklenmiyor",
   "knowledgeBaseCreateDescriptionOptional": "(isteğe bağlı)",
   "knowledgeBaseUploadTitle": "Dosya yükle",

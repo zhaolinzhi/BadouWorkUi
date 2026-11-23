@@ -288,6 +288,7 @@
   "knowledgeBaseCreateModalTargetPlaceholder": "Personen auswählen, mit denen geteilt wird",
   "knowledgeBaseCreateModalTargetEmpty": "Keine Freigabeziele verfügbar",
   "knowledgeBaseCreateModalSubmit": "Wissensdatenbank erstellen",
+  "knowledgeBaseCreateFailed": "Erstellen fehlgeschlagen",
   "knowledgeBaseCreateModalSharedUnsupported": "Geteilte Wissensdatenbanken werden noch nicht unterstützt",
   "knowledgeBaseCreateDescriptionOptional": "(optional)",
   "knowledgeBaseUploadTitle": "Dateien hochladen",

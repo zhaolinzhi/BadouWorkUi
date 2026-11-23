@@ -263,6 +263,7 @@
   "knowledgeBaseCreateModalTargetPlaceholder": "Выберите, кому предоставить доступ",
   "knowledgeBaseCreateModalTargetEmpty": "Некому предоставить доступ",
   "knowledgeBaseCreateModalSubmit": "Создать базу знаний",
+  "knowledgeBaseCreateFailed": "Не удалось создать",
   "knowledgeBaseCreateModalSharedUnsupported": "Создание общих баз знаний пока не поддерживается",
   "knowledgeBaseCreateDescriptionOptional": "(необязательно)",
   "knowledgeBaseUploadTitle": "Загрузка файлов",

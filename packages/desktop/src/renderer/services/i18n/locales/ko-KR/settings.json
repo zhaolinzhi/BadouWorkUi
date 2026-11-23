@@ -263,6 +263,7 @@
   "knowledgeBaseCreateModalTargetPlaceholder": "공유 대상을 선택하세요",
   "knowledgeBaseCreateModalTargetEmpty": "선택할 수 있는 공유 대상이 없습니다",
   "knowledgeBaseCreateModalSubmit": "지식 베이스 만들기",
+  "knowledgeBaseCreateFailed": "추가 실패",
   "knowledgeBaseCreateModalSharedUnsupported": "공유 지식 베이스 생성은 아직 지원되지 않습니다",
   "knowledgeBaseCreateDescriptionOptional": "(선택)",
   "knowledgeBaseUploadTitle": "파일 업로드",

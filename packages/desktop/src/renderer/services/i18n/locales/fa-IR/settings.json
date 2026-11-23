@@ -263,6 +263,7 @@
   "knowledgeBaseCreateModalTargetPlaceholder": "اشتراک‌گیرنده را انتخاب کنید",
   "knowledgeBaseCreateModalTargetEmpty": "مقصدی برای اشتراک‌گذاری در دسترس نیست",
   "knowledgeBaseCreateModalSubmit": "ایجاد پایگاه دانش",
+  "knowledgeBaseCreateFailed": "ایجاد ناموفق بود",
   "knowledgeBaseCreateModalSharedUnsupported": "ایجاد پایگاه دانش اشتراکی هنوز پشتیبانی نمی‌شود",
   "knowledgeBaseCreateDescriptionOptional": "(اختیاری)",
   "knowledgeBaseUploadTitle": "بارگذاری فایل‌ها",
