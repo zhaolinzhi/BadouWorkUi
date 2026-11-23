@@ -94,25 +94,13 @@ const LoginPage: React.FC = () => {
   // whole app lifetime, so a callback that arrives before this page has
   // finished loading is not lost, and this page does not have to claim it.
   //
+  // This page must NOT subscribe to `externalLoginCompleted` itself: the
+  // provider already applies the token (with a dedup so the same token is not
+  // applied twice), and a second handler here would apply it again outside
+  // that dedup — switching the account twice.
+  //
   // Navigation to /guid is driven by the `status === 'authenticated'` effect
   // above once AuthContext flips its state.
-  // Subscribe to the deep-link callback once on mount so the token arriving
-  // from the OS-routed `badouwork://auth/callback` URL triggers login completion.
-  useEffect(() => {
-    let active = true;
-
-    const unsubscribe = ipcBridge.auth.externalLoginCompleted.on((payload) => {
-      if (!active) return;
-      completeExternalLogin(payload.token, { id: payload.user.id, username: payload.user.username });
-      // Navigation to /guid is driven by the `status === 'authenticated'` effect
-      // above once AuthContext flips its state.
-    });
-
-    return () => {
-      active = false;
-      unsubscribe();
-    };
-  }, [completeExternalLogin]);
 
   const handleStartExternalLogin = useCallback(async () => {
     setLoading(true);
