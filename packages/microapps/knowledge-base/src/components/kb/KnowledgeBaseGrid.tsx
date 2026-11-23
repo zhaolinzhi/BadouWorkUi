@@ -7,7 +7,7 @@
 import type { KnowledgeBaseItem, KnowledgeBaseTab } from '../../types';
 import KnowledgeBaseCard from './KnowledgeBaseCard';
 import KnowledgeBaseEmptyState from './KnowledgeBaseEmptyState';
-import { AppIcon, AsyncBoundary } from '@aionui/ui';
+import { AppIcon, AsyncBoundary, cx } from '@aionui/ui';
 import { Button } from '@arco-design/web-react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
@@ -48,6 +48,10 @@ const KnowledgeBaseGrid: React.FC<KnowledgeBaseGridProps> = ({
 }) => {
   const { t } = useTranslation();
   const isPersonal = scope === 'personal';
+
+  const loadFailedTitle = isPersonal
+    ? t('settings.knowledgeBasePersonalLoadFailed', { defaultValue: '加载个人知识库失败' })
+    : t('settings.knowledgeBaseSharedLoadFailed', { defaultValue: '加载共享知识库失败' });
 
   const emptyContent = (() => {
     // 有知识库但被搜索过滤光了 —— 与「还没有知识库」是两回事。
@@ -95,6 +99,35 @@ const KnowledgeBaseGrid: React.FC<KnowledgeBaseGridProps> = ({
     );
   })();
 
+  /*
+   * 失败态 —— 与空态同一套版式（插画 + 标题 + 说明 + 按钮），只是文案不同。
+   *
+   * 之前走共享 `AsyncBoundary` 的错误框：一行标题 + 一行原始报错 + 灰按钮，
+   * 在整页留白里显得像半截弹窗。改成空态的版式后，标题、说明、按钮的层级
+   * 与「还没有知识库」那一屏一致。
+   *
+   * 加载中优先于失败 —— 重试时错误会被清掉，两者不会同时出现。
+   */
+  if (error && !loading) {
+    return (
+      <div className={cx('flex h-full w-full items-center justify-center', styles.boundary)}>
+        <div className={styles.emptyZone}>
+          <KnowledgeBaseEmptyState
+            title={loadFailedTitle}
+            description={error}
+            action={
+              onRetry ? (
+                <Button type='primary' onClick={onRetry} data-testid='btn-kb-retry'>
+                  {t('common.retry', { defaultValue: '重试' })}
+                </Button>
+              ) : undefined
+            }
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <AsyncBoundary
       className={styles.boundary}
@@ -102,11 +135,7 @@ const KnowledgeBaseGrid: React.FC<KnowledgeBaseGridProps> = ({
       error={error}
       onRetry={onRetry}
       retryText={t('common.retry', { defaultValue: '重试' })}
-      errorContent={
-        isPersonal
-          ? t('settings.knowledgeBasePersonalLoadFailed', { defaultValue: '加载个人知识库失败' })
-          : t('settings.knowledgeBaseSharedLoadFailed', { defaultValue: '加载共享知识库失败' })
-      }
+      errorContent={loadFailedTitle}
       loadingContent={
         <div className='text-13px text-t-tertiary'>
           {isPersonal
