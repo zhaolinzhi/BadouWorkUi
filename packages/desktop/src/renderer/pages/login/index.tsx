@@ -94,6 +94,11 @@ const LoginPage: React.FC = () => {
   // whole app lifetime, so a callback that arrives before this page has
   // finished loading is not lost, and this page does not have to claim it.
   //
+  // This page must NOT subscribe to `externalLoginCompleted` itself: the
+  // provider already applies the token (with a dedup so the same token is not
+  // applied twice), and a second handler here would apply it again outside
+  // that dedup — switching the account twice.
+  //
   // Navigation to /guid is driven by the `status === 'authenticated'` effect
   // above once AuthContext flips its state.
 
