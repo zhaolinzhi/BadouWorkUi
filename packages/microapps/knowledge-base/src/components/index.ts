@@ -9,3 +9,4 @@ export { default as KnowledgeBaseAvatar } from './KnowledgeBaseAvatar';
 export { default as MarkdownView } from './MarkdownView';
 export { default as KnowledgeBaseCard } from './kb/KnowledgeBaseCard';
 export { default as KnowledgeBaseGrid } from './kb/KnowledgeBaseGrid';
+export { default as KnowledgeBaseCreateModal } from './kb/KnowledgeBaseCreateModal';

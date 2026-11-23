@@ -39,7 +39,7 @@ describe('getRouter', () => {
   });
 
   it('passes the router base through to the factory', () => {
-    const factory = vi.fn(() => ({ state: {}, subscribe: () => {} }));
+    const factory = vi.fn(() => ({ state: {}, subscribe: () => () => {} }));
 
     getRouter('/nested', factory);
 
@@ -54,7 +54,7 @@ describe('getRouter', () => {
     expect(() => getRouter('/', factory)).toThrow('router creation failed');
 
     // 失败不应留下缓存 —— 下一次调用必须重新尝试,而不是拿到半成品。
-    const working = vi.fn(() => ({ state: {}, subscribe: () => {} }));
+    const working = vi.fn(() => ({ state: {}, subscribe: () => () => {} }));
     expect(getRouter('/', working)).toBeDefined();
     expect(working).toHaveBeenCalledTimes(1);
   });

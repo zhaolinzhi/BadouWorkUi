@@ -27,7 +27,6 @@ type KnowledgeBaseHomeTabsProps = {
   /** Row click destination for the personal list (view URL). */
   onOpenView: (item: KnowledgeBaseItem) => void;
   /** Edit menu destination for the personal list (edit URL). */
-  onOpenEdit: (item: KnowledgeBaseItem) => void;
   onCreate: () => void;
   onStartChat: (item: KnowledgeBaseItem) => void;
   initialTab?: KnowledgeBaseTab;
@@ -48,7 +47,6 @@ const KnowledgeBaseHomeTabs: React.FC<KnowledgeBaseHomeTabsProps> = ({
   onRefresh,
   onDelete,
   onOpenView,
-  onOpenEdit,
   onCreate,
   onStartChat,
   initialTab = 'personal',
@@ -193,7 +191,6 @@ const KnowledgeBaseHomeTabs: React.FC<KnowledgeBaseHomeTabsProps> = ({
           error={isPersonal ? personalError : sharedError}
           onRetry={isPersonal ? onRetryLoadPersonal : onRetryLoadShared}
           onOpen={onOpenView}
-          onOpenEdit={onOpenEdit}
           onDelete={onDelete}
           onStartChat={onStartChat}
           onCreate={onCreate}

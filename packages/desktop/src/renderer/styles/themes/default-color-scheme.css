@@ -136,13 +136,16 @@
   --kb-surface: #ffffff; /* 卡片底色 / 选中胶囊底色 */
   --kb-border: #e8ebf2; /* 卡片描边 */
   --kb-brand: #2764ff; /* 品牌蓝(主按钮、选中态文字) */
+  --kb-on-brand: #ffffff; /* 品牌色按钮上的文字色 */
   --kb-brand-hover: #2058ed; /* 主按钮悬停 */
   --kb-brand-border: #b4d7ff; /* 浅蓝描边(选中胶囊、卡片悬停描边) */
+  --kb-brand-tint: #ecf3ff; /* 品牌色淡底(拖拽上传高亮) */
   --kb-focus-ring: #8fb9ff; /* 搜索框聚焦描边 */
   --kb-hover: rgba(237, 239, 241, 0.8); /* 图标按钮悬停底色 */
   --kb-muted: #6b7280; /* 次要文字(副标题、统计、可见范围) */
   --kb-placeholder: #b4bece; /* 占位符文字 */
   --kb-heading: #0d0d0d; /* 页面标题 / 卡片标题 */
+  --kb-danger: #f53f3f; /* 危险色(解析失败等异常状态文字) */
 }
 
 /* Dark Mode */
@@ -280,11 +283,14 @@
   --kb-surface: #0e0e0e;
   --kb-border: #333333;
   --kb-brand: #7ea6e0;
+  --kb-on-brand: #0d0d0d; /* 品牌色按钮上的文字色（浅蓝底配深字） */
   --kb-brand-hover: #527ff0;
   --kb-brand-border: #536c91;
+  --kb-brand-tint: #1d2a44;
   --kb-focus-ring: #7396d6;
   --kb-hover: #303030;
   --kb-muted: #a8a8a8;
   --kb-placeholder: #6b7280;
   --kb-heading: #f1f1f1;
+  --kb-danger: #f76560; /* 危险色(暗色下用亮一档的红) */
 }

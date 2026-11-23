@@ -84,7 +84,14 @@ const MoreMenu: React.FC<MoreMenuProps> = ({
         <Menu.Item key={item.key} disabled={item.disabled}>
           <span
             data-testid={item.testId}
-            className={cx('inline-flex items-center gap-6px', item.danger && 'text-[rgb(var(--danger-6))]')}
+            /*
+             * 危险项用 `text-danger-6`（项目自定义的 UnoCSS rule）——
+             * **不要**写成 `text-[rgb(var(--danger-6))]`：UnoCSS 会把它生成成
+             * `color: rgb(var(--danger-6) / var(--un-text-opacity))`，而
+             * `rgb()` 的逗号语法不能跟斜杠混用 → 整条声明无效 → 颜色被丢弃，
+             * 危险项看着跟普通项一模一样（深灰而不是红色）。
+             */
+            className={cx('inline-flex items-center gap-6px', item.danger && 'text-danger-6')}
           >
             {item.icon}
             {item.label}

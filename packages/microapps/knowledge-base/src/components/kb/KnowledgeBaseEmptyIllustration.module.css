@@ -1,0 +1,61 @@
+/**
+ * 空态插画 —— 对齐设计稿 BadouWork-Desktop-Handoff 的 `.kb-illustration`。
+ *
+ * 100×92 的画布，七个图层绝对定位。坐标与旋转角度直接抄设计稿的 CSS，
+ * 改动会让图层散架。
+ */
+
+.illustration {
+  position: relative;
+  width: 100px;
+  height: 92px;
+  flex-shrink: 0;
+}
+
+.layer {
+  position: absolute;
+  max-width: none;
+}
+
+.background {
+  left: 0;
+  top: 6px;
+}
+
+.back {
+  left: 33.5px;
+  top: 12px;
+  transform: rotate(10deg);
+}
+
+.front {
+  left: 17.3px;
+  top: 15.5px;
+  transform: rotate(-7deg);
+}
+
+/* 小书图标 —— 半透明（设计稿 opacity .65）。 */
+.book {
+  left: 29.9px;
+  top: 30.7px;
+  transform: rotate(-7deg);
+  opacity: 0.65;
+}
+
+.lineA {
+  left: 29.62px;
+  top: 53.08px;
+  transform: rotate(-7deg);
+}
+
+.lineB {
+  left: 30.47px;
+  top: 60.03px;
+  transform: rotate(-7deg);
+}
+
+.lineC {
+  left: 31.36px;
+  top: 67.62px;
+  transform: rotate(-7deg);
+}
