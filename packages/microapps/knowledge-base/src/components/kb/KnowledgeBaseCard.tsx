@@ -16,12 +16,10 @@ type KnowledgeBaseCardProps = {
   item: KnowledgeBaseItem;
   /** 点击卡片打开详情。 */
   onOpen: (item: KnowledgeBaseItem) => void;
-  /** 菜单里「编辑」的跳转目标;缺省时回落到 `onOpen`。 */
-  onOpenEdit?: (item: KnowledgeBaseItem) => void;
   onDelete?: (item: KnowledgeBaseItem) => void;
   /** 用该知识库发起问答。 */
   onStartChat: (item: KnowledgeBaseItem) => void;
-  /** 只读(共享知识库):菜单里不提供编辑/删除,只剩「问知识库」。 */
+  /** 只读(共享知识库):菜单里不提供打开/删除,只剩「问知识库」。 */
   readOnly?: boolean;
   /** 不显示删除项。个人知识库列表在应用内不暴露删除。 */
   hideDelete?: boolean;
@@ -34,7 +32,6 @@ type KnowledgeBaseCardProps = {
 const KnowledgeBaseCard: React.FC<KnowledgeBaseCardProps> = ({
   item,
   onOpen,
-  onOpenEdit,
   onDelete,
   onStartChat,
   readOnly = false,
@@ -54,9 +51,15 @@ const KnowledgeBaseCard: React.FC<KnowledgeBaseCardProps> = ({
       ? []
       : [
           {
-            key: 'edit',
-            label: t('common.edit', { defaultValue: '编辑' }),
-            testId: `kb-menu-edit-${item.id}`,
+            /*
+             * 「打开知识库」—— 跟点卡片一样，进应用内的文档列表。
+             *
+             * 早先这里是「编辑」，跳的是厂商后台的编辑页（会拉起浏览器窗口）。
+             * 首页的入口应该是看文档，而不是跳去外部改配置。
+             */
+            key: 'open',
+            label: t('settings.knowledgeBaseOpen', { defaultValue: '打开知识库' }),
+            testId: `kb-menu-open-${item.id}`,
           },
         ]),
     ...(canDelete
@@ -115,7 +118,7 @@ const KnowledgeBaseCard: React.FC<KnowledgeBaseCardProps> = ({
             onClick={(event) => event.stopPropagation()}
             onSelect={(key) => {
               if (key === 'chat') onStartChat(item);
-              if (key === 'edit') (onOpenEdit ?? onOpen)(item);
+              if (key === 'open') onOpen(item);
               if (key === 'delete') onDelete?.(item);
             }}
             className={styles.moreButton}

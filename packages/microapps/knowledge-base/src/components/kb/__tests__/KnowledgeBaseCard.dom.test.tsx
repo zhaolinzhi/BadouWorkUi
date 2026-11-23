@@ -91,24 +91,15 @@ describe('KnowledgeBaseCard', () => {
     expect(onOpen).not.toHaveBeenCalled();
   });
 
-  it('个人库的菜单里有「编辑」,点击走 onOpenEdit', () => {
+  it('个人库的菜单里有「打开知识库」,点击走 onOpen（进应用内的文档列表）', () => {
     const onOpen = vi.fn();
-    const onOpenEdit = vi.fn();
-    render(
-      <KnowledgeBaseCard
-        item={{ ...baseItem, source: 'user' }}
-        onOpen={onOpen}
-        onOpenEdit={onOpenEdit}
-        onStartChat={vi.fn()}
-      />
-    );
+    render(<KnowledgeBaseCard item={{ ...baseItem, source: 'user' }} onOpen={onOpen} onStartChat={vi.fn()} />);
 
     fireEvent.click(screen.getByTestId('btn-kb-more-kb-1'));
-    expect(screen.getByTestId('kb-menu-edit-kb-1')).toBeTruthy();
+    expect(screen.getByTestId('kb-menu-open-kb-1')).toBeTruthy();
 
-    fireEvent.click(screen.getByTestId('kb-menu-edit-kb-1'));
-    expect(onOpenEdit).toHaveBeenCalledWith({ ...baseItem, source: 'user' });
-    expect(onOpen).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByTestId('kb-menu-open-kb-1'));
+    expect(onOpen).toHaveBeenCalledWith({ ...baseItem, source: 'user' });
   });
 
   it('个人库不暴露删除项', () => {
@@ -119,10 +110,10 @@ describe('KnowledgeBaseCard', () => {
     fireEvent.click(screen.getByTestId('btn-kb-more-kb-1'));
 
     expect(screen.queryByTestId('kb-menu-delete-kb-1')).toBeNull();
-    expect(screen.getByTestId('kb-menu-edit-kb-1')).toBeTruthy();
+    expect(screen.getByTestId('kb-menu-open-kb-1')).toBeTruthy();
   });
 
-  it('共享库是只读的:菜单里没有编辑与删除', () => {
+  it('共享库是只读的:菜单里没有「打开知识库」与删除', () => {
     render(
       <KnowledgeBaseCard
         item={{ ...baseItem, isShared: true, source: 'user' }}
@@ -135,7 +126,7 @@ describe('KnowledgeBaseCard', () => {
     fireEvent.click(screen.getByTestId('btn-kb-more-kb-1'));
 
     expect(screen.getByTestId('kb-menu-chat-kb-1')).toBeTruthy();
-    expect(screen.queryByTestId('kb-menu-edit-kb-1')).toBeNull();
+    expect(screen.queryByTestId('kb-menu-open-kb-1')).toBeNull();
     expect(screen.queryByTestId('kb-menu-delete-kb-1')).toBeNull();
   });
 });

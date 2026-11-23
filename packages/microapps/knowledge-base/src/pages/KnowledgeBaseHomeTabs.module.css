@@ -14,6 +14,14 @@
   width: calc(100% - 48px);
   margin: 24px auto 32px;
   min-width: 0;
+  /*
+   * 竖向 flex + 至少占满可视区 —— 空态要能撑满剩余高度再居中。
+   * 之前是固定 520px 的区块，窗口一高（最大化）内容就偏在下半部分。
+   * 减掉上下外边距（24 + 32），免得刚好占满后多出滚动条。
+   */
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100% - 56px);
 }
 
 /* ── 页头 ───────────────────────────────────────────── */
@@ -51,6 +59,13 @@
   line-height: 22px !important;
   white-space: nowrap;
   flex-shrink: 0;
+  /*
+   * Arco 的按钮是 inline-block —— 图标与文字按基线排，图标会偏高 1px。
+   * 设计稿的 `.kb-button` 是 inline-flex + align-items:center，这里对齐它。
+   */
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 .createButton:hover {

@@ -1,0 +1,340 @@
+/**
+ * 新建知识库弹窗 —— 对齐设计稿 BadouWork-Desktop-Handoff 的 `.kb-dialog.create`。
+ *
+ * 设计稿的几何:
+ *   .kb-dialog         宽 560px、圆角 16px
+ *   .kb-dialog-header  标题 20px/500 + 副标题 14px muted
+ *   .kb-field          标签在上、控件在下、间距 8px
+ *   .kb-input-box      40px 高、8px 圆角、1px 边框，计数在框内右侧
+ *   .kb-textarea-box   80px 高，计数在框内右下
+ *   .kb-radio          两张并排的卡片式单选
+ *
+ * 颜色一律走语义 token：`--kb-*` 是知识库设计系统的 token，`--danger-*` 是
+ * Arco 的 danger 色板（必填星号与错误文案用它 —— 设计稿原值是 #ff3b30，
+ * 但项目规矩是颜色不许硬编码）。
+ */
+
+/*
+ * Arco 的 Modal 默认圆角、宽度与内边距跟设计稿对不上 —— 这里按 `.kb-dialog`
+ * 覆写。Arco 的 `className` 落在弹窗根元素（`.arco-modal`）上；它的样式表
+ * 由 shell 在运行时注入（排在模块样式之后），所以要用 `!important` 才能盖住
+ * —— 与本微应用既有的 Arco 覆写做法一致。
+ */
+.modal {
+  width: 560px !important;
+  max-width: 100%;
+  border-radius: 16px !important;
+}
+
+.modal :global(.arco-modal-header) {
+  /*
+   * Arco 的普通 modal header 是**固定 48px 高**（`height: unset` 那条只作用于
+   * `.arco-modal-simple`）。我们的标题 + 副标题有 56px，48px 的框装不下 ——
+   * 内容会上下溢出，副标题压在 header 的下边框上，标题被顶到弹窗上边缘。
+   */
+  height: auto !important;
+  padding: 28px 28px 20px !important;
+  /* 设计稿的 `.kb-dialog-header` 没有分隔线（只有 footer 有）。 */
+  border-bottom: none !important;
+}
+
+/*
+ * Arco 的 `.arco-modal-header .arco-modal-title { text-align: center }` 把标题
+ * 居中了 —— 设计稿是左对齐。注意要作用在**标题元素**上，改 header 没用。
+ */
+.modal :global(.arco-modal-header .arco-modal-title) {
+  text-align: left !important;
+}
+
+.modal :global(.arco-modal-body) {
+  padding: 0 28px 28px !important;
+}
+
+.header {
+  min-width: 0;
+  flex: 1;
+}
+
+.title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 28px;
+  color: var(--kb-heading);
+}
+
+.subtitle {
+  margin: 8px 0 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--kb-muted);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.label {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 22px;
+  color: var(--kb-heading);
+}
+
+/* 必填星号 */
+.required {
+  margin-left: 2px;
+  font-size: 12px;
+  color: rgb(var(--danger-6));
+}
+
+/* 「（选填）」小字 */
+.optional {
+  margin-left: 4px;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 20px;
+  color: var(--kb-muted);
+}
+
+/* ── 输入框：40px 高，字数计数在框内右侧 ───────────── */
+.inputBox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--kb-border);
+  border-radius: 8px;
+  background: var(--kb-surface);
+}
+
+.inputBox:focus-within {
+  border-color: var(--kb-focus-ring);
+}
+
+/*
+ * Arco 的输入链自带底色、描边与聚焦光影,而 shell 的 layout.css 又用
+ * `!important` 压了一层 —— 微应用要盖住它只能同样写 `!important`
+ * (!important 之间不比优先级,只比选择器权重)。
+ */
+.inputBox :global(.arco-input-wrapper),
+.inputBox :global(.arco-input-group-wrapper),
+.inputBox :global(.arco-input-inner-wrapper),
+.inputBox :global(.arco-input) {
+  height: 100% !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.inputBox :global(.arco-input) {
+  color: var(--kb-heading) !important;
+  font-size: 14px !important;
+  line-height: 20px !important;
+}
+
+.inputBox :global(.arco-input::placeholder) {
+  color: var(--kb-placeholder) !important;
+}
+
+.counter {
+  flex-shrink: 0;
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--kb-muted);
+}
+
+/* ── 文本域：80px 高，字数计数在框内右下 ─────────────── */
+.textareaBox {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-sizing: border-box;
+  height: 80px;
+  padding: 10px 12px 8px;
+  border: 1px solid var(--kb-border);
+  border-radius: 8px;
+  background: var(--kb-surface);
+}
+
+.textareaBox:focus-within {
+  border-color: var(--kb-focus-ring);
+}
+
+.textareaBox :global(.arco-textarea-wrapper),
+.textareaBox :global(.arco-textarea) {
+  flex: 1;
+  min-height: 0;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  resize: none;
+  color: var(--kb-heading) !important;
+  font-size: 14px !important;
+  line-height: 20px !important;
+}
+
+.textareaBox :global(.arco-textarea::placeholder) {
+  color: var(--kb-placeholder) !important;
+}
+
+.textareaBox .counter {
+  align-self: stretch;
+  text-align: right;
+}
+
+/* ── 可见范围：两张并排的卡片式单选 ─────────────────── */
+/*
+ * Arco 的 `.arco-radio-group { display: inline-block }` 会盖掉这里的 flex
+ * （Arco 的样式表由 shell 运行时注入，排在模块样式之后）—— 必须 `!important`。
+ */
+.scopeGroup {
+  display: flex !important;
+  gap: 12px;
+}
+
+/*
+ * Arco 的 Radio 根元素是 `<label class="arco-radio">`，选中时根元素会多一个
+ * `arco-radio-checked` 类 —— 卡片式选中态靠它。
+ *
+ * `margin: 0 !important` 是为了盖掉 Arco 的
+ * `.arco-radio-group .arco-radio { margin-right: 20px }` —— 那个 margin 会让
+ * 两个 50% 宽的卡片加起来超过 100%，被挤成上下两行。
+ */
+.scopeGroup :global(.arco-radio) {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  box-sizing: border-box;
+  width: 50%;
+  height: 74px;
+  margin: 0 !important;
+  padding: 14px 12px;
+  border: 1px solid var(--kb-border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/*
+ * 选中态：只换边框颜色，背景保持透明 —— 设计稿的
+ * `.kb-radio:has(input:checked)` 也只改了 `border-color`。
+ */
+.scopeGroup :global(.arco-radio-checked) {
+  border-color: var(--kb-brand-border);
+}
+
+/*
+ * 选中态的圆点要用品牌蓝。
+ *
+ * Arco 默认用 `rgb(var(--primary-6))`（Arco 主题的主色），而这个应用的知识库
+ * 设计系统用的是 `--kb-brand` —— 两者不是一回事，壳子里的 Arco 主色不保证是蓝的。
+ * 这里显式钉住，别指望主题变量。
+ */
+.scopeGroup :global(.arco-radio-checked .arco-radio-mask) {
+  background-color: var(--kb-brand) !important;
+  border-color: var(--kb-brand) !important;
+}
+
+/*
+ * 共享知识库暂时未开放 —— 选项置灰不可选。
+ *
+ * Arco 的禁用态只改了单选框本身的颜色；卡片里的文案是我们自己写的
+ * （`.scopeCopy` 里显式给了 color），会盖掉禁用态 —— 所以这里单独置灰。
+ */
+.scopeGroup :global(.arco-radio-disabled) {
+  border-color: var(--kb-border);
+  background: transparent;
+  cursor: not-allowed;
+}
+
+.scopeGroup :global(.arco-radio-disabled) .scopeCopy > span {
+  color: var(--kb-muted);
+}
+
+.scopeGroup :global(.arco-radio-disabled) .scopeCopy > small {
+  color: var(--kb-placeholder);
+}
+
+.scopeCopy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.scopeCopy > span {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--kb-heading);
+}
+
+.scopeCopy > small {
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--kb-muted);
+}
+
+.select {
+  width: 100%;
+}
+
+.hint {
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--kb-muted);
+}
+
+.fieldError {
+  font-size: 12px;
+  line-height: 20px;
+  color: rgb(var(--danger-6));
+}
+
+.error {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgb(var(--danger-1));
+  font-size: 13px;
+  line-height: 20px;
+  color: rgb(var(--danger-6));
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+.cancelButton {
+  min-width: 64px;
+  height: 40px !important;
+  border-radius: 8px !important;
+}
+
+.submitButton {
+  min-width: 112px;
+  height: 40px !important;
+  border-radius: 8px !important;
+  border-color: var(--kb-brand) !important;
+  background: var(--kb-brand) !important;
+  color: var(--kb-on-brand) !important;
+}
+
+.submitButton:hover {
+  border-color: var(--kb-brand-hover) !important;
+  background: var(--kb-brand-hover) !important;
+}

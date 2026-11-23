@@ -63,19 +63,40 @@
  *
  * 注意 `createRouter` 工厂本身由子应用提供(notes / meeting-recording 的路由表
  * 不同),这里只负责"何时创建"和"是否复用"。
+ *
+ * 类型层面
+ * ====
+ * 下面的 `MemoryRouter` / `RouterFactory` / `getRouter` / `useRouter` 是泛型的。
+ * 旧版本在 `MemoryRouter` 上写了 `[key: string]: unknown` 索引签名,而
+ * react-router 的 `Router` 是不带索引签名的 interface,不可赋值过来,notes 与
+ * meeting-recording 两个微应用各自报 TS2345 / TS2740。泛型化后,router 的具体
+ * 类型由调用方传入的工厂函数推断,消费方无需强转即可对齐。这是纯类型改动,
+ * 上面描述的运行时缓存语义完全不变。
  */
 import React from 'react';
 
-/** react-router 的 router 对象 —— 这里只声明用到的最小结构,避免依赖 react-router 的类型。 */
+/**
+ * router 对象的最小结构 —— 只声明本文件实际用到的成员,避免依赖 react-router 的类型。
+ *
+ * 刻意不带 `[key: string]: unknown` 索引签名:react-router 的 `Router` 是没有
+ * 索引签名的 interface,不可赋值给带索引签名的类型。需要更具体的 router 类型
+ * 时,经由 `RouterFactory` 的泛型参数传入(见该处说明)。
+ */
 export interface MemoryRouter {
   state: unknown;
   subscribe: (fn: (state: unknown) => void) => () => void;
   initialize?: () => MemoryRouter;
-  [key: string]: unknown;
 }
 
-/** 子应用提供的路由表工厂。 */
-export type RouterFactory = (routerBase: string) => MemoryRouter;
+/**
+ * 子应用提供的 router 工厂,也是泛型 `T` 的入口。
+ *
+ * `T` 从工厂返回值推断,沿 `getRouter` / `useRouter` 一路流到它们的返回类型;
+ * `T extends MemoryRouter` 的约束保证缓存里的实例至少满足最小结构。这样 notes /
+ * meeting-recording 等调用方不做强转就能拿回自己的具体 router 类型(react-router
+ * 的 `Router` 在结构上满足 `MemoryRouter`)。
+ */
+export type RouterFactory<T extends MemoryRouter = MemoryRouter> = (routerBase: string) => T;
 
 /**
  * 按 `routerBase` 缓存已创建的 router。
@@ -96,9 +117,14 @@ const routerCache = new Map<string, MemoryRouter>();
  * @param routerBase 路由基路径,作为缓存键。
  * @param factory    创建 router 的工厂(子应用提供)。
  */
-export function getRouter(routerBase: string, factory: RouterFactory): MemoryRouter {
+export function getRouter<T extends MemoryRouter = MemoryRouter>(routerBase: string, factory: RouterFactory<T>): T {
   const cached = routerCache.get(routerBase);
-  if (cached) return cached;
+  if (cached) {
+    // 断言成立靠的是运行时约定而非类型系统:同一模块实例内,某个 base 只会经由
+    // 上面这条路径被同一个 factory 首次填充(见文件头的缓存语义),缓存值必然就是
+    // 该 factory 产出的 T。缓存键与 T 之间没有静态约束 —— 别把键当成可自由复用的。
+    return cached as T;
+  }
 
   const router = factory(routerBase);
   routerCache.set(routerBase, router);
@@ -134,8 +160,8 @@ export function __clearRouterCacheForTests(): void {
  * effect 跑完再 setState 换上新的。三个子应用实际都用固定的 `'/'`,
  * 这条分支平时不会走到。
  */
-export function useRouter(routerBase: string, factory: RouterFactory): MemoryRouter {
-  const [router, setRouter] = React.useState<MemoryRouter>(() => getRouter(routerBase, factory));
+export function useRouter<T extends MemoryRouter = MemoryRouter>(routerBase: string, factory: RouterFactory<T>): T {
+  const [router, setRouter] = React.useState<T>(() => getRouter(routerBase, factory));
   const baseRef = React.useRef(routerBase);
   const factoryRef = React.useRef(factory);
   factoryRef.current = factory;

@@ -97,7 +97,7 @@ describe('MoreMenu', () => {
 
     await openMenu();
 
-    expect(screen.getByText('删除').className).toContain('text-[rgb(var(--danger-6))]');
+    expect(screen.getByText('删除').className).toContain('text-danger-6');
   });
 
   it('disabled 的菜单项点击时不回调', async () => {

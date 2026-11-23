@@ -11,10 +11,23 @@
   gap: 20px;
 }
 
-/* 空状态区域:设计稿里是固定高度 520px 的居中块 */
+/*
+ * 状态根容器（AsyncBoundary 的 className 落点）—— 撑满剩余高度，
+ * 空态才能在整块可视区里上下居中。
+ */
+.boundary {
+  flex: 1 1 0%;
+  min-height: 0;
+}
+
+/* 空状态区域:高度由内容决定（不再固定 520px），由父容器居中。 */
 .emptyZone {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 420px;
+  /*
+   * 整组内容上移 15px —— 严格居中时视觉重心落在上面的空白区，
+   * 插画与文案反而偏低；上移一点更合眼。
+   */
+  transform: translateY(-15px);
 }

@@ -44,6 +44,53 @@ export type KnowledgeBaseItem = {
 
 export type KnowledgeBaseListItem = KnowledgeBaseItem;
 
+/**
+ * 文档的解析状态 —— 由接口的 `flgSplit` 推出。
+ *
+ * - `done`       —— 已解析（`flgSplit = 1`）
+ * - `failed`     —— 解析失败（`flgSplit = -1`）
+ * - `processing` —— 解析中 / 未解析（其它取值）
+ */
+export type KnowledgeBaseSplitStatus = 'done' | 'failed' | 'processing';
+
+/**
+ * 知识库里的文档（产品设计资料页的行）。
+ * 字段来自 `view_knowledge_relevancy` 接口的 `Rows`。
+ */
+export type KnowledgeBaseDocument = {
+  id: string;
+  /** 文件名,如 `AppIcon.md` */
+  name: string;
+  /** 文件类型(已转大写),如 `MD`;接口未给时为空串 */
+  type: string;
+  /** 数据条数,来自 `processedTaskNum` */
+  records: number;
+  /** 更新时间,接口原样字符串 */
+  updatedAt: string;
+  /** 创建时间,接口原样字符串(一般只到天) */
+  createdAt: string;
+  /** 解析状态,来自接口的 `flgSplit`(见 `KnowledgeBaseSplitStatus`)。 */
+  splitStatus: KnowledgeBaseSplitStatus;
+  /**
+   * 解析进度（0~100），来自接口的 `progress` 字段。
+   *
+   * 该字段还没上线 —— 接口暂时不给,此时为 undefined。
+   */
+  progress?: number;
+};
+
+/** 新建知识库弹窗的表单值。 */
+export type KnowledgeBaseCreateValues = {
+  /** 知识库名称（必填），保存时映射到接口的 `name` */
+  name: string;
+  /** 描述（选填），保存时映射到接口的 `remarks` */
+  description: string;
+  /** 可见范围 */
+  scope: 'personal' | 'shared';
+  /** 共享对象（`scope` 为 `shared` 时必填） */
+  target?: string;
+};
+
 export type BuiltinIconOption = {
   id: string;
   label: string;

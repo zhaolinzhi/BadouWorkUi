@@ -53,12 +53,16 @@ describe('KnowledgeBaseGrid 接入 AsyncBoundary', () => {
     expect(screen.queryByTestId('kb-grid-personal')).toBeNull();
   });
 
-  it('出错时渲染 error 分支并给出重试按钮', () => {
+  it('出错时按空态的版式展示并给出重试按钮', () => {
     const onRetry = vi.fn();
     render(<KnowledgeBaseGrid scope='personal' items={[]} total={0} error='boom' onRetry={onRetry} {...baseProps} />);
 
-    expect(screen.getByTestId('async-boundary-error')).toBeTruthy();
-    fireEvent.click(screen.getByTestId('async-boundary-retry'));
+    // 与空态同一套版式：插画 + 标题 + 说明 + 按钮
+    expect(screen.getByTestId('empty-state')).toBeTruthy();
+    expect(screen.getByTestId('empty-state-title').textContent).toBe('加载个人知识库失败');
+    expect(screen.getByTestId('empty-state-description').textContent).toBe('boom');
+
+    fireEvent.click(screen.getByTestId('btn-kb-retry'));
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
 

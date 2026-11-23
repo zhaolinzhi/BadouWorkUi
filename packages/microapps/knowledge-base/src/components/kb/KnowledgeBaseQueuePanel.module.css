@@ -1,0 +1,195 @@
+/**
+ * 文件处理队列面板 —— 对齐设计稿 BadouWork-Desktop-Handoff 的 `.kb-queue`。
+ *
+ * 设计稿的几何:
+ *   .kb-queue          480×480，右下角悬浮，圆角 16px
+ *   .kb-queue-header   16px 内边距，标题 + 一行汇总
+ *   .kb-queue-files    可滚动，16px 内边距，项间距 16px
+ *   .kb-queue-file     文件名 + 状态行 + 3px 进度条
+ *   .kb-queue-footer   52px 高，上边框，按钮平分
+ *
+ * 颜色一律走 `--kb-*` 语义 token（浅色/暗色两套在 default-color-scheme.css 里）。
+ */
+
+.panel {
+  position: absolute;
+  right: 24px;
+  bottom: 24px;
+  z-index: 22;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: 480px;
+  height: 480px;
+  max-width: calc(100% - 32px);
+  max-height: calc(100% - 32px);
+  border-radius: 16px;
+  background: var(--kb-surface);
+  box-shadow: 0 6px 16px rgb(0 0 0 / 6%);
+  overflow: hidden;
+}
+
+/* ── 头部 ───────────────────────────────────────────── */
+.header {
+  padding: 16px;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 24px;
+}
+
+.title {
+  flex: 1;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 22px;
+  color: var(--kb-heading);
+}
+
+.closeButton {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 24px !important;
+  height: 24px !important;
+  padding: 0 !important;
+  border-radius: 4px !important;
+  color: var(--kb-muted) !important;
+}
+
+.closeButton:hover {
+  color: var(--kb-heading) !important;
+}
+
+.summary {
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--kb-muted);
+}
+
+/* ── 文件列表 ───────────────────────────────────────── */
+.files {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/*
+ * 加载中 / 出错 / 空态 —— 交给共享的 AsyncBoundary 渲染。
+ *
+ * `className` 只落在 AsyncBoundary 的**状态容器**上（列表正常渲染时不生效），
+ * 这里用自动外边距把它在列表区里垂直居中。
+ */
+.boundary {
+  margin: auto 0;
+}
+
+.placeholderText {
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--kb-muted);
+}
+
+.file {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fileName {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--kb-heading);
+}
+
+.fileName > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fileIcon {
+  display: block;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  object-fit: contain;
+}
+
+.state {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--kb-brand);
+}
+
+/* 已完成的项状态转灰（设计稿 `.kb-queue-file.done .kb-queue-state`）。 */
+.fileDone .state {
+  color: var(--kb-muted);
+}
+
+/* 解析失败 —— 状态文字转危险色（进度条不画，见组件里的说明）。 */
+.fileFailed .state {
+  color: var(--kb-danger);
+}
+
+.percent {
+  color: inherit;
+}
+
+/* 3px 的圆角进度条（设计稿 `.kb-progress`）。 */
+.progress {
+  height: 3px;
+  border-radius: 999px;
+  background: var(--kb-app-bg);
+  overflow: hidden;
+}
+
+.progressFill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--kb-brand);
+}
+
+/* 处理中的进度条 —— 宽度由接口的 progress 决定。 */
+.progressBar {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--kb-brand);
+  transition: width 0.3s ease;
+}
+
+/* ── 底部 ───────────────────────────────────────────── */
+.footer {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  height: 52px;
+  padding: 8px;
+  border-top: 1px solid var(--kb-border);
+}
+
+.clearButton {
+  flex: 1;
+  justify-content: center;
+  height: 36px !important;
+  border-radius: 8px !important;
+}

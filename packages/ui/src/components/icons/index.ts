@@ -135,3 +135,17 @@ export type AppIconName = keyof typeof ICON_MAP;
  * 在这张表里 = 定制图标(设计单独给的 SVG),不在 = icon-park 自带。
  */
 export { CUSTOM_ICON_MAP };
+
+/**
+ * 定制图标工厂 —— 导出给「有自己的 SVG 目录」的消费方用。
+ *
+ * `aionuiSvgIconPlugin` 编译 `*.svg?component` 时，会从 SVG 所在目录往上找
+ * 一个叫 `customIcons.tsx` / `customIcons.ts` 的工厂文件，并生成
+ * `import { createCustomIcon } from '<那个文件>'`。
+ *
+ * 共享包自己的图标在 `icons/svg/` 下，工厂就在隔壁，所以这条链路一直是自洽的。
+ * 但**子应用**（如 knowledge-base 微应用）也有自己的 SVG 目录时，它需要一份
+ * 同样签名的工厂 —— 转发到这里就行，不必把实现抄一遍。
+ */
+export { createCustomIcon } from './customIcons';
+export type { CustomIconOptions, CustomIconRenderProps } from './customIcons';

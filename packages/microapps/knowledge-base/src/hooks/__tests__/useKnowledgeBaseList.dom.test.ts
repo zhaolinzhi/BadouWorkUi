@@ -29,12 +29,13 @@ const jsonResponse = (body: unknown) =>
     headers: { 'Content-Type': 'application/json' },
   });
 
+// 跟真实响应一致：`fileCount` 是**字符串**。
 const personalRow = {
   id: 'p_remote_1',
   name: '工程资料',
-  flgPublicDesc: '工程资料库',
-  storageBaseDesc: '工程相关',
-  fileCount: 5,
+  flgPublicDesc: '系统管理员',
+  storageBaseDesc: '向量库',
+  fileCount: '5',
   createTime: '2026-08-01',
   shareObject: 'me',
 };
@@ -43,7 +44,7 @@ const sharedRow = {
   id: 's_remote_1',
   name: 'Shared Doc',
   shareObject: 'team',
-  fileCount: 10,
+  fileCount: '10',
   createTime: '2026-08-02',
 };
 
@@ -102,8 +103,9 @@ describe('useKnowledgeBaseList', () => {
     expect(item).toMatchObject({
       id: 'p_remote_1',
       name: '工程资料',
-      description: '工程资料库',
-      owner: 'me',
+      // 描述取存储类型（storageBaseDesc），拥有者取创建人（flgPublicDesc）。
+      description: '向量库',
+      owner: '系统管理员',
       documentCount: 5,
       createdAt: '2026-08-01',
       isShared: false,
@@ -131,6 +133,36 @@ describe('useKnowledgeBaseList', () => {
       owner: 'team',
       documentCount: 10,
     });
+  });
+
+  it('文档数是字符串时也解析成数字（接口给的是 "2" 而不是 2）', async () => {
+    stubFetch(async (url) => {
+      if (url.includes(PERSONAL_URL_FRAGMENT)) {
+        return jsonResponse({ Rows: [{ id: 'p1', name: '花都效能监测系统', fileCount: '2' }] });
+      }
+      if (url.includes(SHARED_URL_FRAGMENT)) return jsonResponse({ Rows: [] });
+      throw new Error(`Unexpected URL: ${url}`);
+    });
+
+    const { result } = renderHook(() => useKnowledgeBaseList());
+
+    await waitFor(() => expect(result.current.personalItems).toHaveLength(1));
+    expect(result.current.personalItems[0].documentCount).toBe(2);
+  });
+
+  it('fileCount 缺失时文档数留空，而不是当成 0', async () => {
+    stubFetch(async (url) => {
+      if (url.includes(PERSONAL_URL_FRAGMENT)) {
+        return jsonResponse({ Rows: [{ id: 'p1', name: '空知识库' }] });
+      }
+      if (url.includes(SHARED_URL_FRAGMENT)) return jsonResponse({ Rows: [] });
+      throw new Error(`Unexpected URL: ${url}`);
+    });
+
+    const { result } = renderHook(() => useKnowledgeBaseList());
+
+    await waitFor(() => expect(result.current.personalItems).toHaveLength(1));
+    expect(result.current.personalItems[0].documentCount).toBeUndefined();
   });
 
   it('clears personal items when personal fetch fails (no fallback)', async () => {
