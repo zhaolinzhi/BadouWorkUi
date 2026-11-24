@@ -179,7 +179,7 @@ linux:
       Comment: ${description}
       Icon: ${executableName}
       Categories: Office;Utility;
-      MimeType: x-scheme-handler/badouwork;
+      MimeType: x-scheme-handler/badouworkenterprise;
 
 npmRebuild: false
 buildDependenciesFromSource: false
