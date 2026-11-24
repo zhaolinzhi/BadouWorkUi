@@ -198,7 +198,7 @@ class AutoUpdaterService extends EventEmitter {
       const devConfig = [
         'provider: generic',
         `url: ${cdnFeedOptions.url}`,
-        'updaterCacheDirName: com.badouwork.app',
+        'updaterCacheDirName: com.badouwork.appenterprise',
         '',
       ].join('\n');
       const configPath = path.join(app.getPath('userData'), 'dev-app-update.yml');

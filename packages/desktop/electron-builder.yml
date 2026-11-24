@@ -1,12 +1,12 @@
-appId: com.badouwork.app
-productName: BadouWork
-executableName: BadouWork
+appId: com.badouwork.appenterprise
+productName: BadouWorkEnterprise
+executableName: BadouWorkEnterprise
 copyright: Copyright © 2024 BadouWork
 
 protocols:
-  - name: BadouWork Protocol
+  - name: BadouWorkEnterprise Protocol
     schemes:
-      - badouwork
+      - badouworkenterprise
 
 asar:
   smartUnpack: true

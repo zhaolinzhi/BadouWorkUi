@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import { describe, expect, it } from 'vitest';
+import fs from 'fs';
+import path from 'path';
 import { PROTOCOL_SCHEME, parseDeepLinkUrl } from '@/process/utils/deepLink';
 
 describe('parseDeepLinkUrl', () => {
@@ -36,10 +38,17 @@ describe('parseDeepLinkUrl', () => {
     expect(parsed?.params.data).toBeUndefined();
   });
 
-  it('uses the badouwork scheme that electron-builder registers', () => {
-    // electron-builder.yml declares `schemes: [badouwork]`. If the runtime
+  it('uses the scheme that electron-builder registers', () => {
+    // electron-builder.yml declares `schemes: [<scheme>]`. If the runtime
     // scheme drifts from that, the OS routes the callback but the parser
     // discards it and login never completes.
-    expect(PROTOCOL_SCHEME).toBe('badouwork');
+    //
+    // The expected value is read from the builder config rather than
+    // hardcoded, so renaming the scheme (e.g. a branded build) cannot
+    // leave this assertion stale.
+    const ymlPath = path.resolve(__dirname, '../../../packages/desktop/electron-builder.yml');
+    const yml = fs.readFileSync(ymlPath, 'utf8');
+    const match = yml.match(/^\s*schemes:\s*\n\s*-\s*(\S+)\s*$/m);
+    expect(match?.[1]).toBe(PROTOCOL_SCHEME);
   });
 });

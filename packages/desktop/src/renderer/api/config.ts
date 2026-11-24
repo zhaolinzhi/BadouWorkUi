@@ -36,7 +36,7 @@ export const EXTERNAL_LOGIN_URL_BASE =
  *  to deep-link back to BadouWork after SSO instead of staying on its own
  *  success page. The value doubles as the deep-link scheme — AIPaaS maps
  *  `from=<x>` to the `<x>://` callback URL. */
-export const EXTERNAL_LOGIN_FLAG = 'from=badouwork';
+export const EXTERNAL_LOGIN_FLAG = 'from=badouworkenterprise';
 
 /** Deep-link action for the auth callback. `aipaas-front` redirects here:
  *   badouwork://auth/callback?token=<token>&userId=<id>&username=<name> */

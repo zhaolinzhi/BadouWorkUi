@@ -8,7 +8,7 @@ import type { BrowserWindow } from 'electron';
 import { ipcBridge } from '@/common';
 import { handleExternalLoginDeepLink, isExternalLoginAction } from '@/process/auth';
 
-export const PROTOCOL_SCHEME = 'badouwork';
+export const PROTOCOL_SCHEME = 'badouworkenterprise';
 
 /**
  * Parse a badouwork:// URL into action and params.

@@ -113,8 +113,8 @@ export const getUserDataRoot = (): string => getElectronPathOrFallback('userData
  * across accounts, so the account key is part of the name.
  */
 export const getAccountSymlinkNames = (scope: { key: string }): { data: string; config: string } => ({
-  data: getEnvAwareName(`.aionui-accounts/${scope.key}`),
-  config: getEnvAwareName(`.aionui-config-accounts/${scope.key}`),
+  data: getEnvAwareName(`.aionwork-accounts/${scope.key}`),
+  config: getEnvAwareName(`.aionwork-config-accounts/${scope.key}`),
 });
 
 /**
@@ -131,7 +131,7 @@ export const getDataPath = (): string => {
     return ensureCliSafeSymlink(scope.dataDir, getAccountSymlinkNames(scope).data);
   }
   const dataPath = path.join(getUserDataRoot(), 'aionui');
-  return ensureCliSafeSymlink(dataPath, getEnvAwareName('.aionui'));
+  return ensureCliSafeSymlink(dataPath, getEnvAwareName('.aionwork'));
 };
 
 /**
@@ -145,7 +145,7 @@ export const getConfigPath = (): string => {
     return ensureCliSafeSymlink(scope.configDir, getAccountSymlinkNames(scope).config);
   }
   const configPath = path.join(getUserDataRoot(), 'config');
-  return ensureCliSafeSymlink(configPath, getEnvAwareName('.aionui-config'));
+  return ensureCliSafeSymlink(configPath, getEnvAwareName('.aionwork-config'));
 };
 
 /**
