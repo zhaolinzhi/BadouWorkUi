@@ -24,7 +24,9 @@ import {
   wsEmitter,
   wsMappedEmitter,
   stubEmitter,
+  wsSend,
   httpRequest,
+  resetWsForBackendRestart,
 } from '@/common/adapter/httpBridge';
 
 type FakeSocketEventMap = {
@@ -42,6 +44,8 @@ class FakeWebSocket {
   static instances: FakeWebSocket[] = [];
 
   readyState = FakeWebSocket.CONNECTING;
+  /** Frames handed to `send` — the record of what actually went out. */
+  readonly sent: string[] = [];
   private readonly listeners: { [K in keyof FakeSocketEventMap]: FakeSocketEventMap[K][] } = {
     open: [],
     message: [],
@@ -55,6 +59,10 @@ class FakeWebSocket {
 
   addEventListener<K extends keyof FakeSocketEventMap>(type: K, listener: FakeSocketEventMap[K]) {
     this.listeners[type].push(listener);
+  }
+
+  send(data: string) {
+    this.sent.push(data);
   }
 
   close() {
@@ -414,6 +422,82 @@ describe('httpBridge', () => {
       const emitter = wsEmitter('test');
       // Should not throw
       emitter.emit();
+    });
+  });
+
+  /**
+   * The outbound queue — the regression guard for "the Explorer shows the
+   * folders but never the files inside them".
+   *
+   * The Project Explorer's very first `fs/subscribe` is sent while the socket
+   * is still handshaking. Dropping that frame left the tree with the folder
+   * rows (they come from the HTTP project detail) and no listing at all, so
+   * the folders looked empty. The frame is now queued and delivered the moment
+   * the socket opens.
+   */
+  describe('ws outbound queue', () => {
+    beforeEach(() => {
+      // Drop any socket a previous test left behind, so `ensureWs` dials a new
+      // one and the assertions below can rely on `FakeWebSocket.instances[0]`.
+      resetWsForBackendRestart();
+      vi.useFakeTimers();
+      vi.stubGlobal('window', { __backendPort: 13400 });
+      vi.stubGlobal('WebSocket', FakeWebSocket as unknown as typeof WebSocket);
+      vi.spyOn(console, 'debug').mockImplementation(() => {});
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      FakeWebSocket.instances = [];
+    });
+
+    afterEach(() => {
+      resetWsForBackendRestart();
+      vi.clearAllTimers();
+      vi.useRealTimers();
+    });
+
+    it('delivers a frame that was sent while the socket was still connecting', () => {
+      const accepted = wsSend('fs', { hello: 1 });
+      expect(accepted).toBe(true);
+
+      const socket = FakeWebSocket.instances[0];
+      expect(socket.sent).toHaveLength(0); // nothing went out during the handshake
+
+      socket.dispatchOpen();
+      expect(socket.sent).toHaveLength(1);
+      expect(JSON.parse(socket.sent[0])).toEqual({ name: 'fs', data: { hello: 1 } });
+    });
+
+    it('sends straight away when the socket is already open', () => {
+      // Open a socket first so the next send finds it OPEN.
+      wsEmitter('fs').on(() => {});
+      FakeWebSocket.instances[0].dispatchOpen();
+
+      const accepted = wsSend('fs', { hello: 2 });
+      expect(accepted).toBe(true);
+      expect(FakeWebSocket.instances[0].sent).toHaveLength(1);
+    });
+
+    it('drops a queued frame and notifies the consumers when the socket closes before opening', () => {
+      const events: unknown[] = [];
+      wsEmitter('realtime.reconnected').on((payload: unknown) => events.push(payload));
+
+      wsSend('fs', { hello: 3 }); // queued behind the handshake
+      FakeWebSocket.instances[0].dispatchClose();
+
+      // The request for that frame will never be answered, so the consumers
+      // have to be told to reject it and re-declare their state.
+      expect(events).toHaveLength(1);
+    });
+
+    it('notifies the consumers when a first handshake fails and a later one succeeds', () => {
+      const events: unknown[] = [];
+      wsEmitter('realtime.reconnected').on((payload: unknown) => events.push(payload));
+
+      wsEmitter('fs').on(() => {}); // opens the socket
+      FakeWebSocket.instances[0].dispatchClose(); // …which fails before opening
+      vi.advanceTimersByTime(30000);
+      FakeWebSocket.instances[1].dispatchOpen();
+
+      expect(events).toHaveLength(1);
     });
   });
 

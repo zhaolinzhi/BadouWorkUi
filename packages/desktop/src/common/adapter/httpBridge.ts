@@ -417,6 +417,23 @@ let ws: WebSocket | null = null;
 let wsReconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let wsReconnectAttempt = 0;
 let wsHasOpened = false;
+/** Sockets that closed before they ever opened (a failed handshake). */
+let wsFailedAttempts = 0;
+
+/**
+ * Frames handed to the socket while it was still handshaking.
+ *
+ * A frame sent during the handshake is not lost — it is delivered the moment
+ * the socket opens. Dropping it instead is what made the Project Explorer
+ * show empty folders: the very first `fs/subscribe` is always sent while the
+ * socket is still CONNECTING, so it was dropped, the store's subscribe
+ * promise rejected, and the tree never received a directory listing at all
+ * (the folder rows come from the HTTP project detail, so they showed up while
+ * their contents did not).
+ */
+type WsOutboundFrame = { name: string; data: unknown };
+const WS_OUTBOUND_QUEUE_LIMIT = 200;
+let wsOutboundQueue: WsOutboundFrame[] = [];
 
 function dispatchWsEvent(eventName: string, payload: unknown): void {
   const handlers = wsListeners.get(eventName);
@@ -451,12 +468,21 @@ function ensureWs(): void {
   }
 
   const current = ws;
+  let socketOpened = false;
 
   current.addEventListener('open', () => {
     console.debug('[ensureWs] CONNECTED');
-    const isReconnect = wsHasOpened;
+    socketOpened = true;
+    // A reconnection: either a socket that had opened before went away, or a
+    // previous handshake failed and this is the socket that finally connected.
+    // Both cases mean "in-flight requests are gone, re-declare your state".
+    const isReconnect = wsHasOpened || wsFailedAttempts > 0;
     wsHasOpened = true;
+    wsFailedAttempts = 0;
     wsReconnectAttempt = 0;
+    // Hand over the frames that were queued during the handshake before the
+    // consumers re-declare their state, so the queue keeps its order.
+    flushOutboundQueue(current);
     if (isReconnect) {
       dispatchWsEvent(REALTIME_RECONNECTED_EVENT, { timestamp: Date.now() });
     }
@@ -465,6 +491,15 @@ function ensureWs(): void {
   current.addEventListener('close', (e) => {
     console.debug('[ensureWs] CLOSED code=' + e.code + ' reason=' + e.reason);
     if (ws === current) ws = null;
+    if (!socketOpened) wsFailedAttempts += 1;
+    // Queued frames died with the socket. Their requests will never be
+    // answered, so the consumers have to reject them and re-declare their
+    // state — otherwise the caller waits forever on a response that cannot
+    // arrive.
+    if (wsOutboundQueue.length > 0) {
+      wsOutboundQueue = [];
+      dispatchWsEvent(REALTIME_RECONNECTED_EVENT, { timestamp: Date.now() });
+    }
     scheduleWsReconnect();
   });
 
@@ -507,6 +542,14 @@ export function resetWsForBackendRestart(): void {
   const current = ws;
   ws = null;
   wsHasOpened = false;
+  wsFailedAttempts = 0;
+  // The queued frames belong to the old backend; they are re-declared by the
+  // consumer on the next connection.
+  wsOutboundQueue = [];
+  // The connection is gone for good: everything in flight on it will never be
+  // answered, so the consumers have to reject those requests and re-declare
+  // their state against the new backend.
+  dispatchWsEvent(REALTIME_RECONNECTED_EVENT, { timestamp: Date.now() });
   if (current && current.readyState <= WebSocket.OPEN) {
     try {
       current.close();
@@ -527,19 +570,61 @@ function scheduleWsReconnect(): void {
 }
 
 /**
+ * Hand the queued frames to a freshly opened socket, in the order they were
+ * queued.
+ *
+ * The queue holds frames that were sent while the socket was still
+ * handshaking. They were never lost, so they are delivered here rather than
+ * dropped — this is what makes the first `fs/subscribe` (always sent during
+ * the handshake) reach the backend.
+ */
+function flushOutboundQueue(socket: WebSocket): void {
+  if (wsOutboundQueue.length === 0) return;
+  const queued = wsOutboundQueue;
+  wsOutboundQueue = [];
+  for (const frame of queued) {
+    try {
+      socket.send(JSON.stringify({ name: frame.name, data: frame.data }));
+    } catch (e) {
+      console.error('[wsSend] queued frame could not be sent:', e);
+    }
+  }
+}
+
+/**
  * Send an outbound frame over the shared WS singleton, wrapped in the realtime
  * envelope `{ name, data }` (backend routes by `name`; the fs monitor uses
  * `name === "fs"`, see stage-1 protocol.md v3).
  *
- * Ordered-stream semantics: if the socket is not OPEN the frame is **dropped**
- * (never buffered). The caller re-declares full state on reconnect (the monitor
- * client zeroes `current` and re-subscribes via `realtime.reconnected`), so a
- * dropped outbound never leaves an undetectable gap. Returns `true` when the
- * frame was handed to the socket.
+ * Ordered-stream semantics:
+ *
+ * - Socket OPEN → the frame goes out immediately.
+ * - Socket CONNECTING (the handshake is still running) → the frame is queued
+ *   and delivered the moment the socket opens. Dropping it here is what left
+ *   the Project Explorer showing empty folders: its first `fs/subscribe` is
+ *   always sent during the handshake, so it never reached the backend and the
+ *   tree never received a directory listing.
+ * - No socket at all (the constructor threw) → the frame is dropped and the
+ *   caller is told, so it can re-declare its state.
+ *
+ * Returns `true` when the frame was handed to the socket (directly or via the
+ * queue) and `false` only when it was dropped.
  */
 export function wsSend(name: string, data: unknown): boolean {
   ensureWs();
-  if (!ws || ws.readyState !== WebSocket.OPEN) {
+  if (!ws) {
+    return false;
+  }
+  if (ws.readyState === WebSocket.CONNECTING) {
+    if (wsOutboundQueue.length >= WS_OUTBOUND_QUEUE_LIMIT) {
+      // A socket that never opens must not grow the queue without bound.
+      wsOutboundQueue.shift();
+    }
+    wsOutboundQueue.push({ name, data });
+    console.debug('[wsSend] queued (connecting)', name);
+    return true;
+  }
+  if (ws.readyState !== WebSocket.OPEN) {
     return false;
   }
   try {
